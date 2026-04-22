@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@layer base {
+  /* Ity dia mifehy ny fiovan'ny loko ho malama (smooth) */
+  body {
+    @apply transition-colors duration-300;
+  }
+}
+
+/* Ity no mifehy ny Dark Mode amin'ny fomba tsotra ao amin'ny v4 */
+@variant dark (&:where(.dark, .dark *));
