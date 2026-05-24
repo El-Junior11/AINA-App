@@ -2,7 +2,6 @@ const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Ampiasao ny secret avy amin'ny .env na ilay tsinjo_secret_key_2026 efa nifanarahana
 const JWT_SECRET = process.env.JWT_SECRET || 'tsinjo_secret_key_2026';
 
 exports.register = async (req, res) => {
@@ -54,9 +53,13 @@ exports.login = async (req, res) => {
             return res.status(401).json({ message: "Identifiants invalides." });
         }
 
-        // Eto no zava-dehibe: user_id no ampidirina ao anaty token
+        // Fampidirana ny user_id sy ny role ao anaty payload
+        // Izany no ahafahan'ny middleware mamantatra ny zon'ny Admin
         const token = jwt.sign(
-            { user_id: user.user_id, role: user.role },
+            { 
+                user_id: user.user_id, 
+                role: user.role 
+            },
             JWT_SECRET,
             { expiresIn: '24h' }
         );

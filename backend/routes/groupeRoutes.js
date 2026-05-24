@@ -3,13 +3,13 @@ const router = express.Router();
 const groupeController = require('../controllers/groupeController');
 const authenticateToken = require('../middleware/authMiddleware'); // Ampio ity
 
-// Ampio authenticateToken amin'ny POST, PUT, ary DELETE farafahakeliny
-router.get('/', groupeController.getAllGroupes);
-router.get('/menages-list', groupeController.getDistinctMenages);
-router.get('/:id', groupeController.getGroupeById);
+// Ampio amin'ny GET rehetra ny authenticateToken
+router.get('/', authenticateToken, groupeController.getAllGroupes);
+router.get('/menages-list', authenticateToken, groupeController.getDistinctMenages);
+router.get('/:id', authenticateToken, groupeController.getGroupeById);
 
-router.post('/', authenticateToken, groupeController.createGroupe); // Eto
-router.put('/:id', authenticateToken, groupeController.updateGroupe); // Eto
-router.delete('/:id', authenticateToken, groupeController.deleteGroupe); // Eto
+router.post('/', authenticateToken, groupeController.createGroupe);
+router.put('/:id', authenticateToken, groupeController.updateGroupe);
+router.delete('/:id', authenticateToken, groupeController.deleteGroupe);
 
 module.exports = router;

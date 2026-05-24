@@ -9,6 +9,13 @@ import AdminLayout from './layouts/AdminLayout';
 import GroupePage from './pages/GroupePage';
 import ReseauPage from './pages/ReseauPage';
 import ResponsablePage from './pages/ResponsablePage';
+import FormationPage from './pages/FormationPage';
+import Notifications from './pages/Notifications';
+import FormationStat from './pages/FormationStat';
+
+
+
+
 
 
 
@@ -42,7 +49,10 @@ function App() {
             <Route path="groupes" element={<GroupePage/>}/>
             <Route path="reseaux" element={<ReseauPage/>} />
             <Route path="responsables" element={<ResponsablePage/>} />
-            <Route path="formations" element={<div> Formations</div>} />
+            <Route path="formations" element={< FormationPage/>} />
+            <Route path="notifications" element={< Notifications/>} />
+            <Route path="/formation-stats" element={<FormationStat />} />
+
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />

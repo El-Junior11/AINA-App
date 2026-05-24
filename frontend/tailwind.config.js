@@ -4,9 +4,14 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // Ity no manome baiko an'i Tailwind hijery ny class "dark"
+  darkMode: 'class', 
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        // Roboto no ho lasa font default
+        sans: ['Roboto', 'ui-sans-serif', 'system-ui'],
+      },
+    },
   },
   plugins: [],
 }

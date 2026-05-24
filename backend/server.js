@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
+require('./models/associations');
+
 
 // 1. Fifandraisana amin'ny Database
 const sequelize = require('./config/db'); 
@@ -13,7 +15,7 @@ const membreRoutes = require('./routes/membreRoutes');
 const groupeRoutes = require('./routes/groupeRoutes'); 
 const reseauRoutes = require('./routes/reseauRoutes'); 
 const responsableRoutes = require('./routes/responsableRoutes'); 
-
+const formationRoutes = require('./routes/formationRoutes');
 
 const app = express();
 
@@ -30,6 +32,7 @@ app.use('/api/membres', membreRoutes);
 app.use('/api/groupes', groupeRoutes);
 app.use('/api/reseaux', reseauRoutes); 
 app.use('/api/responsables', responsableRoutes); 
+app.use('/api/formations', formationRoutes);
 
 
 

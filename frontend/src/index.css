@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Roboto", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
-  /* Ity dia mifehy ny fiovan'ny loko ho malama (smooth) */
   body {
-    @apply transition-colors duration-300;
+    @apply font-sans bg-slate-50 text-slate-900 transition-colors duration-300;
   }
 }
 
-/* Ity no mifehy ny Dark Mode amin'ny fomba tsotra ao amin'ny v4 */
 @variant dark (&:where(.dark, .dark *));

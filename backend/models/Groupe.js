@@ -12,7 +12,7 @@ const Groupe = sequelize.define('Groupe', {
         allowNull: false
     },
     nummenage: {
-        type: DataTypes.STRING, // Tehirizina ho string (ohatra: "M01, M02")
+        type: DataTypes.STRING, 
         allowNull: true
     },
     commune: {
@@ -26,10 +26,21 @@ const Groupe = sequelize.define('Groupe', {
     village: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    // Nampiana ny date_creation eto
+    date_creation: {
+        type: DataTypes.DATEONLY, // DATEONLY dia mifanaraka amin'ny DATE any amin'ny SQL (YYYY-MM-DD)
+        allowNull: true
     }
 }, {
-    tableName: 'groupes', // Anaran'ny tabilao ao amin'ny Postgres
-    timestamps: false
+    tableName: 'groupes',
+    timestamps: true, // Azo atao true raha te hampiasa automatique ny created_at sy updated_at ianao
+    createdAt: 'created_at', // Mampifandray ny createdAt amin'ny created_at ao amin'ny Postgres
+    updatedAt: 'updated_at'  // Mampifandray ny updatedAt amin'ny updated_at ao amin'ny Postgres
 });
 
 module.exports = Groupe;

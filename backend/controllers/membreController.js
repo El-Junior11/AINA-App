@@ -2,18 +2,23 @@ const Membre = require('../models/membreModel');
 
 exports.getMembres = async (req, res) => {
     try {
-        // Hamarino aloha raha misy req.user (middleware check)
         if (!req.user || !req.user.user_id) {
-            return res.status(401).json({ error: "Utilisateur non authentifié ou token manquant" });
+            return res.status(401).json({ error: "Utilisateur non authentifié" });
         }
 
+        const filter = req.user.role === 'admin' 
+            ? {} 
+            : { user_id: req.user.user_id };
+
+        // 2. Alaina ny data araka ilay sivana
         const data = await Membre.findAll({
-            where: { user_id: req.user.user_id },
+            where: filter,
             order: [['nummembre', 'ASC']]
         });
+
         res.json(data);
     } catch (err) {
-        console.error("ERREUR BACKEND:", err); // Jereo ny terminal any amin'ny VS Code
+        console.error("ERREUR BACKEND:", err);
         res.status(500).json({ error: "Erreur interne du serveur" });
     }
 };
