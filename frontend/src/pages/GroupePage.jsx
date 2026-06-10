@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { getGroupes, getMenagesList, createGroupe, deleteGroupe, updateGroupe } from '../services/groupeService';
+import { getGroupes, createGroupe, deleteGroupe, updateGroupe } from '../services/groupeService';
 import Swal from 'sweetalert2';
 import { 
-  Trash2, Edit2, Users, X, Loader2, Save, CheckCircle2, 
+  Trash2, Edit2, Users, X, Loader2, Save, 
   MapPin, Search, FileText, Download, Printer, Plus, BarChart3, Calendar
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -24,7 +24,6 @@ const Toast = Swal.mixin({
 const GroupePage = () => {
   const [groupes, setGroupes] = useState([]);
   const [filteredGroupes, setFilteredGroupes] = useState([]);
-  const [menagesDisponibles, setMenagesDisponibles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -34,7 +33,7 @@ const GroupePage = () => {
 
   const [formData, setFormData] = useState({
     nomgs: '',
-    nummenage: [],
+    nummenage: '',
     commune: '',
     fokontany: '',
     village: '',
@@ -54,10 +53,9 @@ const GroupePage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resGroupes, resMenages] = await Promise.all([getGroupes(), getMenagesList()]);
+      const resGroupes = await getGroupes();
       setGroupes(resGroupes.data);
       setFilteredGroupes(resGroupes.data);
-      setMenagesDisponibles(resMenages.data);
     } catch (error) {
       console.error(error);
       Toast.fire({ 
@@ -102,28 +100,14 @@ const GroupePage = () => {
     }
   };
 
-  const handleCheck = (num) => {
-    setFormData(prev => ({
-      ...prev,
-      nummenage: prev.nummenage.includes(num)
-        ? prev.nummenage.filter(item => item !== num)
-        : [...prev.nummenage, num]
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
-      const payload = {
-        ...formData,
-        nummenage: Array.isArray(formData.nummenage) ? formData.nummenage.join(', ') : formData.nummenage
-      };
-
       if (editingId) {
-        await updateGroupe(editingId, payload);
+        await updateGroupe(editingId, formData);
       } else {
-        await createGroupe(payload);
+        await createGroupe(formData);
       }
       setShowModal(false);
       resetForm();
@@ -135,16 +119,19 @@ const GroupePage = () => {
     } finally { setLoading(false); }
   };
 
+  // Fitaovana famafana misy fanamafisana (Confirmation Toast)
   const handleDelete = async (id) => {
     Swal.fire({
-      title: 'Supprimer ce groupe ?',
-      text: "Cette action est irréversible !",
+      toast: true,
+      position: 'top-end',
+      title: 'Supprimer ce groupe ?', 
       icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
+      showCancelButton: true, 
+      confirmButtonColor: '#ef4444', 
       cancelButtonColor: '#64748b',
-      confirmButtonText: 'Oui, supprimer !',
-      cancelButtonText: 'Annuler'
+      confirmButtonText: 'Oui', 
+      cancelButtonText: 'Non',
+      reverseButtons: true
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
@@ -162,15 +149,14 @@ const GroupePage = () => {
 
   const openEditModal = (g) => {
     setEditingId(g.codegs);
-    const menageArray = typeof g.nummenage === 'string' ? g.nummenage.split(', ') : (g.nummenage || []);
     const formattedDate = g.date_creation ? new Date(g.date_creation).toISOString().split('T')[0] : '';
-    setFormData({ ...g, nummenage: menageArray, date_creation: formattedDate });
+    setFormData({ ...g, nummenage: g.nummenage || '', date_creation: formattedDate });
     setShowModal(true);
   };
 
   const resetForm = () => {
     setEditingId(null);
-    setFormData({ nomgs: '', nummenage: [], commune: '', fokontany: '', village: '', date_creation: '' });
+    setFormData({ nomgs: '', nummenage: '', commune: '', fokontany: '', village: '', date_creation: '' });
   };
 
   return (
@@ -193,16 +179,16 @@ const GroupePage = () => {
             </button>
             {showExportMenu && (
               <div className="absolute right-0 mt-3 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 border-b dark:border-slate-800">
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-200 border-b dark:border-slate-800">
                   <FileText size={16} className="text-red-500" /> Document PDF
                 </button>
-                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-200">
                   <Download size={16} className="text-emerald-600" /> Feuille Excel
                 </button>
               </div>
             )}
           </div>
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all font-black text-xs uppercase">
+          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all font-black text-xs uppercase">
             <BarChart3 size={18} /><span className="hidden sm:block">{showStats ? 'Fermer' : 'Statistiques'}</span>
           </button>
           <button 
@@ -217,17 +203,17 @@ const GroupePage = () => {
       {showStats && (
         <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top duration-300">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-blue-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-400 uppercase">Total Groupes</span>
+            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Total Groupes</span>
             <p className="text-3xl font-black text-slate-800 dark:text-white">{filteredGroupes.length}</p>
           </div>
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-emerald-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-400 uppercase">Ménages Couverts</span>
+            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Ménages Couverts</span>
             <p className="text-3xl font-black text-slate-800 dark:text-white">
               {[...new Set(filteredGroupes.flatMap(g => g.nummenage?.split(',') || []))].length}
             </p>
           </div>
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-orange-500 shadow-sm">
-            <span className="text-[10px] font-black text-slate-400 uppercase">Zones (Communes)</span>
+            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Zones (Communes)</span>
             <p className="text-3xl font-black text-slate-800 dark:text-white">
               {[...new Set(filteredGroupes.map(g => g.commune))].length}
             </p>
@@ -237,16 +223,16 @@ const GroupePage = () => {
 
       <div className="px-6 py-4 flex items-center gap-4">
         <div className="relative group flex-1 max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 dark:text-white group-focus-within:text-blue-500 transition-colors" size={20} />
           <input 
             type="text" 
             placeholder="Rechercher un groupe, un ménage ou un lieu..." 
-            className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] border-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium"
+            className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] border-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium text-slate-900"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 hover:bg-red-100 p-1.5 rounded-full text-slate-400 hover:text-red-500 transition-all">
+            <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 hover:bg-red-100 p-1.5 rounded-full text-slate-900 hover:text-red-500 transition-all">
               <X size={16} />
             </button>
           )}
@@ -256,7 +242,7 @@ const GroupePage = () => {
       <div className="flex-1 overflow-auto px-6 pb-6">
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
           <table className="w-full flex flex-col">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[14px] font-black tracking-widest text-slate-500 border-b dark:border-slate-800 w-full">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[14px] font-black tracking-widest text-slate-900 dark:text-white border-b dark:border-slate-800 w-full">
               <tr className="flex w-full">
                 <th className="px-6 py-5 text-left w-20 flex-shrink-0">N°</th>
                 <th className="px-6 py-5 text-left flex-1">Nom du GS</th>
@@ -273,7 +259,7 @@ const GroupePage = () => {
                 <tr className="w-full"><td className="p-20 text-center w-full"><Loader2 size={30} className="animate-spin inline text-blue-600" /></td></tr>
               ) : filteredGroupes.map((g, index) => (
                 <tr key={g.codegs} className="flex w-full items-center hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group border-b border-slate-50 dark:border-slate-800 last:border-0">
-                  <td className="px-6 py-4 text-xs font-black text-slate-400 w-20 flex-shrink-0">{index + 1}</td>
+                  <td className="px-6 py-4 text-xs font-black text-slate-900 dark:text-white w-20 flex-shrink-0">{index + 1}</td>
                   <td className="px-6 py-4 flex-1">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
@@ -282,7 +268,7 @@ const GroupePage = () => {
                       <div>
                         <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase truncate block">{g.nomgs}</span>
                         {g.date_creation && (
-                           <span className="text-[9px] text-slate-400 font-bold uppercase flex items-center gap-1">
+                           <span className="text-[9px] text-slate-900 dark:text-white font-bold uppercase flex items-center gap-1">
                              <Calendar size={10} /> {new Date(g.date_creation).toLocaleDateString()}
                            </span>
                         )}
@@ -299,7 +285,7 @@ const GroupePage = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 flex-1">
-                    <div className="flex items-center gap-1 text-[11px] text-slate-500 font-bold uppercase truncate">
+                    <div className="flex items-center gap-1 text-[11px] text-slate-900 dark:text-white font-bold uppercase truncate">
                       <MapPin size={12} className="text-red-500 flex-shrink-0" />
                       <span className="truncate">{g.commune}, {g.village}</span>
                     </div>
@@ -313,7 +299,7 @@ const GroupePage = () => {
                 </tr>
               ))}
               {!loading && filteredGroupes.length === 0 && (
-                <tr className="w-full"><td className="p-20 text-center text-slate-300 font-black uppercase tracking-widest w-full">Aucun groupe trouvé</td></tr>
+                <tr className="w-full"><td className="p-20 text-center text-slate-900 dark:text-white font-black uppercase tracking-widest w-full">Aucun groupe trouvé</td></tr>
               )}
             </tbody>
           </table>
@@ -335,7 +321,7 @@ const GroupePage = () => {
               <div className="grid grid-cols-1 gap-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nom du Groupe</label>
+                        <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2 tracking-widest">Nom du Groupe</label>
                         <input 
                             type="text" required
                             className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 uppercase font-black text-slate-800 dark:text-white transition-all"
@@ -343,7 +329,7 @@ const GroupePage = () => {
                         />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Date de création</label>
+                        <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2 tracking-widest">Date de création</label>
                         <input 
                             type="date" required
                             className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-800 dark:text-white transition-all"
@@ -354,42 +340,30 @@ const GroupePage = () => {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Commune</label>
-                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs" value={formData.commune} onChange={(e) => setFormData({...formData, commune: e.target.value})} />
+                    <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Commune</label>
+                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs text-slate-900 dark:text-white" value={formData.commune} onChange={(e) => setFormData({...formData, commune: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fokontany</label>
-                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs" value={formData.fokontany} onChange={(e) => setFormData({...formData, fokontany: e.target.value})} />
+                    <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Fokontany</label>
+                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs text-slate-900 dark:text-white" value={formData.fokontany} onChange={(e) => setFormData({...formData, fokontany: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Village</label>
-                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs" value={formData.village} onChange={(e) => setFormData({...formData, village: e.target.value})} />
+                    <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Village</label>
+                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs text-slate-900 dark:text-white" value={formData.village} onChange={(e) => setFormData({...formData, village: e.target.value})} />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">
-                    Ménages sélectionnés ({formData.nummenage.length})
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2 tracking-widest">
+                    Ménages rattachés (Séparez par des virgules)
                   </label>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 max-h-40 overflow-y-auto custom-scrollbar">
-                    {menagesDisponibles.map((m) => (
-                      <div 
-                        key={m.num_menage}
-                        onClick={() => handleCheck(m.num_menage)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer border transition-all ${
-                          formData.nummenage.includes(m.num_menage) 
-                          ? 'border-blue-500 bg-white dark:bg-slate-800 shadow-md scale-[1.02]' 
-                          : 'border-transparent bg-slate-200/30 dark:bg-slate-700/30 opacity-70 hover:opacity-100'
-                        }`}
-                      >
-                        <span className="text-[10px] font-black dark:text-slate-200">#{m.num_menage}</span>
-                        {formData.nummenage.includes(m.num_menage) && (
-                          <CheckCircle2 size={12} className="text-blue-500" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <input 
+                    type="text" required
+                    placeholder="Ohatra: M001, M002, M003"
+                    className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-800 dark:text-white transition-all uppercase placeholder:normal-case placeholder:font-normal"
+                    value={formData.nummenage} 
+                    onChange={(e) => setFormData({...formData, nummenage: e.target.value})} 
+                  />
                 </div>
               </div>
 

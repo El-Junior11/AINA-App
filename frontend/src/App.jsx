@@ -12,6 +12,7 @@ import ResponsablePage from './pages/ResponsablePage';
 import FormationPage from './pages/FormationPage';
 import Notifications from './pages/Notifications';
 import FormationStat from './pages/FormationStat';
+import AccountSettings from './pages/AccountSettings';
 
 
 
@@ -50,8 +51,9 @@ function App() {
             <Route path="reseaux" element={<ReseauPage/>} />
             <Route path="responsables" element={<ResponsablePage/>} />
             <Route path="formations" element={< FormationPage/>} />
-            <Route path="notifications" element={< Notifications/>} />
-            <Route path="/formation-stats" element={<FormationStat />} />
+            <Route path="/settings" element={<AccountSettings />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="formation-stats" element={<FormationStat />} />
 
           </Route>
 

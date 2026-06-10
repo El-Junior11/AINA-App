@@ -133,7 +133,7 @@ const FormationStats = () => {
                 Statistiques des Formations
               </h1>
               <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                Répartition par genre sy taranja rehetra
+                Répartition par genre des quelques formations
               </p>
             </div>
           </div>

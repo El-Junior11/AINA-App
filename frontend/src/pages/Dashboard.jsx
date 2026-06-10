@@ -53,7 +53,6 @@ const Dashboard = () => {
     const { membres, gs, responsables, formations, reseaux } = data;
     const anio = new Date().getFullYear();
 
-    // 1. Radar Performance
     const resumeData = [
       { subject: 'Membres', A: membres.length },
       { subject: 'Groupes GS', A: gs.length },
@@ -62,7 +61,6 @@ const Dashboard = () => {
       { subject: 'Responsables', A: responsables.length },
     ];
 
-    // 2. Démographie
     const ageData = [
       { name: 'Jeunes (<25)', value: membres.filter(m => (anio - parseInt(m.ann_naiss || 2000)) < 25).length },
       { name: 'Adultes (25-45)', value: membres.filter(m => {
@@ -71,7 +69,6 @@ const Dashboard = () => {
       { name: 'Aînés (>45)', value: membres.filter(m => (anio - parseInt(m.ann_naiss || 2000)) > 45).length }
     ];
 
-    // 3. NOBAREHANA : POURCENTAGE DES GROUPES PAR AN (Fivoaran'ny famoronana GS)
     const distributionGS = gs.reduce((acc, g) => {
       const year = g.date_creation ? new Date(g.date_creation).getFullYear() : 'Inconnu';
       acc[year] = (acc[year] || 0) + 1;
@@ -85,7 +82,6 @@ const Dashboard = () => {
       count: distributionGS[year]
     })).sort((a, b) => a.year - b.year);
 
-    // 4. Expertise par Module
     const modules = [
       { id: 'gestionsimplifiee', label: 'Gestion' },
       { id: 'agroeco', label: 'Agro-Éco' },
@@ -98,7 +94,6 @@ const Dashboard = () => {
       valeur: formations.filter(f => f.formation?.[mod.id] === true || f.formation?.[mod.id] === 1).length
     }));
 
-    // 5. Responsables
     const normalizePoste = (txt) => txt ? txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
     const respData = [
       { name: 'Président(e)', valeur: responsables.filter(r => normalizePoste(r?.Poste || r?.poste).includes("presid")).length },
@@ -124,7 +119,7 @@ const Dashboard = () => {
     <div className="h-full bg-[#f8fafc] dark:bg-slate-950 overflow-y-auto font-sans">
       <div className="p-8 space-y-8 max-w-7xl mx-auto">
         
-        {/* --- KPI CARDS --- */}
+        {/* --- KPI CARDS HORIZONTAL ALIGNEMENT --- */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {[
             { label: 'Membres', val: data.membres.length, icon: Users, col: 'text-indigo-600', bg: 'bg-indigo-50' },
@@ -133,10 +128,14 @@ const Dashboard = () => {
             { label: 'Responsables', val: data.responsables.length, icon: ShieldCheck, col: 'text-purple-600', bg: 'bg-purple-50' },
             { label: 'Formations', val: data.formations.length, icon: GraduationCap, col: 'text-rose-600', bg: 'bg-rose-50' },
           ].map((item, i) => (
-            <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 transition-transform hover:scale-105">
-              <div className={`${item.bg} dark:bg-slate-800 ${item.col} w-10 h-10 flex items-center justify-center rounded-2xl mb-4`}><item.icon size={20} /></div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
-              <p className="text-2xl font-black text-slate-800 dark:text-white">{item.val}</p>
+            <div key={i} className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 transition-transform hover:scale-105 flex items-center gap-4">
+              <div className={`${item.bg} dark:bg-slate-800 ${item.col} w-12 h-12 flex items-center justify-center rounded-2xl shrink-0`}>
+                <item.icon size={22} />
+              </div>
+              <div className="flex flex-col justify-center">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{item.label}</p>
+                <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{item.val}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -179,8 +178,6 @@ const Dashboard = () => {
 
         {/* --- SECTION 2: ANALYSE GS ET ÂGES --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* FIZARANA NASOLO: DISTRIBUTION DES GS PAR ANNEE */}
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border-t-[8px] border-emerald-500">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-black text-emerald-600 uppercase text-[10px] tracking-widest flex items-center gap-2">

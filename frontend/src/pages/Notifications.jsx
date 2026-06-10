@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Trash2, ChevronLeft, Search, 
-  Square, RefreshCw, AlertCircle
-} from 'lucide-react';
+import { Trash2, ChevronLeft, Search, Square, RefreshCw, AlertCircle} from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const Notifications = () => {

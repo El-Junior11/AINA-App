@@ -39,7 +39,7 @@ const FormationPage = () => {
     { id: 'agrosol', label: 'Agro-sol' },
     { id: 'agroeau', label: 'Agro-eau' },
     { id: 'agrovegetaux', label: 'Végétaux' },
-    { id: 'agroeco', label: 'Agro-éco', isAuto: true },
+    { id: 'agroeco', label: 'Agro-eco', isAuto: true },
     { id: 'productionsemence', label: 'Semences' },
     { id: 'nutritioneau', label: 'Nutri-eau' },
     { id: 'nutritionalimentaire', label: 'Alimentaire' },
@@ -216,8 +216,8 @@ const FormationPage = () => {
             <button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-lg"><Download size={18}/> Exporter</button>
             {showExportMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border z-50">
-                <button onClick={exportToExcel} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700"><FileSpreadsheet size={16} className="text-emerald-600"/> Excel</button>
-                <button onClick={exportToPDF} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700"><FilePdf size={16} className="text-rose-600"/> PDF</button>
+                <button onClick={exportToExcel} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200"><FileSpreadsheet size={16} className="text-emerald-600"/> Excel</button>
+                <button onClick={exportToPDF} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200"><FilePdf size={16} className="text-rose-600"/> PDF</button>
               </div>
             )}
           </div>
@@ -229,26 +229,26 @@ const FormationPage = () => {
         <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top duration-300">
           <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border flex items-center gap-4">
             <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-600"><Users size={24}/></div>
-            <div><p className="text-[10px] font-black text-slate-400 uppercase">Membres</p><p className="text-2xl font-black dark:text-white">{globalStats.totalMembres}</p></div>
+            <div><p className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Membres</p><p className="text-2xl font-black text-slate-900 dark:text-white">{globalStats.totalMembres}</p></div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border flex items-center gap-4">
             <div className="bg-emerald-100 p-3 rounded-2xl text-emerald-600"><CheckCircle size={24}/></div>
-            <div><p className="text-[10px] font-black text-slate-400 uppercase">Autonomie</p><p className="text-2xl font-black dark:text-white">{globalStats.totalAutonomie}</p></div>
+            <div><p className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Autonomie</p><p className="text-2xl font-black text-slate-900 dark:text-white">{globalStats.totalAutonomie}</p></div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border flex items-center gap-4">
             <div className="bg-amber-100 p-3 rounded-2xl text-amber-600"><PieChart size={24}/></div>
-            <div className="flex-1"><p className="text-[10px] font-black text-slate-400 uppercase">Taux Autonomie</p><p className="text-2xl font-black dark:text-white">{globalStats.pourcentage}%</p></div>
+            <div className="flex-1"><p className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Taux Autonomie</p><p className="text-2xl font-black text-slate-900 dark:text-white">{globalStats.pourcentage}%</p></div>
           </div>
         </div>
       )}
 
       <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative group w-full max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 dark:text-white" size={20} />
           <input 
             type="text" 
             placeholder="Rechercher..." 
-            className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm font-bold border border-transparent focus:border-indigo-500 transition-all" 
+            className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none shadow-sm font-bold border border-transparent focus:border-indigo-500 transition-all" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
           />
@@ -267,7 +267,7 @@ const FormationPage = () => {
         <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="flex-1 overflow-x-auto overflow-y-auto">
             <table className="w-full border-collapse">
-              <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800 text-[11px] font-black text-slate-500 border-b border-slate-200 dark:border-slate-800">
+              <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800 text-[11px] font-black text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="px-6 py-5 text-left w-16">N°</th>
                   <th className="px-6 py-5 text-left min-w-[200px]">Membre</th>
@@ -282,11 +282,10 @@ const FormationPage = () => {
                 ) : (
                   filteredData.map((m, index) => (
                     <tr key={m.nummembre} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group">
-                      <td className="px-6 py-4 text-xs font-black text-slate-500">{index + 1}</td>
+                      <td className="px-6 py-4 text-xs font-black text-slate-900 dark:text-white">{index + 1}</td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-sm font-black text-slate-900 dark:text-white uppercase truncate">{m.nom_membre}</span>
-                          <span className="text-[10px] text-slate-500 font-bold">{m.nummembre}</span>
+                          <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase truncate">{m.nom_membre}</span>
                         </div>
                       </td>
                       {modules.map(mod => (
@@ -294,7 +293,7 @@ const FormationPage = () => {
                           <span className={`text-[10px] font-black ${m.formation?.[mod.id] ? 'text-emerald-600 border border-transparent dark:border-emerald-800 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30' : 'text-rose-500'}`}>{m.formation?.[mod.id] ? 'Oui' : 'Non'}</span>
                         </td>
                       ))}
-                      <td className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-400 truncate max-w-[150px]">{m.formation?.autre || "-"}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-slate-200 truncate max-w-[150px]">{m.formation?.autre || "-"}</td>
                       <td className="px-6 py-4 text-right">
                         <button onClick={() => openEditModal(m)} className="p-2 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"><ClipboardCheck size={18} /></button>
                       </td>
@@ -318,20 +317,20 @@ const FormationPage = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {modules.filter(m => !m.isAuto).map(mod => (
                   <div key={mod.id} onClick={() => handleCheckboxChange(mod.id, !formData[mod.id])} className={`flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer border-2 ${formData[mod.id] ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-transparent bg-slate-50 dark:bg-slate-800'}`}>
-                    <span className="text-[10px] font-black dark:text-white">{formatText(mod.label)}</span>
-                    <span className={`text-[10px] font-black ${formData[mod.id] ? 'text-indigo-600' : 'text-slate-400'}`}>{formData[mod.id] ? 'OUI' : 'NON'}</span>
+                    <span className="text-[10px] font-black text-slate-900 dark:text-white">{formatText(mod.label)}</span>
+                    <span className={`text-[10px] font-black ${formData[mod.id] ? 'text-indigo-600' : 'text-slate-900 dark:text-white'}`}>{formData[mod.id] ? 'OUI' : 'NON'}</span>
                   </div>
                 ))}
               </div>
               <div className="pt-4 border-t space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-slate-500 uppercase">Agro-éco</p><p className={`text-xs font-black ${formData.agroeco ? 'text-emerald-600' : 'text-slate-400'}`}>{formData.agroeco ? 'OUI' : 'NON'}</p></div>
-                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-slate-500 uppercase">Nutrition</p><p className={`text-xs font-black ${formData.nutrition ? 'text-emerald-600' : 'text-slate-400'}`}>{formData.nutrition ? 'OUI' : 'NON'}</p></div>
-                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-indigo-400 uppercase">Autonomie</p><p className={`text-xs font-black ${formData.autonomie ? 'text-indigo-600' : 'text-slate-400'}`}>{formData.autonomie ? 'OUI' : 'NON'}</p></div>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-slate-900 dark:text-white uppercase">Agro-éco</p><p className={`text-xs font-black ${formData.agroeco ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>{formData.agroeco ? 'OUI' : 'NON'}</p></div>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-slate-900 dark:text-white uppercase">Nutrition</p><p className={`text-xs font-black ${formData.nutrition ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>{formData.nutrition ? 'OUI' : 'NON'}</p></div>
+                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-indigo-400 uppercase">Autonomie</p><p className={`text-xs font-black ${formData.autonomie ? 'text-indigo-600' : 'text-slate-900 dark:text-white'}`}>{formData.autonomie ? 'OUI' : 'NON'}</p></div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Observations</label>
-                  <textarea className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-xs min-h-[100px]" value={formData.autre || ''} onChange={(e) => setFormData({...formData, autre: e.target.value})} placeholder="Saisir note..."/>
+                  <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Observations</label>
+                  <textarea className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-xs min-h-[100px]" value={formData.autre || ''} onChange={(e) => setFormData({...formData, autre: e.target.value})} placeholder="Saisir note..."/>
                 </div>
               </div>
               <button type="submit" className="w-full bg-indigo-600 text-white p-5 rounded-[1.5rem] font-black shadow-xl shadow-indigo-500/30 uppercase tracking-widest shrink-0"><Save size={20} className="inline mr-2"/> Enregistrer</button>

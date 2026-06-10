@@ -242,11 +242,11 @@ const ResponsablePage = () => {
             </button>
             {showExportMenu && (
               <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-[9px] font-black text-slate-400 uppercase tracking-widest">Global</div>
-                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 border-b dark:border-slate-800"><FileText size={16} className="text-red-500" /> Document PDF</button>
-                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 border-b dark:border-slate-800"><Download size={16} className="text-emerald-600" /> Feuille Excel</button>
+                <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Global</div>
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-200 border-b dark:border-slate-800"><FileText size={16} className="text-red-500" /> Document PDF</button>
+                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-200 border-b dark:border-slate-800"><Download size={16} className="text-emerald-600" /> Feuille Excel</button>
                 
-                <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-[9px] font-black text-slate-400 uppercase tracking-widest">Femmes Bureau</div>
+                <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Femmes Bureau</div>
                 <button onClick={exportBureauFemmesPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-blue-700 dark:text-blue-400 border-b dark:border-slate-800"><ShieldCheck size={16} /> Bureau Femmes (PDF)</button>
                 <button onClick={exportBureauFemmesExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-blue-700 dark:text-blue-400"><Download size={16} /> Bureau Femmes (Excel)</button>
               </div>
@@ -261,13 +261,13 @@ const ResponsablePage = () => {
       {showStats && (
         <div className="p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 animate-in slide-in-from-top duration-300">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-blue-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-400 uppercase">Total Membres</span>
-            <p className="text-3xl font-black text-slate-800 dark:text-white">{responsables.length}</p>
+            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Total Membres</span>
+            <p className="text-3xl font-black text-slate-900 dark:text-white">{responsables.length}</p>
           </div>
           {['President', 'Tresorier', 'Secretaire'].map((p, idx) => (
             <div key={p} className={`bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 ${idx === 0 ? 'border-emerald-600' : idx === 1 ? 'border-pink-500' : 'border-amber-500'} shadow-sm`}>
-              <span className="text-[10px] font-black text-slate-400 uppercase">{p}</span>
-              <p className="text-3xl font-black text-slate-800 dark:text-white">{responsables.filter(r => r.Poste === p).length}</p>
+              <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{p}</span>
+              <p className="text-3xl font-black text-slate-900 dark:text-white">{responsables.filter(r => r.Poste === p).length}</p>
             </div>
           ))}
         </div>
@@ -275,10 +275,10 @@ const ResponsablePage = () => {
 
       <div className="px-6 py-4 flex items-center gap-4">
         <div className="relative group flex-1 max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-          <input type="text" placeholder="Rechercher par nom, groupe ou poste..." className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] border-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 dark:text-white group-focus-within:text-blue-500 transition-colors" size={20} />
+          <input type="text" placeholder="Rechercher par nom, groupe ou poste..." className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] border-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 hover:bg-red-100 p-1.5 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={16} /></button>
+            <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 hover:bg-red-100 p-1.5 rounded-full text-slate-900 dark:text-white hover:text-red-500 transition-all"><X size={16} /></button>
           )}
         </div>
       </div>
@@ -286,7 +286,7 @@ const ResponsablePage = () => {
       <div className="flex-1 overflow-auto px-6 pb-6">
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
           <table className="w-full flex flex-col">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[14px] font-black tracking-widest text-slate-500 border-b dark:border-slate-800 w-full">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[14px] font-black tracking-widest text-slate-900 dark:text-white border-b dark:border-slate-800 w-full">
               <tr className="flex w-full">
                 <th className="px-6 py-5 text-left w-20 flex-shrink-0">N°</th>
                 <th className="px-6 py-5 text-left flex-1">Responsable / Membre</th>
@@ -303,13 +303,12 @@ const ResponsablePage = () => {
                 <tr className="w-full"><td className="p-20 text-center w-full"><Loader2 size={30} className="animate-spin inline text-blue-600" /></td></tr>
               ) : filteredData.map((r, index) => (
                 <tr key={r.nummembre} className="flex w-full items-center hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group border-b border-slate-50 dark:border-slate-800 last:border-0">
-                  <td className="px-6 py-4 text-xs font-black text-slate-400 w-20 flex-shrink-0">{index + 1}</td>
+                  <td className="px-6 py-4 text-xs font-black text-slate-900 dark:text-white w-20 flex-shrink-0">{index + 1}</td>
                   <td className="px-6 py-4 flex-1">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"><Users size={16}/></div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase truncate">{r.nom_complet}</span>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase">ID: #{r.nummembre}</span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white uppercase truncate">{r.nom_complet}</span>
                       </div>
                     </div>
                   </td>
@@ -318,7 +317,7 @@ const ResponsablePage = () => {
                   </td>
                   <td className="px-6 py-4 text-center w-48 flex-shrink-0">
                     <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm ${
-                      r.Poste === 'Membres' ? 'bg-slate-100 text-slate-500' : 'bg-blue-600 text-white shadow-blue-500/20'
+                      r.Poste === 'Membres' ? 'bg-slate-100 text-slate-900 dark:text-white' : 'bg-blue-600 text-white shadow-blue-500/20'
                     }`}>
                       {r.Poste}
                     </span>
@@ -339,7 +338,7 @@ const ResponsablePage = () => {
                 </tr>
               ))}
               {!loading && filteredData.length === 0 && (
-                <tr className="w-full"><td className="p-20 text-center text-slate-300 font-black uppercase tracking-widest w-full">Aucune donnée</td></tr>
+                <tr className="w-full"><td className="p-20 text-center text-slate-900 dark:text-white font-black uppercase tracking-widest w-full">Aucune donnée</td></tr>
               )}
             </tbody>
           </table>
@@ -358,10 +357,10 @@ const ResponsablePage = () => {
             </div>
             <form onSubmit={handleSubmit} className="p-10 space-y-6">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Sélectionner la fonction</label>
+                <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Sélectionner la fonction</label>
                 <select 
                   required 
-                  className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-800 dark:text-white transition-all" 
+                  className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-900 dark:text-white transition-all" 
                   value={formData.Poste} 
                   onChange={(e) => setFormData({...formData, Poste: e.target.value})}
                 >

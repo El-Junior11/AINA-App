@@ -42,7 +42,7 @@ app.use((req, res, next) => {
 
 sequelize.sync()
     .then(() => {
-        console.log("Connexion à PostgreSQL réussie (via Sequelize).");
+        console.log("Connexion à PostgreSQL réussie.");
         
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
