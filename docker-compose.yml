@@ -1,0 +1,40 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=elyse2004
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=tsinjo_db
+      - JWT_SECRET=tsinjo_secret_key_2026
+    volumes:
+      - ./backend:/app
+  frontend: 
+    build: ./frontend
+    ports:
+      - "5275:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=tsinjo_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=elyse2004
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      retries: 5
+volumes:
+  pgdata:
+
