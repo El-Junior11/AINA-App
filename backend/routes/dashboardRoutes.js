@@ -1,0 +1,9 @@
+const express = require('express');
+const router = express.Router();
+const dashboardController = require('../controllers/dashboardController');
+const authenticateToken = require('../middleware/authMiddleware');
+
+// Antsoina amin'ny alalan'ny dashboardController.getDashboardStats
+router.get('/stats', authenticateToken, dashboardController.getDashboardStats);
+
+module.exports = router;

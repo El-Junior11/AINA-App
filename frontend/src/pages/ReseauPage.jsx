@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
-  Trash2, Edit2, X, Loader2, Save, 
-  Search, FileText, Download, BarChart3, Printer, Calendar, Plus
+  Trash2, Edit2, X, Loader2, Save, Network, ShieldCheck,
+  Search, FileText, Download, BarChart3, Printer, Calendar, Plus, Eye
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import logo from '../assets/logo.png';
 
 const Toast = Swal.mixin({
   toast: true,
@@ -27,7 +28,7 @@ const ReseauPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showStats, setShowStats] = useState(false);
+  const [showVoirPlusModal, setShowVoirPlusModal] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -76,22 +77,72 @@ const ReseauPage = () => {
     } finally { setLoading(false); }
   };
 
-  const exportPDF = () => {
-    try {
-      const doc = new jsPDF();
-      doc.text("LISTE DES RESEAUX - ONG TSINJO AINA", 14, 15);
-      const tableData = filteredReseaux.map((r, i) => [
-        i + 1, r.NomRS, r.DateCreation ? new Date(r.DateCreation).toLocaleDateString() : '-', r.NomGS, r.Activite, r.Plaidoyer, r.Plan, r.Autonomie
-      ]);
-      autoTable(doc, { head: [['N°', 'Nom Réseau', 'Date Création', 'Groupes', 'Act.', 'Plaid.', 'Plan', 'Auto.']], body: tableData, startY: 25 });
-      doc.save("reseaux_tsinjo_aina.pdf");
-      setShowExportMenu(false);
-      Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
-    } catch (error) {
-      console.error(error);
-      Toast.fire({ icon: 'error', title: 'Impossible de générer le fichier PDF' });
-    }
-  };
+const exportPDF = async () => {
+  try {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const today = new Date().toLocaleDateString('fr-FR');
+
+    // Fonction hanovana sary ho boribory
+    const getCircularImage = (url) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = Math.min(img.width, img.height);
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = url;
+      });
+    };
+
+    const circularLogo = await getCircularImage(logo);
+
+    // Header afovoany
+    doc.addImage(circularLogo, 'PNG', (pageWidth - 25) / 2, 10, 25, 25);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text("Liste des réseaux - ONG Tsinjo Aina", pageWidth / 2, 40, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Date d'édition : ${today}`, pageWidth / 2, 46, { align: 'center' });
+
+    const tableData = filteredReseaux.map((r, i) => [
+      i + 1, 
+      r.NomRS, 
+      r.DateCreation ? new Date(r.DateCreation).toLocaleDateString() : '-', 
+      r.NomGS, 
+      r.Activite, 
+      r.Plaidoyer, 
+      r.Plan, 
+      r.Autonomie
+    ]);
+
+    autoTable(doc, { 
+      head: [['N°', 'Nom Réseau', 'Date création', 'Groupes', 'Act.', 'Plaid.', 'Plan', 'Auto.']], 
+      body: tableData, 
+      startY: 55,
+      styles: { fontSize: 9 }
+    });
+
+    doc.save("reseaux_tsinjo_aina.pdf");
+    setShowExportMenu(false);
+    Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
+
+  } catch (error) {
+    console.error(error);
+    Toast.fire({ icon: 'error', title: 'Impossible de générer le fichier PDF' });
+  }
+};
 
   const exportExcel = () => {
     try {
@@ -123,7 +174,7 @@ const ReseauPage = () => {
       setShowModal(false); 
       resetForm(); 
       fetchReseaux();
-      Toast.fire({ icon: 'success', title: 'Mise à jour réussie avec succès' });
+      Toast.fire({ icon: 'success', title: 'Mise à jour réussie' });
     } catch (error) {
       console.error(error);
       Toast.fire({ icon: 'error', title: "Erreur lors de l'enregistrement" });
@@ -131,7 +182,6 @@ const ReseauPage = () => {
   };
 
   const handleDelete = async (id) => {
-    // Toast amin'ny endrika confirmation Oui/Non
     Swal.fire({
       toast: true,
       position: 'top-end',
@@ -167,179 +217,293 @@ const ReseauPage = () => {
   const resetForm = () => { setEditingId(null); setFormData(initialForm); };
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden">
+    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden relative">
       
-      <div className="p-6 flex flex-wrap justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-blue-700 dark:text-blue-500 tracking-tighter uppercase">Gestion des Réseaux</h1>
-          <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest">Base de données communautaire</p>
+      {/* HEADER WITH ICON */}
+      <div className="p-4 px-6 flex justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-900/50">
+            <Network size={22} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-blue-700 dark:text-blue-500 tracking-tight">Gestion des réseaux</h1>
+            <p className="text-xs text-emerald-600 font-medium">Base de données communautaire</p>
+          </div>
         </div>
-        
+      </div>
+
+      {/* SEARCH BAR & BUTTONS */}
+      <div className="px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div className="relative group flex-1 max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
+          <input 
+            type="text" 
+            placeholder="Rechercher un réseau..." 
+            className="w-full pl-10 pr-10 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none text-xs font-medium" 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"><X size={14} /></button>
+          )}
+        </div>
+
+        {/* ACTIONS BOUTONS */}
         <div className="flex items-center gap-2">
           <div className="relative">
-            <button onClick={() => setShowExportMenu(!showExportMenu)} className="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
-              <Printer size={20} />
-              <span className="text-xs font-bold uppercase hidden md:block">Exporter</span>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-md transition-all flex items-center gap-2 text-xs font-semibold"
+            >
+              <Printer size={15} />
+              <span className="hidden sm:block">Exporter</span>
             </button>
             {showExportMenu && (
-              <div className="absolute right-0 mt-3 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white border-b dark:border-slate-800"><FileText size={16} className="text-red-500" /> Document PDF</button>
-                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white"><Download size={16} className="text-emerald-600" /> Feuille Excel</button>
+              <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-50 text-slate-900 dark:text-white overflow-hidden">
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium border-b dark:border-slate-800"><FileText size={15} className="text-red-500" /> Document PDF</button>
+                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium"><Download size={15} className="text-emerald-600" /> Feuille Excel</button>
               </div>
             )}
           </div>
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all font-black text-xs uppercase">
-            <BarChart3 size={18} /><span className="hidden sm:block">{showStats ? 'Fermer' : 'Statistiques'}</span>
+
+          <button 
+            onClick={() => setShowVoirPlusModal(true)} 
+            className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-3 py-2 rounded-md transition-all font-semibold text-xs"
+          >
+            <Eye size={15} />
+            <span className="hidden sm:block">Voir plus</span>
           </button>
-          <button onClick={() => { resetForm(); setShowModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-all">
-            <Plus size={22} />
+
+          <button 
+            onClick={() => { resetForm(); setShowModal(true); }} 
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md flex items-center gap-1.5 text-xs font-semibold transition-all"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:block">Ajouter</span>
           </button>
         </div>
       </div>
 
-      {showStats && (
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top duration-300">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-blue-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Total Réseaux</span>
-            <p className="text-3xl font-black text-slate-900 dark:text-white">{filteredReseaux.length}</p>
+      {/* TABLE FLEXIBLE & RESPONSIVE */}
+      <div className="flex-1 overflow-hidden px-6 pb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs h-full flex flex-col">
+          <div className="flex-1 overflow-x-auto overflow-y-auto">
+            <table className="w-full border-collapse text-left">
+              <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-4 py-2.5 w-14">N°</th>
+                  <th className="px-4 py-2.5 min-w-[160px]">Réseau / Date</th>
+                  <th className="px-4 py-2.5 min-w-[200px]">Groupes</th>
+                  <th className="px-4 py-2.5 text-center min-w-[80px]">Activité</th>
+                  <th className="px-4 py-2.5 text-center min-w-[80px]">Plaidoyer</th>
+                  <th className="px-4 py-2.5 text-center min-w-[80px]">P. Dev</th>
+                  <th className="px-4 py-2.5 text-center min-w-[110px]">Autonomie</th>
+                  <th className="px-4 py-2.5 text-right w-20 sticky right-0 bg-slate-100 dark:bg-slate-800">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center"><Loader2 size={24} className="animate-spin inline text-blue-600" /></td>
+                  </tr>
+                ) : filteredReseaux.map((r, index) => (
+                  <tr key={r.codeRS} className="h-[48px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td className="px-4 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 w-14">{index + 1}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white capitalize truncate">{r.NomRS}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                          <Calendar size={10} /> {r.DateCreation ? new Date(r.DateCreation).toLocaleDateString() : '-'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {r.NomGS?.split(',').map((g, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold capitalize">
+                            {g.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`text-xs font-semibold ${r.Activite === 'Oui' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{r.Activite}</span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`text-xs font-semibold ${r.Plaidoyer === 'Oui' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{r.Plaidoyer}</span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`text-xs font-semibold ${r.Plan === 'Oui' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{r.Plan}</span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block ${r.Autonomie === 'Oui' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                        {r.Autonomie === 'Oui' ? 'Autonome' : 'En cours'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right w-20 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50">
+                      <div className="flex justify-end gap-1">
+                        <button onClick={() => openEditModal(r)} title="Modifier" className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors"><Edit2 size={14} /></button>
+                        <button onClick={() => handleDelete(r.codeRS)} title="Supprimer" className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-md transition-colors"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && filteredReseaux.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium text-xs">Aucun réseau trouvé</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-emerald-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Autonomes</span>
-            <p className="text-3xl font-black text-emerald-600">{filteredReseaux.filter(r=>r.Autonomie==='Oui').length}</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-pink-500 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">En structuration</span>
-            <p className="text-3xl font-black text-pink-500">{filteredReseaux.filter(r=>r.Autonomie==='Non').length}</p>
+        </div>
+      </div>
+
+      {/* MODAL "VOIR PLUS" */}
+      {showVoirPlusModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-lg animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-3.5 bg-blue-600 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Eye size={16} />
+                <h2 className="text-xs font-bold">Vue d'ensemble des réseaux</h2>
+              </div>
+              <button onClick={() => setShowVoirPlusModal(false)} className="text-white/80 hover:text-white p-1 rounded-md"><X size={18} /></button>
+            </div>
+            
+            <div className="p-5 space-y-3">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-blue-600 rounded-md flex justify-between items-center">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Total réseaux</span>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{filteredReseaux.length}</p>
+                </div>
+                <Network size={20} className="text-blue-600" />
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-emerald-600 rounded-md flex justify-between items-center">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Réseaux autonomes</span>
+                  <p className="text-xl font-bold text-emerald-600">{filteredReseaux.filter(r => r.Autonomie === 'Oui').length}</p>
+                </div>
+                <ShieldCheck size={20} className="text-emerald-600" />
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-pink-500 rounded-md flex justify-between items-center">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">En structuration</span>
+                  <p className="text-xl font-bold text-pink-500">{filteredReseaux.filter(r => r.Autonomie === 'Non').length}</p>
+                </div>
+                <BarChart3 size={20} className="text-pink-500" />
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button 
+                  onClick={() => setShowVoirPlusModal(false)} 
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md font-semibold text-xs transition-all"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="px-6 py-4 flex items-center gap-4">
-        <div className="relative group flex-1 max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 dark:text-white group-focus-within:text-blue-500 transition-colors" size={20} />
-          <input type="text" placeholder="Rechercher un réseau..." className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] border-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 hover:bg-red-100 p-1.5 rounded-full text-slate-900 dark:text-white hover:text-red-500 transition-all"><X size={16} /></button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-          <table className="w-full flex flex-col">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[13px] font-black tracking-widest text-slate-900 dark:text-white border-b dark:border-slate-800 w-full">
-              <tr className="flex w-full">
-                <th className="px-6 py-4 text-left w-16 flex-shrink-0">N°</th>
-                <th className="px-6 py-4 text-left flex-1">Réseau / Date</th>
-                <th className="px-6 py-4 text-left flex-1">Groupes</th>
-                <th className="px-6 py-4 text-center w-24 flex-shrink-0">Activité</th>
-                <th className="px-6 py-4 text-center w-24 flex-shrink-0">Plaidoyer</th>
-                <th className="px-6 py-4 text-center w-24 flex-shrink-0">P. Dev</th>
-                <th className="px-6 py-4 text-center w-28 flex-shrink-0">Autonomie</th>
-                <th className="px-6 py-4 text-right w-24 flex-shrink-0">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="flex flex-col w-full overflow-y-auto" style={{ maxHeight: 'calc(68px * 3)' }}>
-              {loading ? (
-                <tr className="w-full"><td className="p-20 text-center w-full"><Loader2 size={30} className="animate-spin inline text-blue-600" /></td></tr>
-              ) : filteredReseaux.map((r, index) => (
-                <tr key={r.codeRS} className="flex w-full items-center hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group border-b border-slate-50 dark:border-slate-800 last:border-0">
-                  <td className="px-6 py-4 text-xs font-black text-slate-900 dark:text-white w-16 flex-shrink-0">{index + 1}</td>
-                  <td className="px-6 py-4 flex-1">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-black text-slate-900 dark:text-slate-200 uppercase truncate">{r.NomRS}</span>
-                      <span className="text-[10px] text-slate-900 dark:text-white font-bold flex items-center gap-1 mt-0.5"><Calendar size={10} /> {r.DateCreation ? new Date(r.DateCreation).toLocaleDateString() : '-'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 flex-1">
-                    <div className="flex flex-wrap gap-1 max-w-xs">
-                      {r.NomGS?.split(',').map((g, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[9px] font-black uppercase">{g.trim()}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center w-24 flex-shrink-0">
-                    <span className={`text-[10px] font-bold ${r.Activite === 'Oui' ? 'text-emerald-600' : 'text-slate-300'}`}>{r.Activite}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center w-24 flex-shrink-0">
-                    <span className={`text-[10px] font-bold ${r.Plaidoyer === 'Oui' ? 'text-emerald-600' : 'text-slate-300'}`}>{r.Plaidoyer}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center w-24 flex-shrink-0">
-                    <span className={`text-[10px] font-bold ${r.Plan === 'Oui' ? 'text-emerald-600' : 'text-slate-300'}`}>{r.Plan}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center w-28 flex-shrink-0">
-                    <span className={`px-2 py-1 rounded-lg text-[9px] font-black ${r.Autonomie === 'Oui' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-900 dark:text-white'}`}>
-                      {r.Autonomie === 'Oui' ? 'AUTONOME' : 'EN COURS'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right w-24 flex-shrink-0">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditModal(r)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit2 size={16} /></button>
-                      <button onClick={() => handleDelete(r.codeRS)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!loading && filteredReseaux.length === 0 && (
-                <tr className="w-full"><td className="p-20 text-center text-slate-900 dark:text-white font-black uppercase tracking-widest w-full">Aucune donnée</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+      {/* FORMULAIRE - ROUNDED MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden animate-in zoom-in duration-300">
-            <div className="px-10 py-8 bg-blue-600 flex justify-between items-center text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-lg animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-3.5 bg-blue-600 text-white flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-black uppercase tracking-tighter">Fiche Réseau</h2>
-                <p className="text-[10px] font-bold text-blue-200 uppercase">Paramètres de la structure</p>
+                <h2 className="text-xs font-bold">{editingId ? 'Modifier le réseau' : 'Nouveau réseau'}</h2>
+                <p className="text-[11px] font-normal text-blue-100">Fiche de saisie des données</p>
               </div>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="bg-white/10 hover:bg-white/20 p-2 rounded-full"><X size={20} /></button>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="text-white/80 hover:text-white p-1 rounded-md"><X size={18} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Nom du Réseau</label>
-                  <input type="text" required className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 uppercase font-black text-slate-900 dark:text-white" value={formData.NomRS} onChange={(e) => setFormData({...formData, NomRS: e.target.value})} />
+
+            <form onSubmit={handleSubmit} className="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nom du réseau *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium capitalize" 
+                    value={formData.NomRS} 
+                    onChange={(e) => setFormData({...formData, NomRS: e.target.value})} 
+                  />
                 </div>
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Date Création</label>
-                  <input type="date" required className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-900 dark:text-white" value={formData.DateCreation} onChange={(e) => setFormData({...formData, DateCreation: e.target.value})} />
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Date de création *</label>
+                  <input 
+                    type="date" 
+                    required 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium" 
+                    value={formData.DateCreation} 
+                    onChange={(e) => setFormData({...formData, DateCreation: e.target.value})} 
+                  />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2 tracking-widest">Groupes Membres</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Groupes membres</label>
                 <input 
                   type="text" 
-                  placeholder="Ampidiro ny anaran'ny vondrona (saraho amin'ny faingo raha maro)..." 
-                  className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-900 dark:text-white" 
+                  placeholder="Ex: GS001, GS002, GS003" 
+                  className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 outline-none focus:border-blue-600 text-xs font-bold placeholder:font-normal placeholder:text-slate-400" 
                   value={formData.NomGS} 
                   onChange={(e) => setFormData({...formData, NomGS: e.target.value})} 
                 />
               </div>
 
               {editingId && (
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                  {[['Activite', 'Activités'], ['Plaidoyer', 'Plaidoyers'], ['Plan', 'Plan Dev']].map(([key, label]) => (
-                    <div key={key} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2.5 rounded-2xl">
-                      <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{label}</span>
-                      <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl shadow-inner">
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                  {[
+                    ['Activite', 'Activités'], 
+                    ['Plaidoyer', 'Plaidoyers'], 
+                    ['Plan', 'Plan Dev']
+                  ].map(([key, label]) => (
+                    <div key={key} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-2 rounded-md border border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{label}</span>
+                      <div className="flex bg-slate-200 dark:bg-slate-700 p-0.5 rounded">
                         {['Oui', 'Non'].map(opt => (
-                          <button key={opt} type="button" onClick={() => setFormData({...formData, [key]: opt})} className={`px-5 py-1 rounded-lg text-[10px] font-black transition-all ${formData[key] === opt ? 'bg-blue-600 text-white' : 'text-slate-900 dark:text-white'}`}>{opt}</button>
+                          <button 
+                            key={opt} 
+                            type="button" 
+                            onClick={() => setFormData({...formData, [key]: opt})} 
+                            className={`px-3 py-1 rounded text-xs font-bold transition-all ${formData[key] === opt ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                          >
+                            {opt}
+                          </button>
                         ))}
                       </div>
                     </div>
                   ))}
-                  <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex justify-between items-center"><span className="text-[10px] font-black text-emerald-700 uppercase">Statut Autonomie</span><span className="text-[10px] font-black px-3 py-1 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-emerald-600">{formData.Autonomie}</span></div>
+
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-md flex justify-between items-center border border-emerald-200 dark:border-emerald-900">
+                    <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">Statut d'autonomie</span>
+                    <span className="text-xs font-bold px-2 py-0.5 bg-white dark:bg-slate-900 rounded text-emerald-600 border border-emerald-200 dark:border-emerald-800">
+                      {formData.Autonomie}
+                    </span>
+                  </div>
                 </div>
               )}
 
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-[1.5rem] font-black flex items-center justify-center gap-3 shadow-xl shadow-blue-500/30 transition-all uppercase tracking-widest mt-4"><Save size={20} />{editingId ? 'Mettre à jour' : 'Enregistrer'}</button>
+              <div className="pt-2">
+                <button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-semibold flex items-center justify-center gap-2 text-xs transition-all"
+                >
+                  <Save size={15} />
+                  {editingId ? 'Mettre à jour' : 'Enregistrer'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 };

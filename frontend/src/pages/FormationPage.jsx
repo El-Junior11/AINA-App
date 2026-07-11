@@ -3,13 +3,13 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
   Search, Save, X, Loader2, ClipboardCheck, FileText, 
-  Download, BarChart3, RefreshCw, Users, CheckCircle, PieChart,
-  FileSpreadsheet, File as FilePdf, ArrowRight
+  Download, RefreshCw, Sheet, ArrowRight, Pencil, GraduationCap 
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable'; 
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png';
 
 const Toast = Swal.mixin({
   toast: true,
@@ -30,7 +30,6 @@ const FormationPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [selectedMembre, setSelectedMembre] = useState(null);
 
@@ -39,7 +38,7 @@ const FormationPage = () => {
     { id: 'agrosol', label: 'Agro-sol' },
     { id: 'agroeau', label: 'Agro-eau' },
     { id: 'agrovegetaux', label: 'Végétaux' },
-    { id: 'agroeco', label: 'Agro-eco', isAuto: true },
+    { id: 'agroeco', label: 'Agro-éco', isAuto: true },
     { id: 'productionsemence', label: 'Semences' },
     { id: 'nutritioneau', label: 'Nutri-eau' },
     { id: 'nutritionalimentaire', label: 'Alimentaire' },
@@ -84,53 +83,78 @@ const FormationPage = () => {
     } finally { setLoading(false); }
   };
 
-  const exportToPDF = () => {
-    try {
-      const doc = new jsPDF('landscape'); 
-      doc.text("Suivi des Formations (Sélection) - ONG Tsinjo Aina", 14, 15);
-      
-      const tableColumn = [
-        "N°", 
-        "Membre", 
-        "Gestion", 
-        "Agro-éco", 
-        "Nutrition", 
-        "Conservation", 
-        "Transformation", 
-        "Genre", 
-        "Epracc", 
-        "Autonomie"
-      ];
+  const exportToPDF = async () => {
+  try {
+    const doc = new jsPDF('landscape');
+    const pageWidth = doc.internal.pageSize.width;
+    const today = new Date().toLocaleDateString('fr-FR');
 
-      const tableRows = filteredData.map((m, i) => [
-        i + 1,
-        m.nom_membre,
-        m.formation?.gestionsimplifiee ? 'Oui' : 'Non',
-        m.formation?.agroeco ? 'Oui' : 'Non',
-        m.formation?.nutrition ? 'Oui' : 'Non',
-        m.formation?.conservationproduit ? 'Oui' : 'Non',
-        m.formation?.transformationproduit ? 'Oui' : 'Non',
-        m.formation?.genre ? 'Oui' : 'Non',
-        m.formation?.epracc ? 'Oui' : 'Non',
-        m.formation?.autonomie ? 'Oui' : 'Non'
-      ]);
-
-      autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 20,
-        styles: { fontSize: 8 }, 
-        headStyles: { fillColor: [79, 70, 229] }
+    // Fonction hanovana sary ho boribory
+    const getCircularImage = (url) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = Math.min(img.width, img.height);
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = url;
       });
+    };
 
-      doc.save("suivi_formations_filtre.pdf");
-      setShowExportMenu(false);
-      Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
-    } catch (error) {
-      console.error(error);
-      Toast.fire({ icon: 'error', title: 'Impossible de générer le fichier PDF' });
-    }
-  };
+    const circularLogo = await getCircularImage(logo);
+
+    // Header afovoany
+    doc.addImage(circularLogo, 'PNG', (pageWidth - 20) / 2, 5, 20, 20); // Logo boribory 20x20
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text("Suivi des formations - ONG Tsinjo Aina", pageWidth / 2, 30, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Date d'édition : ${today}`, pageWidth / 2, 36, { align: 'center' });
+
+    const tableColumn = [
+      "N°", "Membre", "Gestion", "Agro-éco", "Nutrition", 
+      "Conservation", "Transformation", "Genre", "Epracc", "Autonomie"
+    ];
+
+    const tableRows = filteredData.map((m, i) => [
+      i + 1,
+      m.nom_membre,
+      m.formation?.gestionsimplifiee ? 'Oui' : 'Non',
+      m.formation?.agroeco ? 'Oui' : 'Non',
+      m.formation?.nutrition ? 'Oui' : 'Non',
+      m.formation?.conservationproduit ? 'Oui' : 'Non',
+      m.formation?.transformationproduit ? 'Oui' : 'Non',
+      m.formation?.genre ? 'Oui' : 'Non',
+      m.formation?.epracc ? 'Oui' : 'Non',
+      m.formation?.autonomie ? 'Oui' : 'Non'
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      styles: { fontSize: 8 },
+    });
+
+    doc.save("suivi_formations_filtre.pdf");
+    setShowExportMenu(false);
+    Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
+  } catch (error) {
+    console.error(error);
+    Toast.fire({ icon: 'error', title: 'Impossible de générer le fichier PDF' });
+  }
+};
 
   const exportToExcel = () => {
     try {
@@ -150,14 +174,6 @@ const FormationPage = () => {
       console.error(error);
       Toast.fire({ icon: 'error', title: 'Impossible de générer le fichier Excel' });
     }
-  };
-
-  const globalStats = {
-    totalMembres: data.length,
-    totalAutonomie: data.filter(m => m.formation?.autonomie).length,
-    pourcentage: data.length > 0 
-      ? Math.round((data.filter(m => m.formation?.autonomie).length / data.length) * 100) 
-      : 0
   };
 
   const handleCheckboxChange = (modId, isChecked) => {
@@ -192,7 +208,7 @@ const FormationPage = () => {
       if (res.status === 200 || res.status === 201) {
         setShowModal(false);
         fetchData();
-        Toast.fire({ icon: 'success', title: 'Enregistrement réussi avec succès' });
+        Toast.fire({ icon: 'success', title: 'Enregistrement réussi' });
       }
     } catch (err) {
       console.error(err);
@@ -203,102 +219,125 @@ const FormationPage = () => {
   const formatText = (text) => text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : "";
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden">
+    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden relative">
       
-      <div className="p-6 flex flex-wrap justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-indigo-700 dark:text-indigo-400 tracking-tighter uppercase">Suivi formations</h1>
-          <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest">Capacités & compétences</p>
-        </div>
+      {/* HEADER */}
+      <div className="p-4 px-6 flex justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-lg"><BarChart3 size={18}/> Stats</button>
-          <div className="relative">
-            <button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-lg"><Download size={18}/> Exporter</button>
-            {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border z-50">
-                <button onClick={exportToExcel} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200"><FileSpreadsheet size={16} className="text-emerald-600"/> Excel</button>
-                <button onClick={exportToPDF} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-200"><FilePdf size={16} className="text-rose-600"/> PDF</button>
-              </div>
-            )}
+          <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50">
+            <GraduationCap size={22} />
           </div>
-          <button onClick={fetchData} className="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg active:scale-95"><RefreshCw size={22} className={loading ? 'animate-spin' : ''}/></button>
+          <div>
+            <h1 className="text-xl font-bold text-blue-700 dark:text-blue-400 tracking-tight">Suivi des formations</h1>
+            <p className="text-xs text-emerald-600 font-medium">Capacités & compétences</p>
+          </div>
         </div>
       </div>
 
-      {showStats && (
-        <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top duration-300">
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border flex items-center gap-4">
-            <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-600"><Users size={24}/></div>
-            <div><p className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Membres</p><p className="text-2xl font-black text-slate-900 dark:text-white">{globalStats.totalMembres}</p></div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border flex items-center gap-4">
-            <div className="bg-emerald-100 p-3 rounded-2xl text-emerald-600"><CheckCircle size={24}/></div>
-            <div><p className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Autonomie</p><p className="text-2xl font-black text-slate-900 dark:text-white">{globalStats.totalAutonomie}</p></div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border flex items-center gap-4">
-            <div className="bg-amber-100 p-3 rounded-2xl text-amber-600"><PieChart size={24}/></div>
-            <div className="flex-1"><p className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Taux Autonomie</p><p className="text-2xl font-black text-slate-900 dark:text-white">{globalStats.pourcentage}%</p></div>
-          </div>
-        </div>
-      )}
-
-      <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="relative group w-full max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 dark:text-white" size={20} />
+      {/* SEARCH BAR, EXPORT, REFRESH & SEE MORE */}
+      <div className="px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative group w-full max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
           <input 
             type="text" 
-            placeholder="Rechercher..." 
-            className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none shadow-sm font-bold border border-transparent focus:border-indigo-500 transition-all" 
+            placeholder="Rechercher un membre par nom ou ID..." 
+            className="w-full pl-10 pr-10 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 text-xs font-medium transition-all" 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
           />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"><X size={14} /></button>
+          )}
         </div>
 
-        <button 
-          onClick={() => navigate('/formation-stats')} 
-          className="flex items-center justify-center gap-2 px-6 py-4 rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-xs tracking-wider shadow-md shadow-indigo-500/20 transition-all active:scale-95 whitespace-nowrap"
-        >
-          Voir plus
-          <ArrowRight size={16} />
-        </button>
+        {/* ACTION BUTTONS */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="relative">
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-md transition-all flex items-center gap-2 text-xs font-semibold"
+            >
+              <Download size={15}/>
+              <span>Exporter</span>
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-50 text-slate-900 dark:text-white overflow-hidden">
+                <button onClick={exportToExcel} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium border-b dark:border-slate-800">
+                  <Sheet size={15} className="text-emerald-600"/> Feuille Excel
+                </button>
+                <button onClick={exportToPDF} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium">
+                  <FileText size={15} className="text-rose-600"/> Document PDF
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button onClick={fetchData} className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition-all">
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''}/>
+          </button>
+
+          <button 
+            onClick={() => navigate('/formation-stats')} 
+            className="flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all whitespace-nowrap"
+          >
+            Voir plus
+            <ArrowRight size={14} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 px-6 pb-6 overflow-hidden">
-        <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      {/* TABLE */}
+      <div className="flex-1 overflow-hidden px-6 pb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs h-full flex flex-col">
           <div className="flex-1 overflow-x-auto overflow-y-auto">
             <table className="w-full border-collapse">
-              <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800 text-[11px] font-black text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800">
+              <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="px-6 py-5 text-left w-16">N°</th>
-                  <th className="px-6 py-5 text-left min-w-[200px]">Membre</th>
-                  {modules.map(mod => (<th key={mod.id} className="px-4 py-5 text-center min-w-[100px]">{formatText(mod.label)}</th>))}
-                  <th className="px-6 py-5 text-left min-w-[150px]">Autre</th>
-                  <th className="px-6 py-5 text-right w-24">Actions</th>
+                  <th className="px-4 py-2.5 text-left w-14">N°</th>
+                  <th className="px-4 py-2.5 text-left min-w-[180px]">Membre</th>
+                  {modules.map(mod => (
+                    <th key={mod.id} className="px-3 py-2.5 text-center min-w-[90px]">{formatText(mod.label)}</th>
+                  ))}
+                  <th className="px-4 py-2.5 text-left min-w-[140px]">Autre</th>
+                  <th className="px-4 py-2.5 text-right w-20 sticky right-0 bg-slate-100 dark:bg-slate-800">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {loading ? (
-                  <tr><td colSpan={modules.length + 4} className="p-20 text-center"><Loader2 size={30} className="animate-spin inline text-indigo-600" /></td></tr>
+                  <tr><td colSpan={modules.length + 4} className="p-8 text-center"><Loader2 size={24} className="animate-spin inline text-blue-600" /></td></tr>
                 ) : (
                   filteredData.map((m, index) => (
-                    <tr key={m.nummembre} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group">
-                      <td className="px-6 py-4 text-xs font-black text-slate-900 dark:text-white">{index + 1}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase truncate">{m.nom_membre}</span>
-                        </div>
+                    <tr key={m.nummembre} className="h-[48px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                      <td className="px-4 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 w-14">{index + 1}</td>
+                      <td className="px-4 py-2">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white capitalize truncate block min-w-[180px]">{m.nom_membre}</span>
                       </td>
                       {modules.map(mod => (
-                        <td key={mod.id} className="px-4 py-4 text-center">
-                          <span className={`text-[10px] font-black ${m.formation?.[mod.id] ? 'text-emerald-600 border border-transparent dark:border-emerald-800 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30' : 'text-rose-500'}`}>{m.formation?.[mod.id] ? 'Oui' : 'Non'}</span>
+                        <td key={mod.id} className="px-3 py-2 text-center">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            m.formation?.[mod.id] 
+                              ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900' 
+                              : 'text-slate-400 dark:text-slate-600'
+                          }`}>
+                            {m.formation?.[mod.id] ? 'Oui' : 'Non'}
+                          </span>
                         </td>
                       ))}
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-slate-200 truncate max-w-[150px]">{m.formation?.autre || "-"}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button onClick={() => openEditModal(m)} className="p-2 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"><ClipboardCheck size={18} /></button>
+                      <td className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 truncate max-w-[140px]">{m.formation?.autre || "-"}</td>
+                      <td className="px-4 py-2 text-right w-20 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50">
+                        <button 
+                          onClick={() => openEditModal(m)} 
+                          className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors"
+                          title="Modifier"
+                        >
+                          <Pencil size={15} />
+                        </button>
                       </td>
                     </tr>
                   ))
+                )}
+                {!loading && filteredData.length === 0 && (
+                  <tr><td colSpan={modules.length + 4} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium text-xs">Aucune formation trouvée</td></tr>
                 )}
               </tbody>
             </table>
@@ -306,38 +345,81 @@ const FormationPage = () => {
         </div>
       </div>
 
+      {/* FORMULAIRE MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
-            <div className="px-10 py-8 bg-indigo-600 flex justify-between items-center text-white shrink-0">
-              <div><h2 className="text-xl font-black uppercase tracking-tighter">Fiche individuelle</h2><p className="text-[10px] font-bold text-indigo-100 uppercase">{selectedMembre?.nom_membre}</p></div>
-              <button onClick={() => setShowModal(false)} className="bg-white/10 p-2 rounded-full"><X size={20} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-lg animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-3.5 bg-blue-600 text-white flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-xs font-bold">Fiche individuelle de formation</h2>
+                <p className="text-[11px] font-normal text-blue-100 capitalize">{selectedMembre?.nom_membre}</p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white p-1 rounded-md"><X size={18} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6 overflow-y-auto">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+
+            <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {modules.filter(m => !m.isAuto).map(mod => (
-                  <div key={mod.id} onClick={() => handleCheckboxChange(mod.id, !formData[mod.id])} className={`flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer border-2 ${formData[mod.id] ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-transparent bg-slate-50 dark:bg-slate-800'}`}>
-                    <span className="text-[10px] font-black text-slate-900 dark:text-white">{formatText(mod.label)}</span>
-                    <span className={`text-[10px] font-black ${formData[mod.id] ? 'text-indigo-600' : 'text-slate-900 dark:text-white'}`}>{formData[mod.id] ? 'OUI' : 'NON'}</span>
+                  <div 
+                    key={mod.id} 
+                    onClick={() => handleCheckboxChange(mod.id, !formData[mod.id])} 
+                    className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer border transition-all ${
+                      formData[mod.id] 
+                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30' 
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40'
+                    }`}
+                  >
+                    <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{formatText(mod.label)}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      formData[mod.id] ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}>
+                      {formData[mod.id] ? 'Oui' : 'Non'}
+                    </span>
                   </div>
                 ))}
               </div>
-              <div className="pt-4 border-t space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-slate-900 dark:text-white uppercase">Agro-éco</p><p className={`text-xs font-black ${formData.agroeco ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>{formData.agroeco ? 'OUI' : 'NON'}</p></div>
-                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-slate-900 dark:text-white uppercase">Nutrition</p><p className={`text-xs font-black ${formData.nutrition ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>{formData.nutrition ? 'OUI' : 'NON'}</p></div>
-                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl text-center"><p className="text-[9px] font-bold text-indigo-400 uppercase">Autonomie</p><p className={`text-xs font-black ${formData.autonomie ? 'text-indigo-600' : 'text-slate-900 dark:text-white'}`}>{formData.autonomie ? 'OUI' : 'NON'}</p></div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-md text-center border border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Agro-éco</p>
+                    <p className={`text-xs font-bold ${formData.agroeco ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>{formData.agroeco ? 'Oui' : 'Non'}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-md text-center border border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Nutrition</p>
+                    <p className={`text-xs font-bold ${formData.nutrition ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>{formData.nutrition ? 'Oui' : 'Non'}</p>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-md text-center border border-blue-200 dark:border-blue-900">
+                    <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">Autonomie</p>
+                    <p className={`text-xs font-bold ${formData.autonomie ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>{formData.autonomie ? 'Oui' : 'Non'}</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Observations</label>
-                  <textarea className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-xs min-h-[100px]" value={formData.autre || ''} onChange={(e) => setFormData({...formData, autre: e.target.value})} placeholder="Saisir note..."/>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Observations / Autres</label>
+                  <textarea 
+                    className="w-full p-2.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium min-h-[80px]" 
+                    value={formData.autre || ''} 
+                    onChange={(e) => setFormData({...formData, autre: e.target.value})} 
+                    placeholder="Saisir des remarques ou détails supplémentaires..."
+                  />
                 </div>
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white p-5 rounded-[1.5rem] font-black shadow-xl shadow-indigo-500/30 uppercase tracking-widest shrink-0"><Save size={20} className="inline mr-2"/> Enregistrer</button>
+
+              <div className="pt-2">
+                <button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-semibold flex items-center justify-center gap-2 text-xs transition-all"
+                >
+                  <Save size={15} />
+                  Enregistrer
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 };

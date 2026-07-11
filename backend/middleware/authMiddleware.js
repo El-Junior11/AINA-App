@@ -8,7 +8,10 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: "Token non fourni (Accès refusé)" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decodedUser) => {
+  // Nampiana ilay fallback tsinjo_secret_key_2026 raha misy olana ny .env
+  const secretKey = process.env.JWT_SECRET || 'tsinjo_secret_key_2026';
+
+  jwt.verify(token, secretKey, (err, decodedUser) => {
     if (err) {
       console.error("JWT Verify Error:", err.message);
       return res.status(403).json({ message: "Session expirée ou Token invalide" });

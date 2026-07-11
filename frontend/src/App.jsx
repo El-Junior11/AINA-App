@@ -13,12 +13,8 @@ import FormationPage from './pages/FormationPage';
 import Notifications from './pages/Notifications';
 import FormationStat from './pages/FormationStat';
 import AccountSettings from './pages/AccountSettings';
-
-
-
-
-
-
+import UserApprovals from './pages/UserApprovals';
+import AdminNotifications from './pages/AdminNotifications';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -27,11 +23,12 @@ const PrivateRoute = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
+
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
@@ -54,13 +51,15 @@ function App() {
             <Route path="/settings" element={<AccountSettings />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="formation-stats" element={<FormationStat />} />
-
+            <Route path="admin/approvals" element={<UserApprovals />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
     </AuthProvider>
+
   );
 }
 

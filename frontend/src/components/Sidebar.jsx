@@ -3,39 +3,45 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { 
   LayoutDashboard, Users, UserCircle, Share2, 
-  ShieldCheck, GraduationCap, Plus, LogOut 
+  ShieldCheck, GraduationCap, LogOut, Menu, Activity
 } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const navigate = useNavigate();
+  
+  const savedUser = localStorage.getItem('user');
+  const userRole = savedUser ? JSON.parse(savedUser).role?.toLowerCase() : 'user';
 
   const menuItems = [
-    { icon: <LayoutDashboard size={20} />, label: 'Tableau de bord', path: '/dashboard' },
-    { icon: <Users size={20} />, label: 'Membres', path: '/membres' },
-    { icon: <UserCircle size={20} />, label: 'Groupes Solidarités', path: '/groupes' },
-    { icon: <Share2 size={20} />, label: 'Réseaux', path: '/reseaux' },
-    { icon: <ShieldCheck size={20} />, label: 'Responsables', path: '/responsables' },
-    { icon: <GraduationCap size={20} />, label: 'Formations', path: '/formations' },
+    { icon: <LayoutDashboard size={18} />, label: 'Tableau de bord', path: '/dashboard' },
+    { icon: <Users size={18} />, label: 'Membres', path: '/membres' },
+    { icon: <UserCircle size={18} />, label: 'Groupes de solidarité', path: '/groupes' },
+    { icon: <Share2 size={18} />, label: 'Réseaux', path: '/reseaux' },
+    { icon: <ShieldCheck size={18} />, label: 'Responsables', path: '/responsables' },
+    { icon: <GraduationCap size={18} />, label: 'Formations', path: '/formations' },
+    ...(userRole === 'admin' ? [{ icon: <Activity size={18} />, label: 'Actions utilisateurs', path: '/admin/notifications' }] : []),
   ];
 
   const handleLogout = () => {
     const isDark = document.documentElement.classList.contains('dark');
 
     Swal.fire({
-      title: 'Êtes-vous se déconnecter ?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#00bcd4',
-      cancelButtonColor: '#6e7881',
-      confirmButtonText: 'OK',
-      cancelButtonText: 'Annuler',
       toast: true,
       position: 'top-end',
+      icon: 'question',
+      title: 'Se déconnecter ?',
+      showConfirmButton: true,
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Oui',
+      cancelButtonText: 'Non',
       background: isDark ? '#0f172a' : '#ffffff',
+      color: isDark ? '#ffffff' : '#0f172a',
       customClass: {
-        popup: `rounded-2xl shadow-2xl border ${isDark ? 'border-slate-800 text-white' : 'border-slate-200 text-slate-800'}`,
-        title: isDark ? '!text-white' : '!text-slate-800',
-        htmlContainer: isDark ? '!text-slate-300' : '!text-slate-600',
+        popup: 'rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold shadow-xl p-3',
+        confirmButton: 'text-xs px-3 py-1.5 rounded-xl font-black',
+        cancelButton: 'text-xs px-3 py-1.5 rounded-xl font-bold',
       }
     }).then((result) => {
       if (result.isConfirmed) {
@@ -48,73 +54,99 @@ const Sidebar = () => {
           timer: 1500,
           timerProgressBar: true,
           background: isDark ? '#0f172a' : '#ffffff',
+          color: isDark ? '#ffffff' : '#0f172a',
           customClass: {
-            popup: `rounded-2xl shadow-2xl border ${isDark ? 'border-slate-800 text-white' : 'border-slate-200 text-slate-800'}`,
-            title: isDark ? '!text-white' : '!text-slate-800',
+            popup: 'rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold shadow-xl',
           }
         });
 
         setTimeout(() => {
-          navigate('/login'); 
+          navigate('/Home'); 
         }, 1500);
       }
     });
   };
 
   return (
-    <aside className="w-72 hidden md:flex flex-col p-3 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 transition-colors">
-      <div className="px-2 mb-6">
-        <button className="flex items-center gap-4 px-6 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-md hover:shadow-lg transition-all border border-slate-100 dark:border-slate-700 group active:scale-95 w-full">
-          <Plus size={24} className="text-blue-600 dark:text-blue-400 group-hover:rotate-90 transition-transform" />
-          <span className="font-bold">TAF</span>
+    <aside 
+      className={`
+        hidden md:flex flex-col p-3 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 
+        transition-all duration-300 ease-in-out shrink-0 relative
+        ${isCollapsed ? 'w-16 items-center' : 'w-60'}
+      `}
+    >
+      
+      <div className={`w-full ${isCollapsed ? 'mb-2' : 'mb-3'}`}>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          title={isCollapsed ? "Ouvrir le menu" : "Réduire le menu"}
+          className={`
+            flex items-center gap-3 px-3 py-2 rounded-md transition-all w-full
+            text-xs font-bold uppercase tracking-wider
+            ${isCollapsed 
+              ? 'justify-center px-0 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400' 
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}
+          `}
+        >
+          <div className={`shrink-0 ${isCollapsed ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}>
+            <Menu size={18} />
+          </div>
+          {!isCollapsed && <span className="truncate">Menu</span>}
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-1 w-full">
         {menuItems.map((item, idx) => (
           <NavLink 
             key={idx}
             to={item.path}
+            title={isCollapsed ? item.label : ''}
             className={({ isActive }) => `
-              flex items-center gap-4 px-4 py-2.5 rounded-r-full cursor-pointer transition-all
+              flex items-center gap-3 px-3 py-2 rounded-md transition-all text-xs font-semibold w-full
+              ${isCollapsed ? 'justify-center px-0' : ''}
               ${isActive 
-                ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-black' 
-                : 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold'}
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400' 
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}
             `}
           >
             {({ isActive }) => (
               <>
-                <div className={`${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                <div className={`shrink-0 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}>
                   {item.icon}
                 </div>
-                <span className="text-sm">{item.label}</span>
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
               </>
             )}
           </NavLink>
         ))}
       </nav>
 
-      <div className="mt-auto pb-2">
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 w-full">
         <button 
           onClick={handleLogout}
-          className="w-full flex items-center gap-4 px-4 py-2.5 rounded-r-full cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all group"
+          title={isCollapsed ? 'Se déconnecter' : ''}
+          className={`
+            w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-semibold text-rose-600 dark:text-rose-400 
+            hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors
+            ${isCollapsed ? 'justify-center px-0' : ''}
+          `}
         >
-          <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-bold">Se déconnecter</span>
+          <LogOut size={18} className="shrink-0" />
+          {!isCollapsed && <span className="truncate">Se déconnecter</span>}
         </button>
-      </div>
 
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <a 
-          href="https://portfolio-elyse.vercel.app/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="block hover:opacity-80 transition-opacity"
-        >
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest text-center ">
-            Par Elysé RANDRIANANTENAINA
-          </p>
-        </a>
+        {!isCollapsed && (
+          <a 
+            href="https://portfolio-elyse.vercel.app/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block pt-1 hover:opacity-80 transition-opacity text-center"
+          >
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight truncate">
+              Par Elysé RANDRIANANTENAINA
+            </p>
+          </a>
+        )}
       </div>
     </aside>
   );

@@ -3,10 +3,10 @@ const { Sequelize } = require('sequelize');
 const sequelize = new Sequelize('tsinjo_db', 'postgres', 'elyse2004', {
   host: 'localhost',
   dialect: 'postgres',
-  logging: false, // Mba hadio ny terminal
+  logging: false,
 });
 
-// Fitsapana ny fifandraisana
+
 async function testConnection() {
   try {
     await sequelize.authenticate();

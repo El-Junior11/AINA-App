@@ -1,143 +1,122 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, ChevronLeft, Search, Square, RefreshCw, AlertCircle} from 'lucide-react';
-import Swal from 'sweetalert2';
+import { ChevronLeft, HelpCircle, BookOpen, ShieldAlert, Key, Info, Code, Layers, CheckCircle2 } from 'lucide-react';
 
 const Notifications = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  
-  const [notifications, setNotifications] = useState([
-    { id: 1, sender: "Santana Velice", subject: "Modification de profil", message: "L'utilisateur a modifié son email et ses compétences en Fullstack.", date: "30 avr.", read: false },
-    { id: 2, sender: "User_123", subject: "Suppression de compte", message: "Demande de suppression définitive du compte rattaché à cet ID.", date: "29 avr.", read: true },
-  ]);
 
-  const [selectedNotif, setSelectedNotif] = useState(null);
-  const [search, setSearch] = useState("");
-  
-useEffect(() => {
-  // 1. Ampiasao ny 'role' fa tsy 'user_role' intsony
-  const currentRole = localStorage.getItem('role'); 
-  
-  // Debug: Jereo eto ny valiny ao amin'ny Console (F12)
-  console.log("Ny role voaray ao amin'ny LocalStorage dia:", currentRole);
-
-  // 2. Fanamarinana ny fahazoan-dalana
-  if (!currentRole || currentRole.trim().toLowerCase() !== 'admin') {
-    Swal.fire({
-      title: 'Accès refusé',
-      text: 'Seul un administrateur peut voir les logs système.',
-      icon: 'error',
-      confirmButtonText: 'Hiverina',
-      confirmButtonColor: '#2563eb'
-    }).then(() => {
-      navigate('/'); // Averina any amin'ny Home raha tsy admin
-    });
-  } else {
-    setLoading(false); // Raha admin tokoa dia avela hijery ny pejy
-  }
-}, [navigate])
-
-  const deleteNotif = (id, e) => {
-    if(e) e.stopPropagation();
-    setNotifications(notifications.filter(n => n.id !== id));
-    if(selectedNotif?.id === id) setSelectedNotif(null);
-  };
-
-  const filtered = notifications.filter(n => 
-    n.sender.toLowerCase().includes(search.toLowerCase()) || 
-    n.subject.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Miseho mandritra ny fanamarinana ny role
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-white dark:bg-slate-950">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-    </div>
-  );
+  const sections = [
+    {
+      id: "general",
+      icon: <Info size={22} className="text-blue-600 shrink-0" />,
+      title: "À propos de la Plateforme Gestion-ONG",
+      content: "Cette application centralisée constitue l'outil pilote de l'ONG TSINJO AINA pour la gestion opérationnelle et le suivi en temps réel de ses activités à Fianarantsoa. Elle intègre des modules interconnectés pour la cartographie des membres, l'administration des groupes de solidarité, le pilotage des réseaux locaux, et le suivi académique ou professionnel des formations dispensées."
+    },
+    {
+      id: "toromarika",
+      icon: <BookOpen size={22} className="text-blue-600 shrink-0" />,
+      title: "Instructions & Guide d'Utilisation",
+      content: "Pour garantir l'intégrité des données, veuillez suivre les protocoles d'administration suivants :",
+      steps: [
+        "Gestion des effectifs : L'onglet 'Membres' centralise tous les profils. Utilisez les filtres avancés pour trier par statut ou par zone géographique.",
+        "Affectation des rôles : L'attribution d'un Poste ou d'une responsabilité spécifique à un membre s'effectue directement depuis sa fiche profil.",
+        "Persistance des données : Toute modification ou ajout est instantanément audité et synchronisé avec la base de données centrale."
+      ]
+    },
+    {
+      id: "fepetra",
+      icon: <ShieldAlert size={22} className="text-blue-600 shrink-0" />,
+      title: "Sécurité, Confidentialité & Droits d'Accès",
+      content: "• Confidentialité stricte : Vos identifiants de connexion sont personnels et intransmissibles. Toute action entreprise avec votre compte engage votre responsabilité.\n• Hiérarchie des privilèges : Seuls les utilisateurs dotés du rôle 'Admin' possèdent les droits requis pour approuver les nouvelles inscriptions et modifier la structure des données.\n• Conformité : L'utilisation de la plateforme doit rigoureusement s'aligner avec la charte informatique et le règlement intérieur de l'ONG."
+    },
+    {
+      id: "kaonty",
+      icon: <Key size={22} className="text-blue-600 shrink-0" />,
+      title: "Maintenance & Support Technique",
+      content: "En cas d'anomalie technique, de ralentissement ou pour solliciter une modification de vos privilèges d'accès, veuillez ne pas tenter de manipulation interne. Documentez l'erreur constatée et soumettez directement un ticket de support au bureau de l'administrateur système ou à l'équipe technique de développement."
+    }
+  ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-white dark:bg-slate-950 transition-colors">
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-4 py-2 border-b dark:border-slate-800">
-        <div className="flex items-center gap-4">
-          {selectedNotif ? (
-            <button onClick={() => setSelectedNotif(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300">
-              <ChevronLeft size={20} />
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 p-2 text-slate-400">
-              <Square size={18} />
-              <RefreshCw size={18} className="cursor-pointer hover:rotate-180 transition-transform duration-500" />
-            </div>
-          )}
-          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
-          {selectedNotif && (
-            <button onClick={() => deleteNotif(selectedNotif.id)} className="p-2 hover:bg-red-50 text-red-500 rounded-full transition-colors">
-              <Trash2 size={18} />
-            </button>
-          )}
-        </div>
-
-        <div className="flex-1 max-w-2xl px-4 text-sm">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Rechercher dans les logs..." 
-              className="w-full bg-slate-100 dark:bg-slate-900 border-none rounded-lg py-2 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-white dark:bg-slate-950 text-black dark:text-white transition-colors">
+      
+      <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-black dark:text-white transition-colors"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <div className="h-6 w-px bg-slate-300 dark:bg-slate-700"></div>
+          <div className="flex items-center gap-2 font-bold text-lg text-black dark:text-white">
+            <HelpCircle size={22} className="text-blue-600" />
+            <span>Centre d'aide & Documentation</span>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {selectedNotif ? (
-          /* VIEW: DETAIL */
-          <div className="p-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2">
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">{selectedNotif.subject}</h1>
-            <div className="flex items-center justify-between mb-8 pb-4 border-b dark:border-slate-800">
+      <div className="flex-1 overflow-y-auto py-8 pl-[calc(1cm+24px)] pr-8">
+        <div className="max-w-4xl flex flex-col gap-10">
+          
+          {sections.map((section) => (
+            <div key={section.id} className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800/60 pb-2">
+                {section.icon}
+                <h2 className="text-base font-bold text-black dark:text-white tracking-tight">
+                  {section.title}
+                </h2>
+              </div>
+              
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                {section.content}
+              </p>
+
+              {section.steps && (
+                <div className="mt-2 flex flex-col gap-2.5 pl-1">
+                  {section.steps.map((step, index) => (
+                    <div key={index} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+                      <CheckCircle2 size={16} className="text-blue-600 mt-0.5 shrink-0" />
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800/60 pb-2">
+              <Code size={22} className="text-blue-600 shrink-0" />
+              <h2 className="text-base font-bold text-black dark:text-white tracking-tight">
+                Informations Éditeur & Système
+              </h2>
+            </div>
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 flex flex-col sm:flex-row justify-between gap-4 text-sm text-slate-700 dark:text-slate-300">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">{selectedNotif.sender[0]}</div>
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-slate-200">{selectedNotif.sender}</p>
-                  <p className="text-xs text-slate-500">Alertes de sécurité</p>
+                <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                  <Code size={18} className="text-blue-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">Ingénierie & Développement</span>
+                  <span className="font-semibold text-black dark:text-white">Elysé Randrianantenaina</span>
                 </div>
               </div>
-              <span className="text-xs text-slate-400">{selectedNotif.date}</span>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 italic">
-              {selectedNotif.message}
-            </div>
-          </div>
-        ) : (
-          /* VIEW: LIST */
-          <div className="flex flex-col">
-            {filtered.map((notif) => (
-              <div 
-                key={notif.id}
-                onClick={() => setSelectedNotif(notif)}
-                className={`flex items-center px-4 py-3 border-b dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/40 ${notif.read ? 'opacity-60' : 'font-bold border-l-4 border-l-blue-600'}`}
-              >
-                <div className="min-w-[180px] text-sm text-slate-800 dark:text-slate-200 truncate">{notif.sender}</div>
-                <div className="flex-1 text-sm text-slate-500 truncate px-4">{notif.subject} — {notif.message}</div>
-                <div className="flex items-center gap-4 ml-auto">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold">{notif.date}</span>
-                  <button onClick={(e) => deleteNotif(notif.id, e)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                  <Layers size={18} className="text-blue-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">Version du Logiciel</span>
+                  <span className="font-semibold text-black dark:text-white">v1.0.0 (Version Stable)</span>
                 </div>
               </div>
-            ))}
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center p-20 text-slate-400">
-                <AlertCircle size={40} className="mb-2 opacity-20" />
-                <p className="text-sm italic">Aucun log trouvé</p>
-              </div>
-            )}
+            </div>
           </div>
-        )}
+
+        </div>
       </div>
+
     </div>
   );
 };

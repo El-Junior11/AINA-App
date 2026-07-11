@@ -1,113 +1,147 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, ShieldCheck, ChevronDown, Eye, Target, Star, Globe, Moon, Sun } from 'lucide-react';
+import { User, ShieldCheck, ChevronDown, Eye, Target, Star, HeartHandshake } from 'lucide-react';
 
 import logo from '../assets/logo.png'; 
+import bgImage from '../assets/inter.png'; 
 
 const Home = () => {
   const [showRoles, setShowRoles] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-
   
+  // Lohateny mifandimby (Loop)
+  const titles = [
+    "Agir pour un avenir durable",
+    "ONG Tsinjo Aina Fianarantsoa",
+    "Haute Matsiatra, Madagascar"
+  ];
+  const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
+
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
+    const interval = setInterval(() => {
+      setCurrentTitleIndex((prevIndex) => (prevIndex + 1) % titles.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.2, delayChildren: 0.3 }
-    }
-  };
-
-  const titleAnimation = {
-    hidden: { filter: "blur(10px)", opacity: 0, y: 20 },
-    visible: { 
-      filter: "blur(0px)", 
-      opacity: 1, 
-      y: 0, 
-      transition: { duration: 0.8, ease: "easeOut" } 
+      transition: { staggerChildren: 0.15, delayChildren: 0.1 }
     }
   };
 
   const fadeInUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { type: "spring", stiffness: 100, damping: 15 } 
+    }
+  };
+
+  const titleContainerVariants = {
+    hidden: { opacity: 1 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.035, delayChildren: 0.05 }
+    },
+    exit: {
+      opacity: 1,
+      transition: { staggerChildren: 0.015, staggerDirection: -1 }
+    }
+  };
+
+  const letterVariants = {
+    hidden: { opacity: 0, y: 8, filter: "blur(4px)" },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      filter: "blur(0px)",
+      transition: { duration: 0.04, ease: "easeOut" } 
+    },
+    exit: {
+      opacity: 0,
+      y: -8,
+      filter: "blur(4px)",
+      transition: { duration: 0.02, ease: "easeIn" }
+    }
   };
 
   return (
-    <div className="h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden flex flex-col font-sans selection:bg-blue-100 selection:text-blue-600 transition-colors duration-500">
+    /* h-screen sy overflow-hidden ampiasaina mba tsy hisy scrollbar mihitsy */
+    <div 
+      className="h-screen w-screen overflow-hidden relative flex flex-col font-sans bg-cover bg-center bg-no-repeat select-none"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       
+      {/* OVERLAY MAZAVA - Tsy manankona ny sary background */}
+      <div className="absolute inset-0 bg-black/20 z-0" />
+
       {/* --- NAVBAR --- */}
-  
-      <nav className="flex items-center justify-between px-10 py-5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+      <nav className="h-16 flex items-center justify-between px-4 sm:px-8 bg-slate-900/30 backdrop-blur-md border-b border-white/20 sticky top-0 z-50 text-white shrink-0">
         <motion.div 
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="flex items-center gap-3 text-xl font-black tracking-tighter text-blue-600"
+          className="flex items-center gap-3"
         >
-          <div className="w-12 h-12 rounded-full border-2 border-blue-600 p-0.5 overflow-hidden bg-white shadow-lg shadow-blue-100 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full border-2 border-indigo-500 p-0.5 overflow-hidden bg-white shrink-0 flex items-center justify-center shadow-md">
             <img 
               src={logo} 
               alt="Logo Tsinjo Aina"
               className="w-full h-full object-cover rounded-full"
             />
           </div>
-          {/* Nampiana dark:text-white */}
-          <span className="hidden md:block uppercase tracking-tight dark:text-white">ONG Tsinjo Aina FIANARANTSOA</span>
+          <div className="flex flex-col leading-none">
+            <span className="text-xs font-bold text-white tracking-tight drop-shadow-md">
+              ONG Tsinjo Aina
+            </span>
+            <span className="text-[10px] text-slate-200 font-medium drop-shadow-md">
+              Fianarantsoa
+            </span>
+          </div>
         </motion.div>
         
-        <div className="flex items-center gap-8">
-          {/* Bokotra hanovana Dark Mode */}
-          <button 
-            onClick={() => setIsDark(!isDark)}
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link 
+            to="/login" 
+            className="text-xs font-semibold px-3 py-2 rounded-lg text-slate-100 hover:text-white hover:bg-white/20 transition-colors drop-shadow-md"
           >
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-
-          <Link to="/login" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-colors">
             Se connecter
           </Link>
           
           <div className="relative">
             <button 
               onClick={() => setShowRoles(!showRoles)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-600 dark:hover:bg-blue-500 shadow-xl transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
             >
-              S'inscrire
+              <span>S'inscrire</span>
               <motion.div animate={{ rotate: showRoles ? 180 : 0 }}>
-                <ChevronDown size={16} />
+                <ChevronDown size={14} />
               </motion.div>
             </button>
 
             <AnimatePresence>
               {showRoles && (
                 <motion.div 
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  /* Nampiana dark styles ho an'ny dropdown */
-                  className="absolute right-0 mt-3 w-52 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-2 z-[60]"
+                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                  className="absolute right-0 mt-2 w-48 bg-slate-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/20 p-1.5 z-50"
                 >
                   <Link 
                     to="/register?role=admin" 
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors group"
+                    className="flex items-center gap-2.5 px-3 py-2 hover:bg-indigo-600/30 rounded-lg text-xs font-semibold text-slate-100 hover:text-white transition-colors group"
                   >
-                    <ShieldCheck size={18} className="text-blue-600 group-hover:scale-110 transition-transform" />
+                    <ShieldCheck size={16} className="text-indigo-400 group-hover:scale-105 transition-transform" />
                     Administrateur
                   </Link>
                   <Link 
                     to="/register?role=user" 
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors group"
+                    className="flex items-center gap-2.5 px-3 py-2 hover:bg-emerald-600/30 rounded-lg text-xs font-semibold text-slate-100 hover:text-white transition-colors group"
                   >
-                    <User size={18} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+                    <User size={16} className="text-emerald-400 group-hover:scale-105 transition-transform" />
                     Utilisateur
                   </Link>
                 </motion.div>
@@ -118,95 +152,102 @@ const Home = () => {
       </nav>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 relative z-10 overflow-hidden">
         
-        {/* Nampiana dark opacity kely eto amin'ny blobs */}
-        <motion.div 
-          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-200 dark:bg-blue-900/20 rounded-full blur-[120px] -z-10" 
-        />
-        <motion.div 
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.4, 0.3] }}
-          transition={{ duration: 10, repeat: Infinity, delay: 1 }}
-          className="absolute bottom-1/4 -right-20 w-80 h-80 bg-emerald-200 dark:bg-emerald-900/20 rounded-full blur-[120px] -z-10" 
-        />
-
-        <div className="relative z-10 w-full max-w-6xl mt-[-2rem]">
+        <div className="relative z-10 w-full max-w-5xl flex flex-col items-center">
           
-        <motion.div 
-          variants={titleAnimation}
-          initial="hidden"
-          animate="visible"
-          className="text-center mb-10"
-        >
-          {/* Nampiana dark:text-white */}
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-            Agir pour un <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500">Avenir Durable</span>
-          </h1>
-        </motion.div>
+          {/* BADGE TOP */}
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/40 backdrop-blur-md border border-white/20 text-indigo-200 text-[11px] font-semibold mb-6 shadow-xl"
+          >
+            <HeartHandshake size={14} className="text-indigo-400" />
+            <span>Développement humain & autopromotion</span>
+          </motion.div>
 
+          {/* DYNAMIC TITLE */}
+          <div className="text-center mb-10 min-h-[60px] sm:min-h-[80px] flex flex-col justify-center items-center w-full">
+            <AnimatePresence mode="wait">
+              <motion.h1 
+                key={currentTitleIndex}
+                variants={titleContainerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-snug flex justify-center flex-wrap px-2 drop-shadow-xl"
+              >
+                {titles[currentTitleIndex].split("").map((char, index) => (
+                  <motion.span
+                    key={index}
+                    variants={letterVariants}
+                    className={
+                      currentTitleIndex === 0
+                        ? "bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-blue-200 to-white"
+                        : currentTitleIndex === 1
+                        ? "text-white"
+                        : "bg-clip-text text-transparent bg-gradient-to-r from-emerald-200 to-teal-100"
+                    }
+                  >
+                    {char === " " ? "\u00A0" : char}
+                  </motion.span>
+                ))}
+              </motion.h1>
+            </AnimatePresence>
+          </div>
+
+          {/* SECTION TEXTES: NESORINA NY CARD BACKGROUND (Tsy misy boite intsony) */}
           <motion.div 
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12"
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full"
           >
             {/* Vision */}
-            <motion.div variants={fadeInUp} whileHover={{ y: -10 }} className="group">
-              {/* Nampiana dark:bg-slate-900/70 dark:border-slate-800 */}
-              <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-8 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all duration-500 h-full relative overflow-hidden">
-                <div className="flex items-center gap-5 mb-6">
-                  <div className="p-4 bg-blue-600 rounded-2xl shadow-lg group-hover:rotate-12 transition-transform">
-                    <Eye size={28} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-800 dark:text-white">Vision</h3>
-                </div>
-                <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed">
-                  Faire de chaque bénéficiaire un citoyen responsable, prenant en main son développement et vivant en harmonie dans une society équitable.
-                </p>
+            <motion.div variants={fadeInUp} className="flex flex-col items-start text-left">
+              <div className="flex items-center gap-2.5 mb-2">
+                <Eye size={24} className="text-indigo-400 shrink-0 drop-shadow-md" />
+                <h3 className="text-lg font-bold text-white tracking-wide drop-shadow-md">Vision</h3>
               </div>
+              <p className="text-xs text-slate-100 leading-relaxed font-medium drop-shadow-md">
+                Faire de chaque bénéficiaire un citoyen responsable, prenant en main son développement et vivant en harmonie dans une société équitable.
+              </p>
             </motion.div>
 
             {/* Mission */}
-            <motion.div variants={fadeInUp} whileHover={{ y: -10 }} className="group">
-              <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-8 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all duration-500 h-full relative overflow-hidden border-b-4 border-b-emerald-500">
-                <div className="flex items-center gap-5 mb-6">
-                  <div className="p-4 bg-emerald-500 rounded-2xl shadow-lg group-hover:rotate-12 transition-transform">
-                    <Target size={28} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-800 dark:text-white">Mission</h3>
-                </div>
-                <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed">
-                  Œuvrer pour le développement humain durable, l’autopromotion des communautés et la protection de l’environnement.
-                </p>
+            <motion.div variants={fadeInUp} className="flex flex-col items-start text-left">
+              <div className="flex items-center gap-2.5 mb-2">
+                <Target size={24} className="text-emerald-400 shrink-0 drop-shadow-md" />
+                <h3 className="text-lg font-bold text-white tracking-wide drop-shadow-md">Mission</h3>
               </div>
+              <p className="text-xs text-slate-100 leading-relaxed font-medium drop-shadow-md">
+                Œuvrer pour le développement humain durable, l'autopromotion des communautés et la protection de l'environnement.
+              </p>
             </motion.div>
 
             {/* Valeurs */}
-            <motion.div variants={fadeInUp} whileHover={{ y: -10 }} className="group">
-              <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-8 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all duration-500 h-full relative overflow-hidden">
-                <div className="flex items-center gap-5 mb-6">
-                  <div className="p-4 bg-amber-500 rounded-2xl shadow-lg group-hover:rotate-12 transition-transform">
-                    <Star size={28} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-800 dark:text-white">Valeurs</h3>
-                </div>
-                <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed">
-                  Notre action est guidée par l'effort propre, la volonté de ne laisser personne de côté et une approche sans aucune discrimination.
-                </p>
+            <motion.div variants={fadeInUp} className="flex flex-col items-start text-left">
+              <div className="flex items-center gap-2.5 mb-2">
+                <Star size={24} className="text-amber-400 shrink-0 drop-shadow-md" />
+                <h3 className="text-lg font-bold text-white tracking-wide drop-shadow-md">Valeurs</h3>
               </div>
+              <p className="text-xs text-slate-100 leading-relaxed font-medium drop-shadow-md">
+                Notre action est guidée par l'effort propre, la volonté de ne laisser personne de côté et une approche sans aucune discrimination.
+              </p>
             </motion.div>
           </motion.div>
+
         </div>
       </main>
 
-      {/* Nampiana dark:bg-slate-950 dark:border-slate-900 dark:text-slate-500 */}
-      <footer className="px-10 py-6 border-t border-slate-100 dark:border-slate-900 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-slate-950 text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors">
-        <p>© 2026 ONG TSINJO AINA FIANARANTSOA</p>
-        <div className="flex gap-8 mt-4 md:mt-0">
-          <a href="#" className="hover:text-blue-600 transition-colors">Facebook</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">Contact</a>
+      {/* --- FOOTER --- */}
+      <footer className="h-14 px-4 sm:px-8 border-t border-white/20 flex flex-col sm:flex-row justify-between items-center bg-slate-900/30 backdrop-blur-md text-slate-200 text-xs shrink-0 relative z-10">
+        <p className="font-medium text-[11px] sm:text-xs drop-shadow-md">
+          © {new Date().getFullYear()} ONG Tsinjo Aina — Fianarantsoa, Haute Matsiatra
+        </p>
+        <div className="flex gap-5 mt-1 sm:mt-0 font-semibold text-[11px] sm:text-xs">
+          <a href="#" className="hover:text-indigo-300 transition-colors drop-shadow-md">Facebook</a>
+          <a href="#" className="hover:text-indigo-300 transition-colors drop-shadow-md">Contact</a>
         </div>
       </footer>
     </div>

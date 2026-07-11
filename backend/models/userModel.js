@@ -24,10 +24,15 @@ const User = sequelize.define('User', {
   role: {
     type: DataTypes.STRING,
     defaultValue: 'user'
+  },
+
+  status: {
+    type: DataTypes.ENUM('en_attente', 'accepte', 'refuse'),
+    defaultValue: 'en_attente'
   }
 }, {
   tableName: 'users',
-  timestamps: false
+  timestamps: false 
 });
 
 module.exports = User;

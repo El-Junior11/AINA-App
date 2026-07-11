@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -13,163 +13,94 @@ import {
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 const Dashboard = () => {
-  const [data, setData] = useState({ membres: [], gs: [], reseaux: [], responsables: [], formations: [] });
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const API_BASE = "http://localhost:5000/api";
 
   useEffect(() => {
-    const fetchRealData = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
         const config = { headers: { 'Authorization': `Bearer ${token}` } };
         
-        const [resM, resG, resR, resP, resF] = await Promise.all([
-          axios.get(`${API_BASE}/membres`, config).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE}/groupes`, config).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE}/reseaux`, config).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE}/responsables`, config).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE}/formations`, config).catch(() => ({ data: [] }))
-        ]);
-
-        setData({
-          membres: Array.isArray(resM.data) ? resM.data : (resM.data?.data || []),
-          gs: Array.isArray(resG.data) ? resG.data : (resG.data?.groupes || []),
-          reseaux: Array.isArray(resR.data) ? resR.data : (resR.data?.data || []),
-          responsables: Array.isArray(resP.data) ? resP.data : (resP.data?.data || []),
-          formations: Array.isArray(resF.data) ? resF.data : (resF.data?.data || [])
-        });
+        const response = await axios.get(`${API_BASE}/dashboard/stats`, config);
+        
+        if (response.data && response.data.success) {
+          setStats(response.data);
+        }
       } catch (err) {
-        console.error("Erreur Dashboard:", err);
+        console.error("Erreur chargement Dashboard:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchRealData();
+    fetchDashboardData();
   }, []);
 
-  const stats = useMemo(() => {
-    const { membres, gs, responsables, formations, reseaux } = data;
-    const anio = new Date().getFullYear();
-
-    const resumeData = [
-      { subject: 'Membres', A: membres.length },
-      { subject: 'Groupes GS', A: gs.length },
-      { subject: 'Formations', A: formations.length },
-      { subject: 'Réseaux', A: reseaux.length },
-      { subject: 'Responsables', A: responsables.length },
-    ];
-
-    const ageData = [
-      { name: 'Jeunes (<25)', value: membres.filter(m => (anio - parseInt(m.ann_naiss || 2000)) < 25).length },
-      { name: 'Adultes (25-45)', value: membres.filter(m => {
-          const a = anio - parseInt(m.ann_naiss || 2000); return a >= 25 && a <= 45;
-      }).length },
-      { name: 'Aînés (>45)', value: membres.filter(m => (anio - parseInt(m.ann_naiss || 2000)) > 45).length }
-    ];
-
-    const distributionGS = gs.reduce((acc, g) => {
-      const year = g.date_creation ? new Date(g.date_creation).getFullYear() : 'Inconnu';
-      acc[year] = (acc[year] || 0) + 1;
-      return acc;
-    }, {});
-
-    const totalGS = gs.length;
-    const evolutionGS = Object.keys(distributionGS).map(year => ({
-      year: year,
-      pourcentage: totalGS > 0 ? parseFloat(((distributionGS[year] / totalGS) * 100).toFixed(1)) : 0,
-      count: distributionGS[year]
-    })).sort((a, b) => a.year - b.year);
-
-    const modules = [
-      { id: 'gestionsimplifiee', label: 'Gestion' },
-      { id: 'agroeco', label: 'Agro-Éco' },
-      { id: 'nutrition', label: 'Nutrition' },
-      { id: 'genre', label: 'Genre' },
-      { id: 'autonomie', label: 'Autonome' }
-    ];
-    const moduleStats = modules.map(mod => ({
-      name: mod.label,
-      valeur: formations.filter(f => f.formation?.[mod.id] === true || f.formation?.[mod.id] === 1).length
-    }));
-
-    const normalizePoste = (txt) => txt ? txt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
-    const respData = [
-      { name: 'Président(e)', valeur: responsables.filter(r => normalizePoste(r?.Poste || r?.poste).includes("presid")).length },
-      { name: 'Secrétaire', valeur: responsables.filter(r => normalizePoste(r?.Poste || r?.poste).includes("secr")).length },
-      { name: 'Trésorier(e)', valeur: responsables.filter(r => normalizePoste(r?.Poste || r?.poste).includes("treso")).length },
-      { name: 'Conseiller(e)', valeur: responsables.filter(r => normalizePoste(r?.Poste || r?.poste).includes("conseil")).length },
-      { name: 'Membres', valeur: responsables.filter(r => normalizePoste(r?.Poste || r?.poste).includes("membre")).length }
-    ];
-
-    const resAuto = reseaux.filter(r => r.Autonomie === 'Oui').length;
-
-    return { resumeData, ageData, moduleStats, evolutionGS, respData, resAuto };
-  }, [data]);
-
-  if (loading) return (
-    <div className="h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-      <Loader2 size={40} className="animate-spin text-indigo-600 mb-4" />
-      <p className="font-black text-slate-400 uppercase tracking-widest text-[10px]">Chargement des données...</p>
+  if (loading || !stats) return (
+    <div className="h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 min-h-[80vh]">
+      <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
+      <p className="font-semibold text-slate-500 text-xs">Chargement des données...</p>
     </div>
   );
 
   return (
-    <div className="h-full bg-[#f8fafc] dark:bg-slate-950 overflow-y-auto font-sans">
-      <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="h-full bg-[#f8fafc] dark:bg-slate-950 overflow-y-auto font-sans pb-8">
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
         
-        {/* --- KPI CARDS HORIZONTAL ALIGNEMENT --- */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {/* --- KPI CARDS HORIZONTAL ALIGNMENT --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
-            { label: 'Membres', val: data.membres.length, icon: Users, col: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { label: 'Groupes GS', val: data.gs.length, icon: Home, col: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'Réseaux', val: data.reseaux.length, icon: Network, col: 'text-amber-600', bg: 'bg-amber-50' },
-            { label: 'Responsables', val: data.responsables.length, icon: ShieldCheck, col: 'text-purple-600', bg: 'bg-purple-50' },
-            { label: 'Formations', val: data.formations.length, icon: GraduationCap, col: 'text-rose-600', bg: 'bg-rose-50' },
+            { label: 'Membres', val: stats.kpis.membres, icon: Users, col: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+            { label: 'Groupes GS', val: stats.kpis.groupes, icon: Home, col: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+            { label: 'Réseaux', val: stats.kpis.reseaux, icon: Network, col: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
+            { label: 'Responsables', val: stats.kpis.responsables, icon: ShieldCheck, col: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
+            { label: 'Formations', val: stats.kpis.formations, icon: GraduationCap, col: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40' },
           ].map((item, i) => (
-            <div key={i} className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 transition-transform hover:scale-105 flex items-center gap-4">
-              <div className={`${item.bg} dark:bg-slate-800 ${item.col} w-12 h-12 flex items-center justify-center rounded-2xl shrink-0`}>
-                <item.icon size={22} />
+            <div key={i} className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 transition-all hover:border-slate-300 dark:hover:border-slate-700 flex items-center gap-3">
+              <div className={`${item.bg} ${item.col} w-10 h-10 flex items-center justify-center rounded-md shrink-0`}>
+                <item.icon size={20} />
               </div>
               <div className="flex flex-col justify-center">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{item.label}</p>
-                <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{item.val}</p>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-none mb-1">{item.label}</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white leading-none">{item.val}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* --- SECTION 1: PERFORMANCE ET MODULES --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
-            <h3 className="font-black text-slate-800 dark:text-white uppercase text-[10px] mb-6 tracking-widest flex items-center gap-2">
-              <Target size={16} className="text-indigo-600"/> Équilibre du Programme
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <h3 className="font-bold text-slate-900 dark:text-white text-xs mb-4 flex items-center gap-2">
+              <Target size={16} className="text-indigo-600 dark:text-indigo-400"/> Équilibre du programme
             </h3>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={stats.resumeData}>
                   <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{fontSize: 9, fontWeight: '900', fill: '#94a3b8'}} />
-                  <Radar name="ONG" dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.5} />
-                  <Tooltip contentStyle={{borderRadius: '15px', fontSize: '10px'}} />
+                  <PolarAngleAxis dataKey="subject" tick={{fontSize: 10, fontWeight: '600', fill: '#64748b'}} />
+                  <Radar name="ONG" dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.4} />
+                  <Tooltip contentStyle={{borderRadius: '8px', fontSize: '11px', border: '1px solid #e2e8f0'}} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
-            <h3 className="font-black text-slate-800 dark:text-white uppercase text-[10px] mb-6 tracking-widest flex items-center gap-2">
-              <Activity size={16} className="text-emerald-600"/> Taux de Maîtrise par Module
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <h3 className="font-bold text-slate-900 dark:text-white text-xs mb-4 flex items-center gap-2">
+              <Activity size={16} className="text-emerald-600 dark:text-emerald-400"/> Taux de maîtrise par module
             </h3>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.moduleStats}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 'bold'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9}} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '12px', border: 'none', fontSize: '10px'}} />
-                  <Bar dataKey="valeur" fill="#10b981" radius={[8, 8, 8, 8]} barSize={35} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: '500'}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '11px'}} />
+                  <Bar dataKey="valeur" fill="#10b981" radius={[4, 4, 0, 0]} barSize={28} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -177,31 +108,31 @@ const Dashboard = () => {
         </div>
 
         {/* --- SECTION 2: ANALYSE GS ET ÂGES --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border-t-[8px] border-emerald-500">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-black text-emerald-600 uppercase text-[10px] tracking-widest flex items-center gap-2">
-                <CalendarDays size={14}/> Croissance des Groupes (% par année)
+              <h3 className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-2">
+                <CalendarDays size={16} className="text-emerald-600 dark:text-emerald-400"/> Croissance des groupes (% par année)
               </h3>
             </div>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.evolutionGS}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9}} unit="%" />
+                  <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: '500'}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} unit="%" />
                   <Tooltip 
                     formatter={(value) => [`${value}%`, 'Répartition']}
-                    contentStyle={{borderRadius: '12px', border: 'none', fontSize: '10px'}} 
+                    contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '11px'}} 
                   />
-                  <Bar dataKey="pourcentage" fill="#10b981" radius={[10, 10, 0, 0]} barSize={40} />
+                  <Bar dataKey="pourcentage" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border-t-[8px] border-blue-500">
-            <h3 className="font-black text-blue-500 uppercase text-[10px] mb-4 tracking-widest">Pyramide des Âges</h3>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <h3 className="font-bold text-slate-900 dark:text-white text-xs mb-4">Pyramide des âges</h3>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={stats.ageData}>
@@ -211,9 +142,10 @@ const Dashboard = () => {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 'bold'}} />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorAge)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: '500'}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                  <Tooltip contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '11px'}} />
+                  <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorAge)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -221,45 +153,50 @@ const Dashboard = () => {
         </div>
 
         {/* --- SECTION 3: RÉSEAUX ET RESPONSABLES --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border-t-[8px] border-amber-500">
-            <h3 className="font-black text-amber-500 uppercase text-[10px] mb-4 tracking-widest">Maturité des Réseaux</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <h3 className="font-bold text-slate-900 dark:text-white text-xs mb-4">Maturité des réseaux</h3>
             <div className="flex flex-col items-center justify-center h-[220px]">
               <div className="relative">
                 <ResponsiveContainer width={180} height={180}>
                   <PieChart>
                     <Pie 
-                      data={[{ value: stats.resAuto }, { value: data.reseaux.length - stats.resAuto }]} 
-                      innerRadius={65} outerRadius={80} startAngle={180} endAngle={0} dataKey="value" stroke="none"
+                      data={[
+                        { value: stats.kpis.reseauxAutonomes }, 
+                        { value: stats.kpis.reseaux - stats.kpis.reseauxAutonomes }
+                      ]} 
+                      innerRadius={60} outerRadius={75} startAngle={180} endAngle={0} dataKey="value" stroke="none"
                     >
                       <Cell fill="#f59e0b" />
-                      <Cell fill="#f1f5f9" />
+                      <Cell fill="#e2e8f0" className="dark:fill-slate-800" />
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pt-8">
-                  <span className="text-3xl font-black text-slate-800 dark:text-white">
-                    {data.reseaux.length > 0 ? Math.round((stats.resAuto / data.reseaux.length) * 100) : 0}%
+                <div className="absolute inset-0 flex flex-col items-center justify-center pt-6">
+                  <span className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {stats.kpis.reseaux > 0 ? Math.round((stats.kpis.reseauxAutonomes / stats.kpis.reseaux) * 100) : 0}%
                   </span>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase">Autonome</span>
+                  <span className="text-[10px] font-medium text-slate-500">Autonomes</span>
                 </div>
               </div>
-              <p className="text-[10px] font-black text-slate-500 mt-2 uppercase">{stats.resAuto} sur {data.reseaux.length} réseaux</p>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1">
+                {stats.kpis.reseauxAutonomes} sur {stats.kpis.reseaux} réseaux
+              </p>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border-t-[8px] border-purple-500">
-            <h3 className="font-black text-purple-500 uppercase text-[10px] mb-4 tracking-widest">Répartition des Postes</h3>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <h3 className="font-bold text-slate-900 dark:text-white text-xs mb-4">Répartition des postes</h3>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={stats.respData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="valeur">
+                  <Pie data={stats.respData} innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="valeur">
                     {stats.respData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{borderRadius: '15px', border: 'none', fontSize: '10px'}} />
-                  <Legend iconType="circle" wrapperStyle={{fontSize: '9px', fontWeight: '900', textTransform: 'uppercase'}} />
+                  <Tooltip contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '11px'}} />
+                  <Legend iconType="circle" wrapperStyle={{fontSize: '10px', fontWeight: '500'}} />
                 </PieChart>
               </ResponsiveContainer>
             </div>

@@ -3,11 +3,12 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
   Trash2, Edit2, UserPlus, X, Loader2, Save, CheckCircle2, 
-  Search, FileText, Download, BarChart3, Printer
+  Search, FileText, Download, BarChart3, Printer, Users, ShieldCheck, HeartHandshake
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import logo from '../assets/logo.png';
 
 const Toast = Swal.mixin({
   toast: true,
@@ -45,13 +46,22 @@ const MembresList = () => {
 
   useEffect(() => { fetchMembres(); }, []);
 
+  // Fandaharana miakatra (croissant) araka ny num_menage
+  const sortMembresByNumMenage = (data) => {
+    return [...data].sort((a, b) => {
+      const valA = String(a.num_menage || '');
+      const valB = String(b.num_menage || '');
+      return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  };
+
   useEffect(() => {
     const results = membres.filter(m => {
       const isChefStr = m.chef ? "chef" : "non";
       const searchTarget = `${m.nom_membre} ${m.prenom_membre} ${m.annee_naissance} ${m.sexe} ${isChefStr} ${m.num_menage}`.toLowerCase();
       return searchTarget.includes(searchTerm.toLowerCase());
     });
-    setFilteredMembres(results);
+    setFilteredMembres(sortMembresByNumMenage(results));
   }, [searchTerm, membres]);
 
   const fetchMembres = async () => {
@@ -66,30 +76,84 @@ const MembresList = () => {
       const res = await axios.get(API_URL, { 
         headers: { 'Authorization': `Bearer ${token}` } 
       });
-      setMembres(res.data);
-      setFilteredMembres(res.data);
+      
+      const sortedData = sortMembresByNumMenage(res.data);
+      setMembres(sortedData);
+      setFilteredMembres(sortedData);
     } catch (error) {
       console.error(error);
       Toast.fire({ icon: 'error', title: 'Connexion au serveur impossible' });
     } finally { setLoading(false); }
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     try {
-      const doc = new jsPDF();
-      doc.text("LISTE DES MEMBRES - ONG TSINJO AINA", 14, 15);
-      const tableData = filteredMembres.map((m, i) => [
-        i + 1, m.nom_membre, m.prenom_membre, m.annee_naissance || '-', m.sexe, m.chef ? 'CHEF' : 'NON', m.num_menage
-      ]);
-      autoTable(doc, { head: [['N°', 'Nom', 'Prénom', 'Année', 'Sexe', 'Statut', 'Ménage']], body: tableData, startY: 25 });
-      doc.save("membres_tsinjo_aina.pdf");
-      setShowExportMenu(false);
-      Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+        const today = new Date().toLocaleDateString('fr-FR');
+
+        // Fonction hanovana sary ho boribory (Circular Clip)
+        const getCircularImage = (url) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const size = Math.min(img.width, img.height);
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.src = url;
+            });
+        };
+
+        const circularLogo = await getCircularImage(logo);
+
+        // Header Helper
+        const addCenteredHeader = (yOffset) => {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text("Liste des membres - ONG Tsinjo Aina", pageWidth / 2, yOffset, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Date d'édition : ${today}`, pageWidth / 2, yOffset + 7, { align: 'center' });
+        };
+
+        // Ampidiro ilay logo efa boribory
+        doc.addImage(circularLogo, 'PNG', (pageWidth - 25) / 2, 10, 25, 25);
+        addCenteredHeader(40);
+
+        const tableData = filteredMembres.map((m, i) => [
+            i + 1, 
+            `${m.nom_membre} ${m.prenom_membre || ''}`, 
+            m.annee_naissance || '-', 
+            m.sexe, 
+            m.chef ? 'Chef' : 'Membre', 
+            m.num_menage
+        ]);
+
+        autoTable(doc, { 
+            head: [['N°', 'Membre', 'Année', 'Sexe', 'Statut', 'Ménage']], 
+            body: tableData, 
+            startY: 50 
+        });
+
+        doc.save("membres_tsinjo_aina.pdf");
+        setShowExportMenu(false);
+        Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
+
     } catch (error) {
-      console.error(error);
-      Toast.fire({ icon: 'error', title: 'Impossible de générer le PDF' });
+        console.error(error);
+        Toast.fire({ icon: 'error', title: 'Impossible de générer le PDF' });
     }
-  };
+};
 
   const exportExcel = () => {
     try {
@@ -163,161 +227,282 @@ const MembresList = () => {
   const resetForm = () => { setEditingId(null); setFormData(initialForm); };
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden">
+    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden relative">
       
-      <div className="p-6 flex flex-wrap justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 gap-4">
+      {/* HEADER SIMPLE */}
+      <div className="p-4 px-6 flex justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-black text-blue-700 dark:text-blue-500 tracking-tighter uppercase">Gestion des Membres</h1>
-          <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest">Base de données sécurisée</p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <button onClick={() => setShowExportMenu(!showExportMenu)} className="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl shadow-lg transition-all flex items-center gap-2">
-              <Printer size={20} />
-              <span className="text-xs font-bold uppercase hidden md:block">Exporter</span>
-            </button>
-            {showExportMenu && (
-              <div className="absolute right-0 mt-3 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden text-slate-900 dark:text-white">
-                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold border-b dark:border-slate-800"><FileText size={16} className="text-red-500" /> Document PDF</button>
-                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold"><Download size={16} className="text-emerald-600" /> Feuille Excel</button>
-              </div>
-            )}
-          </div>
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all font-black text-xs uppercase">
-            <BarChart3 size={18} /><span className="hidden sm:block">{showStats ? 'Fermer' : 'Statistiques'}</span>
-          </button>
-          <button onClick={() => { resetForm(); setShowModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl shadow-lg active:scale-95 transition-all">
-            <UserPlus size={22} />
-          </button>
+          <h1 className="text-xl font-bold text-blue-700 dark:text-blue-500 tracking-tight flex items-center gap-2">
+            <Users size={22} className="text-blue-600 dark:text-blue-400" />
+            Gestion des membres
+          </h1>
+          <p className="text-xs text-emerald-600 font-medium">Base de données sécurisée</p>
         </div>
       </div>
 
+      {/* SEARCH BAR WITH BUTTONS INLINE */}
+      <div className="px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+        <div className="relative group flex-1 max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
+          <input 
+            type="text" 
+            placeholder="Rechercher un membre..." 
+            className="w-full pl-10 pr-10 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none text-xs font-medium" 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"><X size={14} /></button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => { resetForm(); setShowModal(true); }} 
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md flex items-center gap-1.5 text-xs font-semibold transition-all shadow-xs shrink-0"
+          >
+            <UserPlus size={16} />
+            <span className="hidden sm:block">Ajouter</span>
+          </button>
+
+          <button 
+            onClick={() => setShowStats(true)} 
+            className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-3 py-2 rounded-md transition-all font-semibold text-xs shrink-0"
+          >
+            <BarChart3 size={15} />
+            <span className="hidden sm:block">Voir plus</span>
+          </button>
+
+          <div className="relative shrink-0">
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-md transition-all flex items-center gap-2 text-xs font-semibold shadow-xs"
+            >
+              <Printer size={15} />
+              <span className="hidden md:block">Exporter</span>
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-50 text-slate-900 dark:text-white overflow-hidden">
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium border-b dark:border-slate-800"><FileText size={15} className="text-red-500" /> Document PDF</button>
+                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium"><Download size={15} className="text-emerald-600" /> Feuille Excel</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* TABLE FLEXIBLE & RESPONSIVE */}
+      <div className="flex-1 overflow-hidden px-6 pb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs h-full flex flex-col">
+          <div className="flex-1 overflow-x-auto overflow-y-auto">
+            <table className="w-full border-collapse text-left">
+              <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-4 py-2.5 w-14">N°</th>
+                  <th className="px-4 py-2.5 min-w-[200px]">Membre</th>
+                  <th className="px-4 py-2.5 text-center min-w-[90px]">Année</th>
+                  <th className="px-4 py-2.5 text-center min-w-[100px]">Genre</th>
+                  <th className="px-4 py-2.5 text-center min-w-[100px]">Statut</th>
+                  <th className="px-4 py-2.5 min-w-[100px]">Ménage</th>
+                  <th className="px-4 py-2.5 text-right w-20 sticky right-0 bg-slate-100 dark:bg-slate-800">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center"><Loader2 size={24} className="animate-spin inline text-blue-600" /></td>
+                  </tr>
+                ) : filteredMembres.map((m, index) => (
+                  <tr key={m.nummembre} className="h-[48px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td className="px-4 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 w-14">{index + 1}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-1.5 text-xs truncate">
+                        <span className="font-bold text-slate-900 dark:text-white capitalize truncate">{m.nom_membre}</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-medium capitalize truncate">{m.prenom_membre}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-center text-xs font-mono font-medium text-slate-800 dark:text-slate-200">{m.annee_naissance || '----'}</td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold inline-block ${m.sexe === 'Homme' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300'}`}>
+                        {m.sexe === 'Homme' ? 'Homme' : 'Femme'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      {m.chef ? ( 
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 rounded-md inline-flex items-center gap-1 border border-emerald-200 dark:border-emerald-900"><CheckCircle2 size={11} /> Chef</span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Membre</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-xs font-bold text-blue-600 dark:text-blue-400">{m.num_menage}</td>
+                    <td className="px-4 py-2 text-right w-20 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50">
+                      <div className="flex justify-end gap-1">
+                        <button onClick={() => openEditModal(m)} className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md"><Edit2 size={14} /></button>
+                        <button onClick={() => handleDelete(m.nummembre)} className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-md"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && filteredMembres.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium text-xs">Aucune donnée trouvée</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* STATISTIQUES (VOIR PLUS) */}
       {showStats && (
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top duration-300">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-blue-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Population</span>
-            <p className="text-3xl font-black text-slate-800 dark:text-white">{filteredMembres.length}</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-emerald-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Chefs Ménage</span>
-            <p className="text-3xl font-black text-slate-800 dark:text-white">{filteredMembres.filter(m=>m.chef).length}</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-pink-500 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Mixité (H/F)</span>
-            <p className="text-3xl font-black text-slate-800 dark:text-white">
-              {filteredMembres.filter(m=>m.sexe==='Homme').length}/{filteredMembres.filter(m=>m.sexe==='Femme').length}
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-lg animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-3.5 bg-blue-600 text-white flex justify-between items-center">
+              <div>
+                <h2 className="text-xs font-bold flex items-center gap-2">
+                  <BarChart3 size={16} /> Aperçu des statistiques
+                </h2>
+                <p className="text-[11px] font-normal text-blue-100">Résumé global de la base de données</p>
+              </div>
+              <button onClick={() => setShowStats(false)} className="text-white/80 hover:text-white p-1 rounded-md"><X size={18} /></button>
+            </div>
+            
+            <div className="p-5 space-y-3">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-blue-600 rounded-md flex justify-between items-center shadow-xs">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Total population</span>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{filteredMembres.length}</p>
+                </div>
+                <Users size={20} className="text-blue-600" />
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-emerald-600 rounded-md flex justify-between items-center shadow-xs">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Chefs de ménage</span>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{filteredMembres.filter(m => m.chef).length}</p>
+                </div>
+                <ShieldCheck size={20} className="text-emerald-600" />
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-pink-500 rounded-md flex justify-between items-center shadow-xs">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Répartition (Homme / Femme)</span>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    {filteredMembres.filter(m => m.sexe === 'Homme').length} <span className="text-slate-400 text-xs font-normal">/</span> {filteredMembres.filter(m => m.sexe === 'Femme').length}
+                  </p>
+                </div>
+                <HeartHandshake size={20} className="text-pink-500" />
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <button 
+                onClick={() => setShowStats(false)} 
+                className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-4 py-1.5 rounded-md text-xs font-semibold transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="px-6 py-4 flex items-center gap-4">
-        <div className="relative group flex-1 max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 dark:text-white" size={20} />
-          <input type="text" placeholder="Rechercher un membre..." className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] border-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 hover:bg-red-100 p-1.5 rounded-full text-slate-900 dark:text-white transition-all"><X size={16} /></button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-          <table className="w-full flex flex-col">
-            {/* TH: Natao text-slate-900 (mode clair) sy text-white (mode sombre) */}
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[13px] font-black tracking-widest text-slate-900 dark:text-white border-b dark:border-slate-800 w-full">
-              <tr className="flex w-full">
-                <th className="px-6 py-5 text-left w-20 flex-shrink-0">N°</th>
-                <th className="px-6 py-5 text-left flex-1">Membre</th>
-                <th className="px-6 py-5 text-center w-24 flex-shrink-0">Année</th>
-                <th className="px-6 py-5 text-center w-32 flex-shrink-0">Genre</th>
-                <th className="px-6 py-5 text-center w-32 flex-shrink-0">Statut</th>
-                <th className="px-6 py-5 text-left w-32 flex-shrink-0">Ménage</th>
-                <th className="px-6 py-5 text-right w-32 flex-shrink-0">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="flex flex-col w-full overflow-y-auto" style={{ maxHeight: 'calc(68px * 3)' }}>
-              {loading ? (
-                <tr className="w-full"><td className="p-20 text-center w-full"><Loader2 size={30} className="animate-spin inline text-blue-600" /></td></tr>
-              ) : filteredMembres.map((m, index) => (
-                <tr key={m.nummembre} className="flex w-full items-center hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group border-b border-slate-50 dark:border-slate-800 last:border-0">
-                  {/* N°: text-slate-900 sy dark:text-slate-100 */}
-                  <td className="px-6 py-4 text-xs font-black text-slate-900 dark:text-slate-100 w-20 flex-shrink-0">{index + 1}</td>
-                  <td className="px-6 py-4 flex-1">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-black text-slate-800 dark:text-white uppercase truncate">{m.nom_membre}</span>
-                      {/* Prenom: text-slate-900 sy dark:text-slate-100 */}
-                      <span className="text-[11px] text-slate-900 dark:text-slate-100 font-bold capitalize truncate">{m.prenom_membre}</span>
-                    </div>
-                  </td>
-                  {/* Année: text-slate-900 sy dark:text-white */}
-                  <td className="px-6 py-4 text-center text-sm font-mono font-bold w-24 flex-shrink-0 text-slate-800 dark:text-white">{m.annee_naissance || '----'}</td>
-                  <td className="px-6 py-4 text-center w-32 flex-shrink-0">
-                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black ${m.sexe === 'Homme' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                      {m.sexe === 'Homme' ? 'HOMME' : 'FEMME'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center w-32 flex-shrink-0">
-                    {m.chef ? ( 
-                      <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md inline-flex items-center gap-1"><CheckCircle2 size={12} /> CHEF</span>
-                    ) : (
-                      <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase">MEMBRE</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-xs font-black text-blue-600 dark:text-blue-400 w-32 flex-shrink-0">{m.num_menage}</td>
-                  <td className="px-6 py-4 text-right w-32 flex-shrink-0">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditModal(m)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit2 size={16} /></button>
-                      <button onClick={() => handleDelete(m.nummembre)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!loading && filteredMembres.length === 0 && (
-                <tr className="w-full"><td className="p-20 text-center text-slate-900 dark:text-white font-black uppercase tracking-widest w-full">Aucune donnée</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+      {/* FORMULAIRE - ROUNDED MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4 text-slate-900 dark:text-white">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden animate-in zoom-in duration-300">
-            <div className="px-10 py-8 bg-blue-600 flex justify-between items-center text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-lg animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-3.5 bg-blue-600 text-white flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-black uppercase tracking-tighter">Fiche Membre</h2>
-                <p className="text-[10px] font-bold text-blue-200 uppercase">Information de l'adhérent</p>
+                <h2 className="text-xs font-bold">{editingId ? 'Modifier un membre' : 'Nouveau membre'}</h2>
+                <p className="text-[11px] font-normal text-blue-100">Fiche de saisie des données</p>
               </div>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="bg-white/10 hover:bg-white/20 p-2 rounded-full"><X size={20} /></button>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="text-white/80 hover:text-white p-1 rounded-md"><X size={18} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Nom de famille</label>
-                  <input type="text" required className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 uppercase font-black transition-all" value={formData.nom_membre} onChange={(e) => setFormData({...formData, nom_membre: e.target.value})} />
+
+            <form onSubmit={handleSubmit} className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nom de famille *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium capitalize" 
+                    value={formData.nom_membre} 
+                    onChange={(e) => setFormData({...formData, nom_membre: e.target.value})} 
+                  />
                 </div>
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Prénoms</label>
-                  <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.prenom_membre} onChange={(e) => setFormData({...formData, prenom_membre: e.target.value})} />
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Prénoms</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium capitalize" 
+                    value={formData.prenom_membre} 
+                    onChange={(e) => setFormData({...formData, prenom_membre: e.target.value})} 
+                  />
                 </div>
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Année Naissance</label>
-                  <input type="number" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.annee_naissance} onChange={(e) => setFormData({...formData, annee_naissance: e.target.value})} />
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Année de naissance</label>
+                  <input 
+                    type="number" 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium" 
+                    value={formData.annee_naissance} 
+                    onChange={(e) => setFormData({...formData, annee_naissance: e.target.value})} 
+                  />
                 </div>
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">Sexe</label>
-                  <select className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold transition-all" value={formData.sexe} onChange={(e) => setFormData({...formData, sexe: e.target.value})}><option value="Homme">Homme</option><option value="Femme">Femme</option></select>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Sexe</label>
+                  <select 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium" 
+                    value={formData.sexe} 
+                    onChange={(e) => setFormData({...formData, sexe: e.target.value})}
+                  >
+                    <option value="Homme">Homme</option>
+                    <option value="Femme">Femme</option>
+                  </select>
                 </div>
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2">N° Identification Ménage</label>
-                  <input type="text" required className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-blue-600 dark:text-blue-400" value={formData.num_menage} onChange={(e) => setFormData({...formData, num_menage: e.target.value})} />
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">N° Ménage *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 outline-none focus:border-blue-600 text-xs font-bold" 
+                    value={formData.num_menage} 
+                    onChange={(e) => setFormData({...formData, num_menage: e.target.value})} 
+                  />
                 </div>
-                <div className="flex items-end pb-1"><label className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl cursor-pointer w-full hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors group">
-                    <input type="checkbox" className="w-5 h-5 accent-emerald-600" checked={formData.chef} onChange={(e) => setFormData({...formData, chef: e.target.checked})} /><span className="text-[10px] font-black uppercase group-hover:text-emerald-700 transition-colors">Chef de ménage ?</span></label>
+
+                <div className="flex items-end pb-0.5">
+                  <label className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 p-2 border border-slate-200 dark:border-slate-700 rounded-md cursor-pointer w-full">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 accent-emerald-600 rounded-sm" 
+                      checked={formData.chef} 
+                      onChange={(e) => setFormData({...formData, chef: e.target.checked})} 
+                    />
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Chef de ménage ?</span>
+                  </label>
                 </div>
               </div>
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-[1.5rem] font-black flex items-center justify-center gap-3 shadow-xl transition-all uppercase tracking-widest mt-4"><Save size={20} />{editingId ? 'Mettre à jour' : 'Enregistrer'}</button>
+
+              <div className="pt-2">
+                <button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-semibold flex items-center justify-center gap-2 text-xs transition-all"
+                >
+                  <Save size={15} />
+                  {editingId ? 'Mettre à jour' : 'Enregistrer'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 };

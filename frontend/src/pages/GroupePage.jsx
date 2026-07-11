@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { getGroupes, createGroupe, deleteGroupe, updateGroupe } from '../services/groupeService';
 import Swal from 'sweetalert2';
 import { 
-  Trash2, Edit2, Users, X, Loader2, Save, 
-  MapPin, Search, FileText, Download, Printer, Plus, BarChart3, Calendar
+  Trash2, Edit2, Users, X, Loader2, Save, Eye,
+  MapPin, Search, FileText, Download, Printer, Plus, Calendar, ShieldCheck
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import logo from '../assets/logo.png';
 
 const Toast = Swal.mixin({
   toast: true,
@@ -27,7 +28,7 @@ const GroupePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showStats, setShowStats] = useState(false);
+  const [showVoirPlusModal, setShowVoirPlusModal] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -65,26 +66,74 @@ const GroupePage = () => {
     } finally { setLoading(false); }
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     try {
-      const doc = new jsPDF();
-      doc.text("LISTE DES GROUPES SOLIDAIRES - ONG TSINJO AINA", 14, 15);
-      const tableData = filteredGroupes.map((g, i) => [
-        i + 1, g.nomgs, g.nummenage, g.village, g.fokontany, g.commune, g.date_creation ? new Date(g.date_creation).toLocaleDateString() : '-'
-      ]);
-      autoTable(doc, {
-        head: [['N°', 'Nom GS', 'Ménages', 'Village', 'Fokontany', 'Commune', 'Date Création']],
-        body: tableData,
-        startY: 25,
-      });
-      doc.save("groupes_tsinjo_aina.pdf");
-      setShowExportMenu(false);
-      Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+        const today = new Date().toLocaleDateString('fr-FR');
+
+        // Fonction hanovana sary ho boribory
+        const getCircularImage = (url) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const size = Math.min(img.width, img.height);
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.src = url;
+            });
+        };
+
+        const circularLogo = await getCircularImage(logo);
+
+        // Header Helper
+        const addCenteredHeader = (yOffset) => {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text("Liste des groupes solidaires - ONG Tsinjo Aina", pageWidth / 2, yOffset, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Date d'édition : ${today}`, pageWidth / 2, yOffset + 7, { align: 'center' });
+        };
+
+        // Ampidiro ilay logo boribory
+        doc.addImage(circularLogo, 'PNG', (pageWidth - 25) / 2, 10, 25, 25);
+        addCenteredHeader(40);
+
+        const tableData = filteredGroupes.map((g, i) => [
+            i + 1, 
+            g.nomgs, 
+            g.nummenage, 
+            g.village, 
+            g.fokontany, 
+            g.commune, 
+            g.date_creation ? new Date(g.date_creation).toLocaleDateString() : '-'
+        ]);
+
+        autoTable(doc, {
+            head: [['N°', 'Nom GS', 'Ménages', 'Village', 'Fokontany', 'Commune', 'Date création']],
+            body: tableData,
+            startY: 50,
+        });
+
+        doc.save("groupes_tsinjo_aina.pdf");
+        setShowExportMenu(false);
+        Toast.fire({ icon: 'success', title: 'Export PDF réussi' });
+        
     } catch (error) {
-      console.error(error);
-      Toast.fire({ icon: 'error', title: 'Impossible de générer le fichier PDF' });
+        console.error(error);
+        Toast.fire({ icon: 'error', title: 'Impossible de générer le fichier PDF' });
     }
-  };
+};
 
   const exportExcel = () => {
     try {
@@ -100,8 +149,36 @@ const GroupePage = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const inputMenages = formData.nummenage
+      .split(',')
+      .map(m => m.trim().toUpperCase())
+      .filter(m => m !== '');
+
+    const existingMenages = new Set();
+    groupes.forEach(g => {
+      if (editingId && g.codegs === editingId) return;
+
+      if (g.nummenage) {
+        g.nummenage.split(',').forEach(m => {
+          const cleaned = m.trim().toUpperCase();
+          if (cleaned) existingMenages.add(cleaned);
+        });
+      }
+    });
+
+    const duplicates = inputMenages.filter(m => existingMenages.has(m));
+
+    if (duplicates.length > 0) {
+      Toast.fire({
+        icon: 'error',
+        title: `Ménage(s) déjà attribué(s) : ${duplicates.join(', ')}`
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       if (editingId) {
@@ -112,14 +189,13 @@ const GroupePage = () => {
       setShowModal(false);
       resetForm();
       fetchData();
-      Toast.fire({ icon: 'success', title: 'Enregistrement réussi avec succès' });
+      Toast.fire({ icon: 'success', title: 'Enregistrement réussi' });
     } catch (error) {
       console.error(error);
       Toast.fire({ icon: 'error', title: error.response?.data?.message || "Erreur lors de l'enregistrement" });
     } finally { setLoading(false); }
   };
 
-  // Fitaovana famafana misy fanamafisana (Confirmation Toast)
   const handleDelete = async (id) => {
     Swal.fire({
       toast: true,
@@ -160,221 +236,289 @@ const GroupePage = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden">
+    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-950 transition-colors font-sans overflow-hidden relative">
       
-      <div className="p-6 flex flex-wrap justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-blue-700 dark:text-blue-500 tracking-tighter uppercase">Groupes Solidaires</h1>
-          <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest">Gestion communautaire</p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <button 
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
-            >
-              <Printer size={20} />
-              <span className="text-xs font-bold uppercase hidden md:block">Exporter</span>
-            </button>
-            {showExportMenu && (
-              <div className="absolute right-0 mt-3 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-200 border-b dark:border-slate-800">
-                  <FileText size={16} className="text-red-500" /> Document PDF
-                </button>
-                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-900 dark:text-slate-200">
-                  <Download size={16} className="text-emerald-600" /> Feuille Excel
-                </button>
-              </div>
-            )}
+      {/* HEADER WITH ICON */}
+      <div className="p-4 px-6 flex justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-900/50">
+            <Users size={22} />
           </div>
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all font-black text-xs uppercase">
-            <BarChart3 size={18} /><span className="hidden sm:block">{showStats ? 'Fermer' : 'Statistiques'}</span>
-          </button>
-          <button 
-            onClick={() => { resetForm(); setShowModal(true); }}
-            className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
-          >
-            <Plus size={22} />
-          </button>
+          <div>
+            <h1 className="text-xl font-bold text-blue-700 dark:text-blue-500 tracking-tight">Groupes solidaires</h1>
+            <p className="text-xs text-emerald-600 font-medium">Gestion communautaire</p>
+          </div>
         </div>
       </div>
 
-      {showStats && (
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top duration-300">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-blue-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Total Groupes</span>
-            <p className="text-3xl font-black text-slate-800 dark:text-white">{filteredGroupes.length}</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-emerald-600 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Ménages Couverts</span>
-            <p className="text-3xl font-black text-slate-800 dark:text-white">
-              {[...new Set(filteredGroupes.flatMap(g => g.nummenage?.split(',') || []))].length}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-b-4 border-orange-500 shadow-sm">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">Zones (Communes)</span>
-            <p className="text-3xl font-black text-slate-800 dark:text-white">
-              {[...new Set(filteredGroupes.map(g => g.commune))].length}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="px-6 py-4 flex items-center gap-4">
-        <div className="relative group flex-1 max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 dark:text-white group-focus-within:text-blue-500 transition-colors" size={20} />
+      {/* SEARCH BAR + ACTIONS (EXPORTER, VOIR PLUS, AJOUTER) */}
+      <div className="px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div className="relative group flex-1 max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
           <input 
             type="text" 
             placeholder="Rechercher un groupe, un ménage ou un lieu..." 
-            className="w-full pl-12 pr-12 py-4 rounded-[1.5rem] border-none bg-white dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium text-slate-900"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-10 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none text-xs font-medium" 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 hover:bg-red-100 p-1.5 rounded-full text-slate-900 hover:text-red-500 transition-all">
-              <X size={16} />
-            </button>
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"><X size={14} /></button>
           )}
+        </div>
+
+        {/* ACTIONS BOUTONS AMIN'NY ANKAVANA */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-md transition-all flex items-center gap-2 text-xs font-semibold"
+            >
+              <Printer size={15} />
+              <span className="hidden sm:block">Exporter</span>
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-50 text-slate-900 dark:text-white overflow-hidden">
+                <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium border-b dark:border-slate-800"><FileText size={15} className="text-red-500" /> Document PDF</button>
+                <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium"><Download size={15} className="text-emerald-600" /> Feuille Excel</button>
+              </div>
+            )}
+          </div>
+
+          {/* BOUTON VOIR PLUS AU LIEU DE STATISTIQUES */}
+          <button 
+            onClick={() => setShowVoirPlusModal(true)} 
+            className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-3 py-2 rounded-md transition-all font-semibold text-xs"
+          >
+            <Eye size={15} />
+            <span className="hidden sm:block">Voir plus</span>
+          </button>
+
+          <button 
+            onClick={() => { resetForm(); setShowModal(true); }} 
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md flex items-center gap-1.5 text-xs font-semibold transition-all"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:block">Ajouter</span>
+          </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+      {/* TABLE */}
+      <div className="flex-1 overflow-hidden px-6 pb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
           <table className="w-full flex flex-col">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[14px] font-black tracking-widest text-slate-900 dark:text-white border-b dark:border-slate-800 w-full">
+            <thead className="bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 w-full sticky top-0 z-10">
               <tr className="flex w-full">
-                <th className="px-6 py-5 text-left w-20 flex-shrink-0">N°</th>
-                <th className="px-6 py-5 text-left flex-1">Nom du GS</th>
-                <th className="px-6 py-5 text-left flex-1">Ménages rattachés</th>
-                <th className="px-6 py-5 text-left flex-1">Localisation</th>
-                <th className="px-6 py-5 text-right w-32 flex-shrink-0">Actions</th>
+                <th className="px-4 py-2.5 text-left w-16 flex-shrink-0">N°</th>
+                <th className="px-4 py-2.5 text-left flex-1">Nom du groupe</th>
+                <th className="px-4 py-2.5 text-left flex-1">Ménages rattachés</th>
+                <th className="px-4 py-2.5 text-left flex-1">Localisation</th>
+                <th className="px-4 py-2.5 text-right w-24 flex-shrink-0">Actions</th>
               </tr>
             </thead>
             <tbody 
-              className="flex flex-col w-full overflow-y-auto" 
-              style={{ maxHeight: 'calc(75px * 3)' }} 
+              className="flex flex-col w-full overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80" 
+              style={{ maxHeight: '290px' }}
             >
               {loading ? (
-                <tr className="w-full"><td className="p-20 text-center w-full"><Loader2 size={30} className="animate-spin inline text-blue-600" /></td></tr>
+                <tr className="w-full"><td className="p-8 text-center w-full"><Loader2 size={24} className="animate-spin inline text-blue-600" /></td></tr>
               ) : filteredGroupes.map((g, index) => (
-                <tr key={g.codegs} className="flex w-full items-center hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group border-b border-slate-50 dark:border-slate-800 last:border-0">
-                  <td className="px-6 py-4 text-xs font-black text-slate-900 dark:text-white w-20 flex-shrink-0">{index + 1}</td>
-                  <td className="px-6 py-4 flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
-                        <Users size={16} />
+                <tr key={g.codegs} className="flex w-full items-center h-[48px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <td className="px-4 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 w-16 flex-shrink-0">{index + 1}</td>
+                  <td className="px-4 py-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-blue-50 dark:bg-blue-950 text-blue-600 rounded-md">
+                        <Users size={14} />
                       </div>
-                      <div>
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase truncate block">{g.nomgs}</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white capitalize truncate">{g.nomgs}</span>
                         {g.date_creation && (
-                           <span className="text-[9px] text-slate-900 dark:text-white font-bold uppercase flex items-center gap-1">
-                             <Calendar size={10} /> {new Date(g.date_creation).toLocaleDateString()}
-                           </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                            <Calendar size={10} /> {new Date(g.date_creation).toLocaleDateString()}
+                          </span>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 flex-1">
+                  <td className="px-4 py-2 flex-1">
                     <div className="flex flex-wrap gap-1 max-w-xs">
                       {g.nummenage?.split(',').map((m, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[9px] font-black">
+                        <span key={i} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold">
                           {m.trim()}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 flex-1">
-                    <div className="flex items-center gap-1 text-[11px] text-slate-900 dark:text-white font-bold uppercase truncate">
+                  <td className="px-4 py-2 flex-1">
+                    <div className="flex items-center gap-1 text-xs text-slate-700 dark:text-slate-300 font-medium truncate">
                       <MapPin size={12} className="text-red-500 flex-shrink-0" />
-                      <span className="truncate">{g.commune}, {g.village}</span>
+                      <span className="truncate capitalize">{g.commune}, {g.fokontany}, {g.village}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right w-32 flex-shrink-0">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditModal(g)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"><Edit2 size={16} /></button>
-                      <button onClick={() => handleDelete(g.codegs)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                  <td className="px-4 py-2 text-right w-24 flex-shrink-0">
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => openEditModal(g)} title="Modifier" className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-md transition-colors"><Edit2 size={14} /></button>
+                      <button onClick={() => handleDelete(g.codegs)} title="Supprimer" className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-md transition-colors"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
               {!loading && filteredGroupes.length === 0 && (
-                <tr className="w-full"><td className="p-20 text-center text-slate-900 dark:text-white font-black uppercase tracking-widest w-full">Aucun groupe trouvé</td></tr>
+                <tr className="w-full"><td className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium text-xs w-full">Aucun groupe trouvé</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden animate-in zoom-in duration-300">
-            <div className="px-10 py-8 bg-blue-600 flex justify-between items-center text-white">
-              <div>
-                <h2 className="text-xl font-black uppercase tracking-tighter">Fiche du GS</h2>
-                <p className="text-[10px] font-bold text-blue-200 uppercase">Configuration du groupe solidaire</p>
+      {/* MODAL "VOIR PLUS" (AU CENTRE TOY NY FORMULAIRE) */}
+      {showVoirPlusModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-lg animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-3.5 bg-blue-600 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Eye size={16} />
+                <h2 className="text-xs font-bold">Vue d'ensemble des groupes</h2>
               </div>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="bg-white/10 hover:bg-white/20 p-2 rounded-full"><X size={20} /></button>
+              <button onClick={() => setShowVoirPlusModal(false)} className="text-white/80 hover:text-white p-1 rounded-md"><X size={18} /></button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="grid grid-cols-1 gap-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2 tracking-widest">Nom du Groupe</label>
-                        <input 
-                            type="text" required
-                            className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 uppercase font-black text-slate-800 dark:text-white transition-all"
-                            value={formData.nomgs} onChange={(e) => setFormData({...formData, nomgs: e.target.value})}
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2 tracking-widest">Date de création</label>
-                        <input 
-                            type="date" required
-                            className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-800 dark:text-white transition-all"
-                            value={formData.date_creation} onChange={(e) => setFormData({...formData, date_creation: e.target.value})}
-                        />
-                    </div>
+            <div className="p-5 space-y-3">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-blue-600 rounded-md flex justify-between items-center">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Total groupes solidaires</span>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{filteredGroupes.length}</p>
                 </div>
+                <Users size={20} className="text-blue-600" />
+              </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Commune</label>
-                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs text-slate-900 dark:text-white" value={formData.commune} onChange={(e) => setFormData({...formData, commune: e.target.value})} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Fokontany</label>
-                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs text-slate-900 dark:text-white" value={formData.fokontany} onChange={(e) => setFormData({...formData, fokontany: e.target.value})} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Village</label>
-                    <input type="text" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase text-xs text-slate-900 dark:text-white" value={formData.village} onChange={(e) => setFormData({...formData, village: e.target.value})} />
-                  </div>
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-emerald-600 rounded-md flex justify-between items-center">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Ménages couverst / rattachés</span>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    {[...new Set(filteredGroupes.flatMap(g => g.nummenage?.split(',') || []))].length}
+                  </p>
+                </div>
+                <ShieldCheck size={20} className="text-emerald-600" />
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 border-l-4 border-amber-500 rounded-md flex justify-between items-center">
+                <div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Zones couvertes (Communes)</span>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    {[...new Set(filteredGroupes.map(g => g.commune))].length}
+                  </p>
+                </div>
+                <MapPin size={20} className="text-amber-500" />
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button 
+                  onClick={() => setShowVoirPlusModal(false)} 
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md font-semibold text-xs transition-all"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FORMULAIRE - ROUNDED MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-lg animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-3.5 bg-blue-600 text-white flex justify-between items-center">
+              <div>
+                <h2 className="text-xs font-bold">{editingId ? 'Modifier un groupe' : 'Nouveau groupe'}</h2>
+                <p className="text-[11px] font-normal text-blue-100">Fiche de saisie des données</p>
+              </div>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="text-white/80 hover:text-white p-1 rounded-md"><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nom du groupe *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium capitalize" 
+                    value={formData.nomgs} 
+                    onChange={(e) => setFormData({...formData, nomgs: e.target.value})} 
+                  />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-900 dark:text-white uppercase ml-2 tracking-widest">
-                    Ménages rattachés (Séparez par des virgules)
-                  </label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Date de création *</label>
                   <input 
-                    type="text" required
-                    placeholder="Ohatra: M001, M002, M003"
-                    className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none focus:ring-2 focus:ring-blue-500 font-black text-slate-800 dark:text-white transition-all uppercase placeholder:normal-case placeholder:font-normal"
+                    type="date" 
+                    required 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium" 
+                    value={formData.date_creation} 
+                    onChange={(e) => setFormData({...formData, date_creation: e.target.value})} 
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Commune</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium capitalize" 
+                    value={formData.commune} 
+                    onChange={(e) => setFormData({...formData, commune: e.target.value})} 
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Fokontany</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium capitalize" 
+                    value={formData.fokontany} 
+                    onChange={(e) => setFormData({...formData, fokontany: e.target.value})} 
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Village</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-600 text-xs font-medium capitalize" 
+                    value={formData.village} 
+                    onChange={(e) => setFormData({...formData, village: e.target.value})} 
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Ménages rattachés *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Ex: M001, M002, M003" 
+                    className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 outline-none focus:border-blue-600 text-xs font-bold placeholder:font-normal placeholder:text-slate-400" 
                     value={formData.nummenage} 
                     onChange={(e) => setFormData({...formData, nummenage: e.target.value})} 
                   />
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-[1.5rem] font-black flex items-center justify-center gap-3 shadow-xl shadow-blue-500/30 transition-all uppercase tracking-widest mt-4">
-                {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                {editingId ? 'Mettre à jour' : 'Enregistrer le groupe'}
-              </button>
+              <div className="pt-2">
+                <button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-semibold flex items-center justify-center gap-2 text-xs transition-all"
+                >
+                  <Save size={15} />
+                  {editingId ? 'Mettre à jour' : 'Enregistrer'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 };
