@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+
+
 const FormationStats = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
