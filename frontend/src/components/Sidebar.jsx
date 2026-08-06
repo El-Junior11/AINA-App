@@ -39,9 +39,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       background: isDark ? '#0f172a' : '#ffffff',
       color: isDark ? '#ffffff' : '#0f172a',
       customClass: {
-        popup: 'rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold shadow-xl p-3',
-        confirmButton: 'text-xs px-3 py-1.5 rounded-xl font-black',
-        cancelButton: 'text-xs px-3 py-1.5 rounded-xl font-bold',
+        popup: 'rounded-xl border border-sky-100 dark:border-slate-800 text-xs font-bold shadow-xl p-3',
+        confirmButton: 'text-xs px-3 py-1.5 rounded-lg font-black cursor-pointer',
+        cancelButton: 'text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer',
       }
     }).then((result) => {
       if (result.isConfirmed) {
@@ -56,7 +56,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           background: isDark ? '#0f172a' : '#ffffff',
           color: isDark ? '#ffffff' : '#0f172a',
           customClass: {
-            popup: 'rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold shadow-xl',
+            popup: 'rounded-xl border border-sky-100 dark:border-slate-800 text-xs font-bold shadow-xl',
           }
         });
 
@@ -81,14 +81,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           onClick={() => setIsCollapsed(!isCollapsed)}
           title={isCollapsed ? "Ouvrir le menu" : "Réduire le menu"}
           className={`
-            flex items-center gap-3 px-3 py-2 rounded-md transition-all w-full
-            text-xs font-bold uppercase tracking-wider
+            flex items-center gap-3 px-3 py-2 rounded-lg transition-all w-full
+            text-xs font-bold uppercase tracking-wider cursor-pointer
             ${isCollapsed 
-              ? 'justify-center px-0 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400' 
-              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}
+              ? 'justify-center px-0 bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400' 
+              : 'text-slate-500 dark:text-slate-400 hover:bg-sky-50/60 dark:hover:bg-slate-800/60 hover:text-sky-600 dark:hover:text-white'}
           `}
         >
-          <div className={`shrink-0 ${isCollapsed ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}>
+          <div className={`shrink-0 ${isCollapsed ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500'}`}>
             <Menu size={18} />
           </div>
           {!isCollapsed && <span className="truncate">Menu</span>}
@@ -102,16 +102,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             to={item.path}
             title={isCollapsed ? item.label : ''}
             className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2 rounded-md transition-all text-xs font-semibold w-full
+              flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-xs font-semibold w-full
               ${isCollapsed ? 'justify-center px-0' : ''}
               ${isActive 
-                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400' 
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'}
+                ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border border-sky-100/60 dark:border-slate-800' 
+                : 'text-slate-600 dark:text-slate-400 hover:bg-sky-50/40 dark:hover:bg-slate-800/60 hover:text-sky-600 dark:hover:text-white'}
             `}
           >
             {({ isActive }) => (
               <>
-                <div className={`shrink-0 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                <div className={`shrink-0 ${isActive ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500'}`}>
                   {item.icon}
                 </div>
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
@@ -126,8 +126,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           onClick={handleLogout}
           title={isCollapsed ? 'Se déconnecter' : ''}
           className={`
-            w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-semibold text-rose-600 dark:text-rose-400 
-            hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors
+            w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 
+            hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer
             ${isCollapsed ? 'justify-center px-0' : ''}
           `}
         >

@@ -3,7 +3,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Mail, Lock, CheckCircle2, Eye, EyeOff, KeyRound, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import toast, { Toaster } from 'react-hot-toast'; // <--- AMPAHO ITY
+import toast, { Toaster } from 'react-hot-toast'; 
 import api from '../api/axios'; 
 import logo from '../assets/logo.png';
 
@@ -30,18 +30,18 @@ const Login = () => {
             setIsLoading(false);
             if (result.success) {
                 setIsSuccess(true); 
-                toast.success("Connexion réussie !"); // Toast fahombiazana
+                toast.success("Connexion réussie !"); 
                 setTimeout(() => {
                     navigate('/dashboard');
                 }, 2000);
             } else {
-                // Toast rehefa diso ny login (mampiasa ilay message avy any amin'ny Backend)
+               
                 toast.error(result.message || "Identifiants invalides.", {
                     duration: 4000,
                     position: 'top-right',
                 });
             }
-        }, 1500); // Nampidinina ho 1.5s mba tsy hiandry ela loatra ny mpampiasa
+        }, 1500); 
     };
 
     const handleSendOtp = async (e) => {
@@ -75,7 +75,7 @@ const Login = () => {
                 setIsSuccess(true);
                 
                 if (response.data.token) {
-                    localStorage.setItem('token', response.data.token);
+                    sessionStorage.setItem('token', response.data.token);
                 }
 
                 toast.success("Code vérifié avec succès !");
@@ -108,7 +108,7 @@ const Login = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-100/50 to-emerald-100/40 dark:from-slate-950 dark:via-blue-950/30 dark:to-emerald-950/30 px-4 font-sans transition-colors duration-500">
-            {/* Component Toaster ilaina mba hampisehoana ny toast */}
+           
             <Toaster />
 
             <motion.div 

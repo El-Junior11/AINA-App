@@ -85,7 +85,7 @@ const Navbar = ({ darkMode, setDarkMode }) => {
         <Link 
           to="/notifications" 
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-black dark:text-white group transition-colors"
-          title="Notifications"
+          title="Aide"
         >
           <HelpCircle size={20} className="group-hover:scale-105 transition-transform" />
         </Link>

@@ -1,78 +1,78 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const http = require('http');           // 👈 AJOUT
-const { Server } = require('socket.io'); // 👈 AJOUT
+const http = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 require('./models/associations');
 
-// 1. Fifandraisana amin'ny Database
-const sequelize = require('./config/db'); 
+// Imports
+const sequelize = require('./config/db');
+const auditMiddleware = require('./middleware/audit');
 
-// 2. Import-nao ny Routes
-const dashboardRoutes = require('./routes/dashboardRoutes');
+// Routes
 const authRoutes = require('./routes/authRoutes');
 const membreRoutes = require('./routes/membreRoutes');
-const groupeRoutes = require('./routes/groupeRoutes'); 
-const reseauRoutes = require('./routes/reseauRoutes'); 
-const responsableRoutes = require('./routes/responsableRoutes'); 
+const groupeRoutes = require('./routes/groupeRoutes');
+const reseauRoutes = require('./routes/reseauRoutes');
+const responsableRoutes = require('./routes/responsableRoutes');
 const formationRoutes = require('./routes/formationRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const auditRoutes = require('./routes/auditRoutes');
 
 const app = express();
-
-// 👇 AJOUT : créer un serveur HTTP à partir d'Express
 const server = http.createServer(app);
 
-// 👇 AJOUT : attacher Socket.io à ce serveur HTTP
+// 1. Configure-o ny Socket.io miaraka amin'ny CORS marina
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5275",  // le port de ton frontend Vite
-        methods: ["GET", "POST"]
+        origin: "http://localhost:5173", // Ny port-n'ny frontend-nao
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true
     }
 });
 
-// 👇 AJOUT : rendre "io" accessible dans toutes les routes
-app.set('io', io);
-
-// 👇 AJOUT : gérer les connexions socket
-io.on('connection', (socket) => {
-    console.log('Client connecté au socket:', socket.id);
-
-    socket.on('disconnect', () => {
-        console.log('Client déconnecté:', socket.id);
-    });
-});
+// 2. Apetraka ho global mba ho hitan'ny middleware rehetra
+global.io = io;
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
 app.use(helmet({
-    crossOriginResourcePolicy: false, 
+    crossOriginResourcePolicy: false,
 }));
 app.use(express.json());
 
-// 3. Fampiasana ny Routes
+// 3. Apetraho ny auditMiddleware eto (aorian'ny express.json)
+app.use(auditMiddleware);
+
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/membres', membreRoutes);
 app.use('/api/groupes', groupeRoutes);
-app.use('/api/reseaux', reseauRoutes); 
-app.use('/api/responsables', responsableRoutes); 
+app.use('/api/reseaux', reseauRoutes);
+app.use('/api/responsables', responsableRoutes);
 app.use('/api/formations', formationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/audit-logs', auditRoutes);
 
 app.use((req, res, next) => {
     res.status(404).json({ message: "Route introuvable sur le serveur" });
 });
 
+// Database Sync sy Server Launch
 const connectWithRetry = async () => {
-    const MAX_RETRIES = 10;
+    const MAX_RETRIES = 5;
     const DELAY = 3000;
+    
     for (let i = 1; i <= MAX_RETRIES; i++) {
         try {
             await sequelize.sync();
             console.log("Connexion à PostgreSQL réussie.");
-            const PORT = process.env.PORT || 5000;
             
-            // 👇 CHANGEMENT : server.listen au lieu de app.listen
+            const PORT = process.env.PORT || 5000;
             server.listen(PORT, () => {
                 console.log(`Serveur démarré sur : http://localhost:${PORT}`);
             });
