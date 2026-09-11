@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import domtoimage from 'dom-to-image-more';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend, RadarChart, PolarGrid, 
@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import { 
   Users, Home, Network, ShieldCheck, GraduationCap, 
-  Target, Activity, Loader2, CalendarDays
+  Target, Activity, Loader2, CalendarDays, Download
 } from 'lucide-react';
 
 const COLORS = ["#0EA5E9", "#10B981", "#F59E0B", "#F43F5E", "#8B5CF6"];
@@ -16,6 +16,7 @@ const COLORS = ["#0EA5E9", "#10B981", "#F59E0B", "#F43F5E", "#8B5CF6"];
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(null);
 
   const API_BASE = "http://localhost:5000/api";
 
@@ -39,6 +40,58 @@ const Dashboard = () => {
     };
     fetchDashboardData();
   }, []);
+
+  const downloadChart = async (id, filename) => {
+    const element = document.getElementById(id);
+    if (!element || downloading) return;
+
+    try {
+      setDownloading(id);
+
+      const button = element.querySelector('[data-download-button]');
+      if (button) button.style.visibility = 'hidden';
+
+      const dataUrl = await domtoimage.toPng(element, {
+        quality: 1,
+        bgcolor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff',
+        width: element.offsetWidth * 2,
+        height: element.offsetHeight * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+          width: `${element.offsetWidth}px`,
+          height: `${element.offsetHeight}px`
+        }
+      });
+
+      if (button) button.style.visibility = 'visible';
+
+      const link = document.createElement('a');
+      link.download = `${filename}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Erreur téléchargement:", error);
+      const button = element.querySelector('[data-download-button]');
+      if (button) button.style.visibility = 'visible';
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const DownloadButton = ({ id, filename }) => (
+    <button
+      data-download-button
+      onClick={() => downloadChart(id, filename)}
+      disabled={downloading === id}
+      className="absolute top-4 right-4 z-20 w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 dark:hover:border-emerald-900/60 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+      title="Télécharger en image"
+    >
+      {downloading === id ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
+    </button>
+  );
 
   if (loading || !stats) return (
     <div className="h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950">
@@ -108,7 +161,8 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+        <div id="chart-equilibre" className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+          <DownloadButton id="chart-equilibre" filename="equilibre-programme" />
           <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm mb-5 flex items-center gap-3">
             <span className="p-2 bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30 rounded-xl text-sky-600 dark:text-sky-400">
               <Target size={17}/>
@@ -128,7 +182,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+        <div id="chart-modules" className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+          <DownloadButton id="chart-modules" filename="taux-maitrise-modules" />
           <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm mb-5 flex items-center gap-3">
             <span className="p-2 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 rounded-xl text-emerald-600 dark:text-emerald-400">
               <Activity size={17}/>
@@ -151,7 +206,8 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+        <div id="chart-croissance" className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+          <DownloadButton id="chart-croissance" filename="croissance-groupes" />
           <div className="flex justify-between items-center mb-5">
             <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm flex items-center gap-3">
               <span className="p-2 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 rounded-xl text-emerald-600 dark:text-emerald-400">
@@ -177,7 +233,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+        <div id="chart-ages" className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+          <DownloadButton id="chart-ages" filename="pyramide-ages" />
           <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm mb-5 flex items-center gap-3">
             <span className="p-2 bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30 rounded-xl text-sky-600 dark:text-sky-400">
               <Users size={17}/>
@@ -205,7 +262,8 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+        <div id="chart-reseaux" className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+          <DownloadButton id="chart-reseaux" filename="maturite-reseaux" />
           <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm mb-5 flex items-center gap-3">
             <span className="p-2 bg-gradient-to-br from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30 rounded-xl text-amber-600 dark:text-amber-400">
               <Network size={17}/>
@@ -247,7 +305,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+        <div id="chart-postes" className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm">
+          <DownloadButton id="chart-postes" filename="repartition-postes" />
           <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm mb-5 flex items-center gap-3">
             <span className="p-2 bg-gradient-to-br from-violet-50 to-sky-50 dark:from-violet-950/30 dark:to-sky-950/30 rounded-xl text-violet-600 dark:text-violet-400">
               <ShieldCheck size={17}/>
