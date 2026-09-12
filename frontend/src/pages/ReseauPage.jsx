@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../api/axios';
 import Swal from 'sweetalert2';
 import { Trash2, Edit2, X, Loader2, Save, Network, ShieldCheck, Search, FileText, Download, BarChart3, Printer, Calendar, Plus, Eye } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -41,7 +41,6 @@ const ReseauPage = () => {
   };
 
   const [formData, setFormData] = useState(initialForm);
-  const API_URL = 'http://localhost:5000/api/reseaux';
 
   useEffect(() => {
     fetchReseaux();
@@ -63,7 +62,8 @@ const ReseauPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${token}` } });
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get('/reseaux', config);
       setReseaux(res.data);
       setFilteredReseaux(res.data);
     } catch (error) {
@@ -177,9 +177,9 @@ const ReseauPage = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, formData, config);
+        await axios.put(`/reseaux/${editingId}`, formData, config);
       } else {
-        await axios.post(API_URL, formData, config);
+        await axios.post('/reseaux', formData, config);
       }
 
       setShowModal(false);
@@ -219,7 +219,7 @@ const ReseauPage = () => {
           setLoading(true);
           const token = localStorage.getItem('token');
 
-          await axios.delete(`${API_URL}/${id}`, {
+          await axios.delete(`/reseaux/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
 

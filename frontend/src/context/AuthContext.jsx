@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Fanamarinana ny session rehefa mamelona pejy (refresh)
+   
     useEffect(() => {
         const initializeAuth = () => {
             try {
@@ -17,13 +17,13 @@ export const AuthProvider = ({ children }) => {
                 const token = localStorage.getItem('token');
 
                 if (savedUser && token) {
-                    // Jerena raha mbola hita ny data ary marina ny format-ny
+                 
                     const parsedUser = JSON.parse(savedUser);
                     setUser(parsedUser);
                 }
             } catch (error) {
                 console.error("Erreur d'initialisation auth:", error);
-                localStorage.clear(); // Fafana ny cache raha misy data simba
+                localStorage.clear();
             } finally {
                 setLoading(false);
             }
@@ -55,14 +55,14 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Logout function
+
     const logout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
     }, []);
 
-    // Ny soso-kevitra (value) hatolotra ny pejy rehetra
+
     const authValues = {
         user,
         login,

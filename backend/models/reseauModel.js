@@ -13,7 +13,7 @@ const Reseau = sequelize.define('Reseau', {
     },
     NomGS: {
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: true
     },
     DateCreation: {
         type: DataTypes.DATEONLY

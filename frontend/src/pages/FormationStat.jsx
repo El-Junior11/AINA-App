@@ -1,67 +1,57 @@
+
 import React,{useState,useEffect} from 'react';
-import axios from 'axios';
+import axios from '../api/axios';
 import {Activity,GraduationCap,ShieldCheck,Heart,Leaf,Users,BarChart3,PieChart,ArrowLeft} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
-
 const FormationStats=()=>{
   const [stats,setStats]=useState(null);
   const [loading,setLoading]=useState(true);
   const navigate=useNavigate();
-
   useEffect(()=>{
     const fetchStats=async()=>{
       try{
         setLoading(true);
         const token=localStorage.getItem('token');
-        const res=await axios.get('http://localhost:5000/api/formations/stats-details',{headers:{Authorization:`Bearer ${token}`}});
+        const config={headers:{Authorization:`Bearer ${token}`}};
+        const res=await axios.get('/formations/stats-details',config);
         setStats(res.data);
       }catch(err){console.error('Erreur stats détaillée:',err)}finally{setLoading(false)}
     };
     fetchStats();
   },[]);
-
   const MiniChart=({type,h,f,color})=>{
     const total=h+f||1;
     const pctH=Math.round((h/total)*100);
     const pctF=Math.round((f/total)*100);
-
     if(type==='donut'){
       const radius=14;
       const circumference=2*Math.PI*radius;
       const strokeDashoffset=circumference-(pctH/100)*circumference;
       return <div className="relative w-10 h-10 flex items-center justify-center shrink-0"><svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36"><circle cx="18" cy="18" r={radius} fill="transparent" stroke="#e2e8f0" strokeWidth="4" className="dark:stroke-slate-800"/><circle cx="18" cy="18" r={radius} fill="transparent" stroke={color} strokeWidth="4" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"/></svg><span className="absolute text-[9px] font-bold text-slate-700 dark:text-slate-300">{pctH}%</span></div>;
     }
-
     if(type==='bar'){
       return <div className="flex items-end gap-1.5 h-8 w-10 justify-center shrink-0 pt-1"><div className="w-2 bg-blue-500 rounded-t transition-all duration-500" style={{height:`${Math.max(pctH,15)}%`}}/><div className="w-2 bg-pink-500 rounded-t transition-all duration-500" style={{height:`${Math.max(pctF,15)}%`}}/></div>;
     }
-
     if(type==='progress'){
       return <div className="flex flex-col w-14 gap-1 shrink-0 justify-center"><div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden"><div className="bg-blue-500 h-full rounded-full" style={{width:`${pctH}%`}}/></div><div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden"><div className="bg-pink-500 h-full rounded-full" style={{width:`${pctF}%`}}/></div></div>;
     }
-
     return <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800"><span className="text-[11px] font-bold text-blue-500">{pctH}%</span><span className="text-slate-300 dark:text-slate-700 text-[10px]">|</span><span className="text-[11px] font-bold text-pink-500">{pctF}%</span></div>;
   };
-
   const StatCard=({title,h,f,icon:Icon,colorClass,bgClass,chartType,strokeColor})=>{
     const totalHomme=parseInt(h)||0;
     const totalFemme=parseInt(f)||0;
     return <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-slate-700 shadow-sm"><div className="flex items-start justify-between gap-2 mb-4"><div className="flex items-center gap-2.5 min-w-0 flex-1"><div className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 ${bgClass} ${colorClass}`}><Icon size={18}/></div><h3 className="text-sm font-bold text-slate-800 dark:text-white leading-tight break-words">{title}</h3></div><div className="pt-0.5 shrink-0"><MiniChart type={chartType} h={totalHomme} f={totalFemme} color={strokeColor}/></div></div><div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80"><div className="flex flex-col bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800"><span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 mb-0.5">Hommes</span><span className="text-base font-bold text-slate-900 dark:text-white">{totalHomme}</span></div><div className="flex flex-col bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-right"><span className="text-[10px] font-semibold text-pink-600 dark:text-pink-400 mb-0.5">Femmes</span><span className="text-base font-bold text-slate-900 dark:text-white">{totalFemme}</span></div></div></div>;
   };
-
   if(loading)return <div className="h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950"><Activity size={32} className="animate-spin text-emerald-500 mb-3"/><p className="font-semibold text-slate-500 text-xs">Chargement des statistiques...</p></div>;
-
   return <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950 transition-colors font-body overflow-hidden relative">
     <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');.font-body{font-family:'DM Sans',sans-serif}.font-display{font-family:'Manrope',sans-serif}`}</style>
-
     <div className="p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
       <div className="flex items-center gap-3">
         <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-sky-500 text-white rounded-2xl shrink-0 shadow-sm"><GraduationCap size={24}/></div>
         <div><h1 className="text-lg font-display font-extrabold text-slate-900 dark:text-white tracking-tight">Statistiques des formations</h1><p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Répartition par genre des formations.</p></div>
       </div>
-      <button onClick={()=>navigate(-1)} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2.5 rounded-xl transition-all font-bold text-xs"><ArrowLeft size={16}/>Retour</button>
+      <button type="button" onClick={()=>navigate(-1)} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2.5 rounded-xl transition-all font-bold text-xs"><ArrowLeft size={16}/>Retour</button>
     </div>
-
     <div className="flex-1 overflow-y-auto px-4 md:px-6 py-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
         <StatCard title="Genre & Social" h={stats?.genre_h} f={stats?.genre_f} icon={Users} colorClass="text-indigo-600 dark:text-indigo-400" bgClass="bg-indigo-50 dark:bg-indigo-950/40" chartType="donut" strokeColor="#4f46e5"/>
@@ -76,5 +66,4 @@ const FormationStats=()=>{
     </div>
   </div>;
 };
-
 export default FormationStats;
