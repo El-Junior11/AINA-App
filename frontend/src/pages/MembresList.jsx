@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../api/axios'
 import Swal from 'sweetalert2';
 import { Trash2, Edit2, UserPlus, X, Loader2, Save, CheckCircle2, Search, FileText, Download, BarChart3, Printer, Users, ShieldCheck, HeartHandshake } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -39,7 +39,6 @@ const MembresList = () => {
   };
 
   const [formData, setFormData] = useState(initialForm);
-  const API_URL = 'http://localhost:5000/api/membres';
 
   useEffect(() => {
     fetchMembres();
@@ -69,7 +68,8 @@ const MembresList = () => {
         setLoading(false);
         return;
       }
-      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${token}` } });
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get('/membres', config);
       const sortedData = sortMembresByNumMenage(res.data);
       setMembres(sortedData);
       setFilteredMembres(sortedData);
@@ -162,9 +162,9 @@ const MembresList = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, payload, config);
+        await axios.put(`/membres/${editingId}`, payload, config);
       } else {
-        await axios.post(API_URL, payload, config);
+        await axios.post('/membres', payload, config);
       }
 
       setShowModal(false);
@@ -195,7 +195,7 @@ const MembresList = () => {
       if (result.isConfirmed) {
         try {
           const token = localStorage.getItem('token');
-          await axios.delete(`${API_URL}/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+          await axios.delete(`/membres/${id}`, { headers: { Authorization: `Bearer ${token}` } });
           fetchMembres();
           Toast.fire({ icon: 'success', title: 'Suppression réussie' });
         } catch (error) {

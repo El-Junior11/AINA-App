@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import axios from '../api/axios';
 import {
   Trash2, RotateCcw, ShieldCheck, ChevronDown, ChevronUp,
   Search, RefreshCw, Clock, User, Layers, Info
@@ -29,8 +30,8 @@ const AdminNotifications = () => {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/audit-logs');
-      const data = await response.json();
+      const response = await axios.get('/audit-logs');
+      const data = response.data;
       const logsArray = Array.isArray(data) ? data : [];
       setLogs(logsArray);
       setFilteredLogs(logsArray);
@@ -45,27 +46,122 @@ const AdminNotifications = () => {
 
   useEffect(() => {
     fetchHistory();
-    const socket = io('http://localhost:5000', { transports: ['websocket'] });
-    socket.on('admin_alert', (newData) => {
-      setLogs((prev) => {
-        const updated = [newData, ...prev].slice(0, 50);
-        return updated;
-      });
+
+    const socket = io(import.meta.env.VITE_SOCKET_URL, {
+      transports: ['websocket']
     });
+
+    socket.on('admin_alert', (newData) => {
+      setLogs((prev) => [newData, ...prev].slice(0, 50));
+    });
+
     return () => socket.disconnect();
   }, []);
 
   useEffect(() => {
-    const results = logs.filter(log => {
+    const results = logs.filter((log) => {
       const userName = log.User?.name || 'Administrateur';
       const tableName = log.table_name?.split('/')[2] || 'inconnu';
       const action = log.action_type || '';
-      return `${userName} ${tableName} ${action}`.toLowerCase().includes(searchTerm.toLowerCase());
+
+      return `${userName} ${tableName} ${action}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     });
+
     setFilteredLogs(results);
   }, [searchTerm, logs]);
 
-  const formatKey = (key) => key.replace(/_/g, ' ').toUpperCase();
+  const formatKey = (key) =>
+    key
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+  const parseDetails = (details) => {
+    if (!details) return {};
+
+    if (typeof details === 'object') return details;
+
+    try {
+      return JSON.parse(details);
+    } catch {
+      return {};
+    }
+  };
+
+  const formatValue = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return 'vide';
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 'Oui' : 'Non';
+    }
+
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+
+    return String(value);
+  };
+
+  const getEntityName = (details, log) => {
+    return (
+      details.entity ||
+      details.nom ||
+      details.name ||
+      details.message ||
+      `ID: ${log.target_id}`
+    );
+  };
+
+  const getChanges = (details) => {
+    if (details.changes && typeof details.changes === 'object') {
+      return details.changes;
+    }
+
+    const oldFormatChanges = {};
+
+    Object.entries(details).forEach(([key, value]) => {
+      if (
+        ![
+          'nom',
+          'message',
+          'entity',
+          'changes',
+          'data',
+          'deleted_data'
+        ].includes(key) &&
+        value &&
+        typeof value === 'object' &&
+        ('old' in value || 'new' in value)
+      ) {
+        oldFormatChanges[key] = value;
+      }
+    });
+
+    return oldFormatChanges;
+  };
+
+  const getDeletedData = (details) => {
+    if (details.deleted_data && typeof details.deleted_data === 'object') {
+      return details.deleted_data;
+    }
+
+    return {};
+  };
+
+  const getCreatedData = (details) => {
+    if (details.data && typeof details.data === 'object') {
+      return details.data;
+    }
+
+    return {};
+  };
 
   const handleAction = async (actionType, log, e) => {
     e.stopPropagation();
@@ -74,37 +170,54 @@ const AdminNotifications = () => {
 
     const result = await Swal.fire({
       title: 'Confirmer ?',
-      text: actionType === 'delete' ? "Voulez-vous supprimer cette trace ?" : "Voulez-vous restaurer cet élément ?",
+      text:
+        actionType === 'delete'
+          ? "Voulez-vous supprimer cette trace ?"
+          : "Voulez-vous restaurer cet élément ?",
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: actionType === 'delete' ? '#ef4444' : '#0284c7',
+      confirmButtonColor:
+        actionType === 'delete' ? '#ef4444' : '#0284c7',
       cancelButtonColor: '#64748b',
       confirmButtonText: 'Oui, confirmer',
       cancelButtonText: 'Annuler',
       background: isDark ? '#0f172a' : '#ffffff',
       color: isDark ? '#ffffff' : '#0f172a',
       customClass: {
-        popup: 'rounded-2xl border border-emerald-100 dark:border-slate-800 text-sm font-medium shadow-xl p-4'
+        popup:
+          'rounded-2xl border border-emerald-100 dark:border-slate-800 text-sm font-medium shadow-xl p-4'
       }
     });
 
     if (result.isConfirmed) {
       try {
-        await fetch(`http://localhost:5000/api/audit-logs/${actionType}/${log.target_id}`, { method: 'POST' });
-        Toast.fire({ icon: 'success', title: 'Action effectuée avec succès' });
+        const response = await axios.post(
+          `/audit-logs/${actionType}/${log.id}`
+        );
+
+        const data = response.data;
+
+        Toast.fire({
+          icon: 'success',
+          title: 'Action effectuée avec succès'
+        });
 
         if (actionType === 'delete') {
-          setLogs((prev) => prev.filter(l => l.target_id !== log.target_id));
+          setLogs((prev) =>
+            prev.filter((l) => l.target_id !== log.target_id)
+          );
         }
       } catch (error) {
-        Toast.fire({ icon: 'error', title: 'Une erreur est survenue' });
+        Toast.fire({
+          icon: 'error',
+          title: 'Une erreur est survenue'
+        });
       }
     }
   };
 
   return (
     <div className="w-full min-h-full p-4 md:p-6 font-body space-y-8 text-black dark:text-white transition-colors">
-
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
         .font-body { font-family: 'DM Sans', sans-serif; }
@@ -160,7 +273,10 @@ const AdminNotifications = () => {
       </div>
 
       <div className="relative group w-full">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
+        <Search
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+          size={18}
+        />
 
         <input
           type="text"
@@ -172,7 +288,6 @@ const AdminNotifications = () => {
       </div>
 
       <div className="bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
-
         <div className="bg-slate-50 dark:bg-slate-800/80 text-sm font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 px-5 py-4 grid grid-cols-12 gap-4 items-center">
           <span className="col-span-3">Utilisateur</span>
           <span className="col-span-2 text-center">Action</span>
@@ -192,20 +307,34 @@ const AdminNotifications = () => {
             </div>
           ) : (
             filteredLogs.map((log, index) => {
-              const actionLabels = { 'POST': 'ajout', 'PUT': 'modification', 'DELETE': 'suppression' };
-              const rawDetails = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
-              const details = rawDetails || {};
+              const actionLabels = {
+                POST: 'ajout',
+                PUT: 'modification',
+                DELETE: 'suppression'
+              };
+
+              const details = parseDetails(log.details);
+              const changes = getChanges(details);
+              const deletedData = getDeletedData(details);
+              const createdData = getCreatedData(details);
 
               const isExpanded = expanded === index;
               const userName = log.User?.name || 'Administrateur';
-              const tableName = log.table_name?.split('/')[2] || 'inconnu';
-              const entityName = details.nom || details.message || `ID: ${log.target_id}`;
+              const tableName =
+                log.table_name?.split('/')[2] || 'inconnu';
+
+              const entityName = getEntityName(details, log);
 
               return (
-                <div key={index} className="hover:bg-emerald-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                <div
+                  key={index}
+                  className="hover:bg-emerald-50/40 dark:hover:bg-slate-800/40 transition-colors"
+                >
                   <div
                     className="px-5 py-4 grid grid-cols-12 gap-4 items-center cursor-pointer text-sm"
-                    onClick={() => setExpanded(isExpanded ? null : index)}
+                    onClick={() =>
+                      setExpanded(isExpanded ? null : index)
+                    }
                   >
                     <div className="col-span-3 flex items-center gap-3 truncate">
                       <div className="p-2 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
@@ -218,30 +347,53 @@ const AdminNotifications = () => {
                     </div>
 
                     <div className="col-span-2 text-center">
-                      <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase inline-block border ${
-                        log.action_type === 'DELETE'
-                          ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50'
-                          : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50'
-                      }`}>
-                        {actionLabels[log.action_type] || log.action_type}
+                      <span
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase inline-block border ${
+                          log.action_type === 'DELETE'
+                            ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50'
+                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50'
+                        }`}
+                      >
+                        {actionLabels[log.action_type] ||
+                          log.action_type}
                       </span>
                     </div>
 
                     <div className="col-span-3 text-slate-700 dark:text-slate-300 font-medium capitalize truncate flex items-center gap-2">
-                      <Layers size={16} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{tableName}</span>
+                      <Layers
+                        size={16}
+                        className="text-slate-400 shrink-0"
+                      />
+                      <span className="truncate">
+                        {tableName}
+                      </span>
                     </div>
 
                     <div className="col-span-3 text-right text-slate-500 dark:text-slate-400 text-sm font-medium flex items-center justify-end gap-2">
-                      <Clock size={15} className="text-slate-400 shrink-0" />
-                      {new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      <Clock
+                        size={15}
+                        className="text-slate-400 shrink-0"
+                      />
+                      {new Date(
+                        log.created_at
+                      ).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}
                     </div>
 
                     <div className="col-span-1 text-right flex justify-end">
                       {isExpanded ? (
-                        <ChevronUp size={19} className="text-emerald-500" />
+                        <ChevronUp
+                          size={19}
+                          className="text-emerald-500"
+                        />
                       ) : (
-                        <ChevronDown size={19} className="text-slate-400" />
+                        <ChevronDown
+                          size={19}
+                          className="text-slate-400"
+                        />
                       )}
                     </div>
                   </div>
@@ -249,44 +401,148 @@ const AdminNotifications = () => {
                   {isExpanded && (
                     <div className="px-7 py-5 bg-gradient-to-br from-emerald-50/50 to-sky-50/40 dark:from-slate-950/60 dark:to-slate-900/50 border-t border-slate-100 dark:border-slate-800/80 text-sm space-y-4">
                       <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{userName}</span> a effectué une action de
-                        <strong className="mx-1 text-slate-900 dark:text-white uppercase">{actionLabels[log.action_type] || log.action_type}</strong>
-                        sur la table <strong className="text-slate-900 dark:text-white">{tableName}</strong> :
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-1">"{entityName}"</span>.
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          {userName}
+                        </span>{' '}
+                        a effectué une action de
+                        <strong className="mx-1 text-slate-900 dark:text-white uppercase">
+                          {actionLabels[log.action_type] ||
+                            log.action_type}
+                        </strong>
+                        sur la table{' '}
+                        <strong className="text-slate-900 dark:text-white">
+                          {tableName}
+                        </strong>{' '}
+                        :
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-1">
+                          "{entityName}"
+                        </span>
+                        .
                       </p>
 
-                      {log.action_type === 'PUT' && Object.keys(details).length > 0 && (
-                        <div className="space-y-2 my-4">
-                          {Object.entries(details).map(([key, val]) => {
-                            if (['nom', 'message'].includes(key)) return null;
-                            const isDiff = val && typeof val === 'object' && ('old' in val || 'new' in val);
-
-                            return (
-                              <div key={key} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm">
-                                <span className="text-slate-500 dark:text-slate-400 font-semibold">
-                                  {formatKey(key)}
-                                </span>
-
-                                {isDiff ? (
-                                  <div className="flex items-center gap-2 font-mono">
-                                    <span className="text-rose-500 line-through">{String(val.old ?? 'vide')}</span>
-                                    <span className="text-slate-400">→</span>
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{String(val.new ?? 'vide')}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-sky-600 dark:text-sky-400 font-mono">
-                                    {String(val)}
+                      {log.action_type === 'PUT' &&
+                        Object.keys(changes).length > 0 && (
+                          <div className="space-y-2 my-4">
+                            {Object.entries(changes).map(
+                              ([key, value]) => (
+                                <div
+                                  key={key}
+                                  className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:justify-between md:items-center gap-3 text-sm"
+                                >
+                                  <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                                    {formatKey(key)}
                                   </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+
+                                  <div className="flex flex-wrap items-center gap-2 font-mono">
+                                    <span className="text-rose-500 line-through break-all">
+                                      {formatValue(value?.old)}
+                                    </span>
+
+                                    <span className="text-slate-400">
+                                      →
+                                    </span>
+
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold break-all">
+                                      {formatValue(value?.new)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
+
+                      {log.action_type === 'DELETE' &&
+                        Object.keys(deletedData).length > 0 && (
+                          <div className="space-y-2 my-4">
+                            <h4 className="font-bold text-rose-600 dark:text-rose-400">
+                              Informations supprimées
+                            </h4>
+
+                            {Object.entries(deletedData).map(
+                              ([key, value]) => {
+                                if (
+                                  [
+                                    'createdAt',
+                                    'updatedAt',
+                                    'created_at',
+                                    'updated_at'
+                                  ].includes(key)
+                                ) {
+                                  return null;
+                                }
+
+                                return (
+                                  <div
+                                    key={key}
+                                    className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-rose-100 dark:border-rose-900/40 flex flex-col md:flex-row md:justify-between md:items-center gap-2 text-sm"
+                                  >
+                                    <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                                      {formatKey(key)}
+                                    </span>
+
+                                    <span className="text-rose-600 dark:text-rose-400 font-mono break-all">
+                                      {formatValue(value)}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+
+                      {log.action_type === 'POST' &&
+                        Object.keys(createdData).length > 0 && (
+                          <div className="space-y-2 my-4">
+                            <h4 className="font-bold text-emerald-600 dark:text-emerald-400">
+                              Informations ajoutées
+                            </h4>
+
+                            {Object.entries(createdData).map(
+                              ([key, value]) => {
+                                if (
+                                  [
+                                    'createdAt',
+                                    'updatedAt',
+                                    'created_at',
+                                    'updated_at',
+                                    'user_id'
+                                  ].includes(key)
+                                ) {
+                                  return null;
+                                }
+
+                                return (
+                                  <div
+                                    key={key}
+                                    className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/40 flex flex-col md:flex-row md:justify-between md:items-center gap-2 text-sm"
+                                  >
+                                    <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                                      {formatKey(key)}
+                                    </span>
+
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-mono break-all">
+                                      {formatValue(value)}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+
+                      {log.action_type === 'PUT' &&
+                        Object.keys(changes).length === 0 && (
+                          <div className="text-slate-500 dark:text-slate-400">
+                            Aucune modification détaillée disponible pour cette trace.
+                          </div>
+                        )}
 
                       <div className="pt-4 flex items-center gap-3 border-t border-slate-200/60 dark:border-slate-800">
                         <button
-                          onClick={(e) => handleAction('restore', log, e)}
+                          onClick={(e) =>
+                            handleAction('restore', log, e)
+                          }
                           className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-xl transition-all border border-emerald-100 dark:border-emerald-900/40 cursor-pointer"
                         >
                           <RotateCcw size={16} />
@@ -294,7 +550,9 @@ const AdminNotifications = () => {
                         </button>
 
                         <button
-                          onClick={(e) => handleAction('delete', log, e)}
+                          onClick={(e) =>
+                            handleAction('delete', log, e)
+                          }
                           className="flex items-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold text-sm rounded-xl transition-all border border-rose-100 dark:border-rose-900/40 cursor-pointer"
                         >
                           <Trash2 size={16} />

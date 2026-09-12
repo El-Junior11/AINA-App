@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../api/axios';
 import Swal from 'sweetalert2';
 import { User, Mail, Lock, Loader2, Save, ShieldCheck, Eye, EyeOff, Info, KeyRound, CheckCircle2 } from 'lucide-react';
 
@@ -18,7 +18,6 @@ const AccountSettings = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const API_BASE = "http://localhost:5000/api";
 
   const showToast = (icon, title) => {
     const isDark = document.documentElement.classList.contains('dark');
@@ -44,7 +43,7 @@ const AccountSettings = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { 'Authorization': `Bearer ${token}` } };
 
-        const res = await axios.get(`${API_BASE}/auth/me`, config);
+        const res = await axios.get('/auth/me', config);
         setFormData(prev => ({
           ...prev,
           name: res.data.name || '',
@@ -73,7 +72,7 @@ const AccountSettings = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { 'Authorization': `Bearer ${token}` } };
 
-      const response = await axios.put(`${API_BASE}/auth/account/settings`, {
+      const response = await axios.put('/auth/account/settings', {
         name: formData.name,
         email: formData.email,
         currentPassword: formData.currentPassword,

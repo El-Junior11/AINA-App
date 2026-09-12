@@ -1,5 +1,5 @@
 import React,{useState,useEffect} from 'react';
-import axios from 'axios';
+import axios from '../api/axios';
 import Swal from 'sweetalert2';
 import {Edit2,X,Loader2,Save,Search,Users,Printer,FileText,Download,ShieldCheck,Eye} from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -29,7 +29,6 @@ const ResponsablePage=()=>{
   const [showExportMenu,setShowExportMenu]=useState(false);
   const [formData,setFormData]=useState({NumMembre:'',Poste:'',CodeRp:null,nom_complet:'',nomgs:''});
 
-  const API_URL='http://localhost:5000/api/responsables';
   const postesDisponibles=['President','Tresorier','Secretaire','Conseiller','Membres'];
 
   useEffect(()=>{fetchData()},[]);
@@ -45,9 +44,9 @@ const ResponsablePage=()=>{
       const token=localStorage.getItem('token');
       const config={headers:{'Authorization':`Bearer ${token}`}};
       const [resMem,resRespo,resGroup]=await Promise.all([
-        axios.get('http://localhost:5000/api/membres',config).catch(()=>({data:[]})),
-        axios.get('http://localhost:5000/api/responsables',config).catch(()=>({data:[]})),
-        axios.get('http://localhost:5000/api/groupes',config).catch(()=>({data:[]}))
+        axios.get('/membres',config).catch(()=>({data:[]})),
+        axios.get('/responsables',config).catch(()=>({data:[]})),
+        axios.get('/groupes',config).catch(()=>({data:[]}))
       ]);
       const listMembres=Array.isArray(resMem.data)?resMem.data:(resMem.data.data||[]);
       const listRespos=Array.isArray(resRespo.data)?resRespo.data:(resRespo.data.data||[]);
@@ -177,7 +176,7 @@ const ResponsablePage=()=>{
       const user=userString?JSON.parse(userString):null;
       if(!user||(!user.id&&!user.user_id)) return Toast.fire({icon:'error',title:"Erreur d'authentification"});
       const payload={NumMembre:Number(formData.NumMembre),Poste:formData.Poste,user_id:user.id||user.user_id};
-      await axios.post(API_URL,payload,{headers:{'Authorization':`Bearer ${token}`}});
+      await axios.post('/responsables',payload,{headers:{'Authorization':`Bearer ${token}`}});
       setShowModal(false);
       fetchData();
       Toast.fire({icon:'success',title:'Enregistrement réussi'});

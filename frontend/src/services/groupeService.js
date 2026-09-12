@@ -1,6 +1,5 @@
-import axios from 'axios';
+import axios from '../api/axios';
 
-const API_URL = 'http://localhost:5000/api/groupes';
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -12,21 +11,21 @@ const getAuthHeaders = () => {
 };
 
 export const getGroupes = () => {
-    return axios.get(API_URL, getAuthHeaders());
+    return axios.get('/groupes',getAuthHeaders());
 };
 
 export const getMenagesList = () => {
-    return axios.get(`${API_URL}/menages-list`, getAuthHeaders());
+    return axios.get('/groupes/menages-list',getAuthHeaders());
 };
 
 export const createGroupe = (data) => {
-    return axios.post(API_URL, data, getAuthHeaders());
+    return axios.post('/groupes', data, getAuthHeaders());
 };
 
 export const updateGroupe = (id, data) => {
-    return axios.put(`${API_URL}/${id}`, data, getAuthHeaders());
+    return axios.put(`/groupes/${id}`, data, getAuthHeaders());
 };
 
 export const deleteGroupe = (id) => {
-    return axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+    return axios.delete(`/groupes/${id}`, getAuthHeaders());
 };
