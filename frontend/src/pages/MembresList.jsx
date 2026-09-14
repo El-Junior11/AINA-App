@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios'
 import Swal from 'sweetalert2';
-import { Trash2, Edit2, UserPlus, X, Loader2, Save, CheckCircle2, Search, FileText, Download, BarChart3, Printer, Users, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { Trash2, Edit2, UserPlus, X, Loader2, Save,Eye, CheckCircle2, Search, FileText, Download, BarChart3, Printer, Users, ShieldCheck, HeartHandshake } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -257,9 +257,9 @@ const MembresList = () => {
             <span className="hidden sm:block">Ajouter</span>
           </button>
 
-          <button onClick={() => setShowStats(true)} className="flex items-center gap-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-950/50 px-3 py-2.5 rounded-xl transition-all font-bold text-xs border border-sky-100 dark:border-sky-900/40 shrink-0">
-            <BarChart3 size={16} />
-            <span className="hidden sm:block">Statistiques</span>
+          <button onClick={()=>setShowStats(true)} className="flex items-center gap-1.5 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-950/50 px-3 py-2.5 rounded-xl transition-all font-bold text-xs border border-sky-100 dark:border-sky-900/40 shrink-0">
+            <Eye size={16}/>
+            <span className="hidden sm:block">Voir plus</span>
           </button>
 
           <div className="relative shrink-0">
