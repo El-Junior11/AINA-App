@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -6,6 +5,15 @@ import {
   LayoutDashboard, Users, UserCircle, Share2, ShieldCheck,
   GraduationCap, LogOut, Menu, Activity
 } from 'lucide-react';
+
+// Custom tooltip: replaces the native `title` attribute so it can follow
+// dark/light mode (native browser tooltips can't be styled). Positioned to
+// the right, which fits the sidebar's collapsed icon-only state.
+const Tooltip = ({ children }) => (
+  <span className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2.5 py-1 rounded-lg text-[11px] font-semibold opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50 bg-white text-slate-700 border border-slate-200 shadow-md dark:bg-slate-800 dark:text-white dark:border-slate-700">
+    {children}
+  </span>
+);
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const navigate = useNavigate();
@@ -79,10 +87,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         .font-display{font-family:'Manrope',sans-serif}
       `}</style>
 
-      <div className={`w-full ${isCollapsed ? 'mb-3' : 'mb-4'}`}>
+      <div className={`relative group w-full ${isCollapsed ? 'mb-3' : 'mb-4'}`}>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          title={isCollapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
+          aria-label={isCollapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
           className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-bold uppercase tracking-wider transition-all cursor-pointer ${
             isCollapsed
               ? 'justify-center px-0 bg-gradient-to-r from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 text-emerald-600 dark:text-emerald-400'
@@ -92,58 +100,64 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           <Menu size={18} className="shrink-0" />
           {!isCollapsed && <span>Menu</span>}
         </button>
+        {isCollapsed && <Tooltip>Ouvrir le menu</Tooltip>}
       </div>
 
       <nav className="flex-1 w-full space-y-1">
         {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            title={isCollapsed ? item.label : ''}
-            className={({ isActive }) =>
-              `relative flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
-                isCollapsed ? 'justify-center px-0' : ''
-              } ${
-                isActive
-                  ? 'bg-gradient-to-r from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 text-emerald-700 dark:text-emerald-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-slate-800/60 hover:text-emerald-600 dark:hover:text-white'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && !isCollapsed && (
-                  <span className="absolute left-0 top-1/2 w-1 h-5 -translate-y-1/2 rounded-full bg-gradient-to-b from-emerald-500 to-sky-500" />
-                )}
+          <div key={item.path} className="relative group w-full">
+            <NavLink
+              to={item.path}
+              aria-label={item.label}
+              className={({ isActive }) =>
+                `relative flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
+                  isCollapsed ? 'justify-center px-0' : ''
+                } ${
+                  isActive
+                    ? 'bg-gradient-to-r from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/50 dark:hover:bg-slate-800/60 hover:text-emerald-600 dark:hover:text-white'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && !isCollapsed && (
+                    <span className="absolute left-0 top-1/2 w-1 h-5 -translate-y-1/2 rounded-full bg-gradient-to-b from-emerald-500 to-sky-500" />
+                  )}
 
-                <span
-                  className={`shrink-0 ${
-                    isActive
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-slate-400 dark:text-slate-500'
-                  }`}
-                >
-                  {item.icon}
-                </span>
+                  <span
+                    className={`shrink-0 ${
+                      isActive
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-slate-400 dark:text-slate-500'
+                    }`}
+                  >
+                    {item.icon}
+                  </span>
 
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
-              </>
-            )}
-          </NavLink>
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                </>
+              )}
+            </NavLink>
+            {isCollapsed && <Tooltip>{item.label}</Tooltip>}
+          </div>
         ))}
       </nav>
 
       <div className="w-full pt-3 space-y-2 border-t border-slate-100 dark:border-slate-800">
-        <button
-          onClick={handleLogout}
-          title={isCollapsed ? 'Se déconnecter' : ''}
-          className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer ${
-            isCollapsed ? 'justify-center px-0' : ''
-          }`}
-        >
-          <LogOut size={18} className="shrink-0" />
-          {!isCollapsed && <span>Se déconnecter</span>}
-        </button>
+        <div className="relative group w-full">
+          <button
+            onClick={handleLogout}
+            aria-label="Se déconnecter"
+            className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer ${
+              isCollapsed ? 'justify-center px-0' : ''
+            }`}
+          >
+            <LogOut size={18} className="shrink-0" />
+            {!isCollapsed && <span>Se déconnecter</span>}
+          </button>
+          {isCollapsed && <Tooltip>Se déconnecter</Tooltip>}
+        </div>
 
         {!isCollapsed && (
           <a

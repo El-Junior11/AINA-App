@@ -37,7 +37,7 @@ const Formation = sequelize.define('Formation', {
     deleted_at: { type: DataTypes.DATE }
 }, {
     tableName: 'formations',
-    timestamps: false, // Satria efa misy deleted_at tanana
+    timestamps: false, 
     underscored: true
 });
 
