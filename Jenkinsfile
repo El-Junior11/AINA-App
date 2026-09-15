@@ -48,8 +48,8 @@ pipeline {
         stage('5. Déploiement avec Docker Compose') {
             steps {
                 echo 'Lancement du déploiement via Docker Compose!'
-                sh 'docker-compose down'
-                sh 'docker-compose up --build -d'
+                sh 'docker compose down'
+                sh 'docker compose up --build -d'
             }
         }
     }
