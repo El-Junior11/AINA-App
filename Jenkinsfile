@@ -6,6 +6,13 @@ pipeline {
     }
 
     stages {
+        stage('0. Checkout') {
+            steps {
+                echo 'Récupération du code source depuis le dépôt Git...'
+                checkout scm
+            }
+        }
+
         stage('1. Vérification Environnement') {
             steps {
                 echo 'Vérification des versions de Node et npm...'
