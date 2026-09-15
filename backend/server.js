@@ -26,7 +26,7 @@ const server = http.createServer(app);
 // 1. Configure-o ny Socket.io miaraka amin'ny CORS marina
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // Ny port-n'ny frontend-nao
+        origin: "http://localhost:5173", 
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
     }
@@ -45,7 +45,6 @@ app.use(helmet({
 }));
 app.use(express.json());
 
-// 3. Apetraho ny auditMiddleware eto (aorian'ny express.json)
 app.use(auditMiddleware);
 
 // Routes
