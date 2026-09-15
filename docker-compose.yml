@@ -2,7 +2,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "5001:5000"
+      - "5004:5000"
     depends_on:
       - db
     environment:
