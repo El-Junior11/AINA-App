@@ -1,11 +1,13 @@
 
 services:
+
   backend:
     build: ./backend
     ports:
       - "5004:5000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - DB_USER=postgres
       - DB_PASSWORD=asus
@@ -14,14 +16,13 @@ services:
       - DB_NAME=tsinjo_db
       - JWT_SECRET=tsinjo_secret_key_2026
 
-    volumes:
-      - ./backend:/app
-  frontend: 
+  frontend:
     build: ./frontend
     ports:
       - "5275:5173"
     depends_on:
       - backend
+
   db:
     image: postgres:15-alpine
     environment:
@@ -33,6 +34,8 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
+      timeout: 5s
       retries: 5
+
 volumes:
   pgdata:
