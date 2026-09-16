@@ -1,3 +1,4 @@
+
 services:
   backend:
     build: ./backend
@@ -12,6 +13,7 @@ services:
       - DB_PORT=5432
       - DB_NAME=tsinjo_db
       - JWT_SECRET=tsinjo_secret_key_2026
+
     volumes:
       - ./backend:/app
   frontend: 
@@ -20,9 +22,6 @@ services:
       - "5275:5173"
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
   db:
     image: postgres:15-alpine
     environment:
@@ -37,4 +36,3 @@ services:
       retries: 5
 volumes:
   pgdata:
-
