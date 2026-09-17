@@ -37,7 +37,10 @@ global.io = io;
 
 // Middlewares
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: [
+        "http://localhost:5173",
+        "http://172.19.0.1:5275"
+    ],
     credentials: true
 }));
 app.use(helmet({
