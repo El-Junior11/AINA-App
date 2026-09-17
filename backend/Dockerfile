@@ -3,9 +3,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-
-RUN npm install --omit=dev --no-audit --progress=false
-
+COPY node_modules ./node_modules
 COPY . .
 
 EXPOSE 5000
