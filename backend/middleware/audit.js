@@ -1,4 +1,3 @@
-
 const AuditLog = require('../models/AuditLog');
 
 const getEntityLabel = (tableName, data) => {
@@ -85,6 +84,11 @@ const logAction = (req, res, next) => {
         }
 
         const tableName = req.originalUrl.split('/')[2] || 'inconnu';
+
+        if (String(tableName).toLowerCase() === 'audit-logs') {
+            return;
+        }
+
         let details = {};
 
         if (req.method === 'POST') {
