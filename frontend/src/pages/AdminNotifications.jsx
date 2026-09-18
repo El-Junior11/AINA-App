@@ -4,11 +4,15 @@ import axios from '../api/axios';
 import {Trash2,RotateCcw,ShieldCheck,ChevronDown,ChevronUp,Search,RefreshCw,Clock,User,Layers,Info,CheckSquare,Square,Mail} from 'lucide-react';
 import Swal from 'sweetalert2';
 
-const Toast=Swal.mixin({
+// Toast natao manokana hiseho any an-tampony havanana misy bokotra fanamarinana
+const ConfirmToast=Swal.mixin({
   toast:true,
   position:'top-end',
-  showConfirmButton:false,
-  timer:2500,
+  showConfirmButton:true,
+  confirmButtonText:'Confirmer',
+  showCancelButton:true,
+  cancelButtonText:'Annuler',
+  timer:10000,
   timerProgressBar:true,
   didOpen:t=>{
     t.addEventListener('mouseenter',Swal.stopTimer);
@@ -37,7 +41,7 @@ const AdminNotifications=()=>{
     }catch(error){
       setLogs([]);
       setFilteredLogs([]);
-      Toast.fire({icon:'error',title:'Erreur de chargement des logs'});
+      ConfirmToast.fire({icon:'error',title:'Erreur de chargement des logs',showConfirmButton:false});
     }finally{
       setLoading(false);
     }
@@ -102,74 +106,69 @@ const AdminNotifications=()=>{
     else setSelected(filteredLogs.map(log=>log.id));
   };
 
-  // Traces sélectionnées qui correspondent à une suppression : seules celles-ci sont restaurables
-  const restorableSelected=selected.filter(id=>{
-    const log=logs.find(l=>l.id===id);
-    return log&&log.action_type==='DELETE';
-  });
-
   const handleAction=async(actionType,log,e)=>{
     e.stopPropagation();
-    const isDark=document.documentElement.classList.contains('dark');
 
-    const result=await Swal.fire({
-      title:'Confirmer ?',
-      text:actionType==='delete'?"Voulez-vous supprimer cette trace ?":"Voulez-vous restaurer cet élément ?",
+    const result=await ConfirmToast.fire({
       icon:'question',
-      showCancelButton:true,
+      title:actionType==='delete'?"Voulez-vous supprimer cette trace ?":"Voulez-vous restaurer cet élément ?",
       confirmButtonColor:actionType==='delete'?'#ef4444':'#0284c7',
-      cancelButtonColor:'#64748b',
-      confirmButtonText:'Oui, confirmer',
-      cancelButtonText:'Annuler',
-      background:isDark?'#0f172a':'#ffffff',
-      color:isDark?'#ffffff':'#0f172a',
-      customClass:{popup:'rounded-2xl border border-emerald-100 dark:border-slate-800 text-sm font-medium shadow-xl p-4'}
     });
 
     if(!result.isConfirmed)return;
 
     try{
       await axios.post(`/audit-logs/${actionType}/${log.id}`);
-      Toast.fire({icon:'success',title:actionType==='delete'?'Trace supprimée avec succès':'Élément restauré avec succès'});
+      ConfirmToast.fire({
+        icon:'success',
+        title:actionType==='delete'?'Trace supprimée avec succès':'Élément restauré avec succès',
+        showConfirmButton:false,
+        timer:2500
+      });
 
       if(actionType==='delete'){
         setLogs(prev=>prev.filter(l=>l.id!==log.id));
         setSelected(prev=>prev.filter(id=>id!==log.id));
       }
     }catch(error){
-      Toast.fire({icon:'error',title:error.response?.data?.message||'Une erreur est survenue'});
+      ConfirmToast.fire({
+        icon:'error',
+        title:error.response?.data?.message||'Une erreur est survenue',
+        showConfirmButton:false,
+        timer:2500
+      });
     }
   };
 
   const restoreSelected=async()=>{
-    if(!restorableSelected.length)return;
+    if(!selected.length)return;
 
-    const isDark=document.documentElement.classList.contains('dark');
-
-    const result=await Swal.fire({
-      title:'Restaurer la sélection ?',
-      text:`Vous êtes sur le point de restaurer ${restorableSelected.length} élément(s) supprimé(s).`,
+    const result=await ConfirmToast.fire({
       icon:'question',
-      showCancelButton:true,
+      title:`Restaurer ${selected.length} élément(s) ?`,
       confirmButtonColor:'#10b981',
-      cancelButtonColor:'#64748b',
-      confirmButtonText:'Oui, restaurer',
-      cancelButtonText:'Annuler',
-      background:isDark?'#0f172a':'#ffffff',
-      color:isDark?'#ffffff':'#0f172a',
-      customClass:{popup:'rounded-2xl border border-emerald-100 dark:border-slate-800 text-sm font-medium shadow-xl p-4'}
     });
 
     if(!result.isConfirmed)return;
 
     try{
       setRestoring(true);
-      await Promise.all(restorableSelected.map(id=>axios.post(`/audit-logs/restore/${id}`)));
+      await Promise.all(selected.map(id=>axios.post(`/audit-logs/restore/${id}`)));
       setSelected([]);
-      Toast.fire({icon:'success',title:'Sélection restaurée avec succès'});
+      ConfirmToast.fire({
+        icon:'success',
+        title:'Sélection restaurée avec succès',
+        showConfirmButton:false,
+        timer:2500
+      });
       fetchHistory();
     }catch(error){
-      Toast.fire({icon:'error',title:error.response?.data?.message||'Erreur lors de la restauration'});
+      ConfirmToast.fire({
+        icon:'error',
+        title:error.response?.data?.message||'Erreur lors de la restauration',
+        showConfirmButton:false,
+        timer:2500
+      });
     }finally{
       setRestoring(false);
     }
@@ -178,20 +177,10 @@ const AdminNotifications=()=>{
   const deleteSelected=async()=>{
     if(!selected.length)return;
 
-    const isDark=document.documentElement.classList.contains('dark');
-
-    const result=await Swal.fire({
-      title:'Supprimer la sélection ?',
-      text:`Vous êtes sur le point de supprimer ${selected.length} trace(s).`,
+    const result=await ConfirmToast.fire({
       icon:'warning',
-      showCancelButton:true,
+      title:`Supprimer ${selected.length} trace(s) ?`,
       confirmButtonColor:'#ef4444',
-      cancelButtonColor:'#64748b',
-      confirmButtonText:'Oui, supprimer',
-      cancelButtonText:'Annuler',
-      background:isDark?'#0f172a':'#ffffff',
-      color:isDark?'#ffffff':'#0f172a',
-      customClass:{popup:'rounded-2xl border border-rose-100 dark:border-slate-800 text-sm font-medium shadow-xl p-4'}
     });
 
     if(!result.isConfirmed)return;
@@ -201,9 +190,19 @@ const AdminNotifications=()=>{
       await Promise.all(selected.map(id=>axios.post(`/audit-logs/delete/${id}`)));
       setLogs(prev=>prev.filter(log=>!selected.includes(log.id)));
       setSelected([]);
-      Toast.fire({icon:'success',title:'Sélection supprimée avec succès'});
+      ConfirmToast.fire({
+        icon:'success',
+        title:'Sélection supprimée avec succès',
+        showConfirmButton:false,
+        timer:2500
+      });
     }catch(error){
-      Toast.fire({icon:'error',title:'Erreur lors de la suppression'});
+      ConfirmToast.fire({
+        icon:'error',
+        title:'Erreur lors de la suppression',
+        showConfirmButton:false,
+        timer:2500
+      });
     }finally{
       setDeleting(false);
     }
@@ -270,14 +269,13 @@ const AdminNotifications=()=>{
             {selected.length>0&&(
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                 {selected.length} sélectionné(s)
-                {restorableSelected.length>0&&` · ${restorableSelected.length} restaurable(s)`}
               </span>
             )}
 
             <button
               onClick={restoreSelected}
-              disabled={!restorableSelected.length||restoring}
-              title={restorableSelected.length?`Restaurer ${restorableSelected.length} élément(s) supprimé(s)`:'Sélectionnez au moins une trace de suppression'}
+              disabled={!selected.length||restoring}
+              title="Restaurer les éléments sélectionnés"
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               <RotateCcw size={16} className={restoring?'animate-spin':''}/>
