@@ -627,7 +627,7 @@ const ReseauPage = () => {
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Groupes membres</label>
                 <input
                   type="text"
-                  placeholder="Ex: GS001, GS002, GS003"
+                  placeholder="Nom du groupe"
                   className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sky-600 dark:text-sky-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-bold placeholder:font-normal placeholder:text-slate-400 transition-all"
                   value={formData.NomGS}
                   onChange={(e) => setFormData({ ...formData, NomGS: e.target.value })}
