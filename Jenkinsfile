@@ -5,6 +5,13 @@ pipeline {
         nodejs "NODEJS"
     }
 
+    environment {
+        DOCKER_USER = 'nantenaina11' 
+        IMAGE_NAME = 'aina-app'
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+        KUBECONFIG = credentials('k8s-kubeconfig') 
+    }
+
     stages {
         stage('0. Checkout') {
             steps {
@@ -45,18 +52,44 @@ pipeline {
             }
         }
 
-        stage('5. Déploiement avec Docker Compose') {
+
+
+        stage('5. Build & Push Image Docker Hub') {
             steps {
-                echo 'Lancement du déploiement via Docker Compose...'
-                sh 'docker compose -p aina down'
-                sh 'docker compose -p aina up --build -d'
+                echo 'Création et envoi de l\'image Docker vers Docker Hub...'
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh "docker build -t ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
+                        sh "docker tag ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_USER}/${IMAGE_NAME}:latest"
+                        
+                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        sh "docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh "docker push ${DOCKER_USER}/${IMAGE_NAME}:latest"
+                    }
+                }
+            }
+        }
+
+        stage('6. Déploiement sur Cluster Kubernetes') {
+            steps {
+                echo 'Déploiement sur le cluster Kubernetes...'
+                script {
+                    sh "sed -i 's|${DOCKER_USER}/${IMAGE_NAME}:.*|${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}|g' k8s/deployment.yaml"
+                    
+                    sh "kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/deployment.yaml"
+                    
+                    sh "kubectl --kubeconfig=${KUBECONFIG} rollout status deployment/${IMAGE_NAME}-deployment"
+                }
             }
         }
     }
 
     post {
+        always {
+            sh "docker logout"
+        }
         success {
-            echo 'Pipeline exécuté avec succès ! Votre application est en ligne.'
+            echo 'Pipeline exécuté avec succès ! Votre application est en ligne sur Kubernetes.'
         }
         failure {
             echo 'Échec du pipeline. Veuillez vérifier les logs ci-dessus.'
