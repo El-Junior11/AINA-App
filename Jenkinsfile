@@ -12,24 +12,23 @@ pipeline {
     }
 
     stages {
-    stage('1. Build Dépendances & Frontend') {
-        parallel {
-            stage('Configuration Backend') {
-                steps {
-                    sh 'npm install --prefer-offline --no-audit --no-fund'
-                }
-            }
-            stage('Build Frontend') {
-                steps {
-                    dir('frontend') {
+        stage('1. Build Dépendances & Frontend') {
+            parallel {
+                stage('Configuration Backend') {
+                    steps {
                         sh 'npm install --prefer-offline --no-audit --no-fund'
-                        sh 'NODE_OPTIONS="--max-old-space-size=2048" npm run build'
+                    }
+                }
+                stage('Build Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh 'npm install --prefer-offline --no-audit --no-fund'
+                            sh 'NODE_OPTIONS="--max-old-space-size=2048" npm run build'
+                        }
                     }
                 }
             }
-        }
-    }
-}
+        } // Fin de stage('1. Build Dépendances & Frontend')
 
         stage('2. Build & Push Docker') {
             steps {
@@ -58,11 +57,11 @@ pipeline {
                 }
             }
         }
-    }
+    } // Fin de stages
 
     post {
         always {
-            sh 'docker logout'
+            sh 'docker logout || true'
         }
         success {
             echo 'Pipeline exécuté avec succès !'
