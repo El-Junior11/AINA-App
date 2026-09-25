@@ -50,14 +50,14 @@ stage('3. Build & Push Docker') {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {
                     sh '''
-                        # 1. Ampidinina ny kubectl raha tsy mbola eo
+                       
                         if [ ! -f ./kubectl ]; then
                             echo "Downloading kubectl..."
                             curl -LO "https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl"
                             chmod +x kubectl
                         fi
 
-                        # 2. Ovaina ny version an'ny Image
+                        # 2. Mise à jour de l'image dans le fichier de déploiement Kubernetes
                         sed -i "s|nantenaina11/aina-app:.*|nantenaina11/aina-app:${IMAGE_TAG}|g" k8s/deployment.yaml
 
                         # 3. Alefa amin'ny Kubernetes ny deployment
