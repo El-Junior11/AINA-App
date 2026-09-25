@@ -29,7 +29,7 @@ pipeline {
             }
         }
 
-sstage('3. Build & Push Docker') {
+stage('3. Build & Push Docker') {
             steps {
                 script {
                     // Miditra mivantana ao amin'ny dossier frontend
