@@ -66,6 +66,7 @@ stage('3. Build & Push Docker') {
                 }
             }
         }
+    }
 
     post {
         always {
