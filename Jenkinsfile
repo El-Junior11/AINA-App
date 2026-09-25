@@ -7,9 +7,8 @@ pipeline {
 
     environment {
         DOCKER_USER = 'nantenaina11' 
-        IMAGE_NAME = 'aina-app'
-        IMAGE_TAG  = "${BUILD_NUMBER}"
-        KUBECONFIG = credentials('k8s-kubeconfig') 
+        IMAGE_NAME  = 'aina-app'
+        IMAGE_TAG   = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -52,8 +51,6 @@ pipeline {
             }
         }
 
-
-
         stage('5. Build & Push Image Docker Hub') {
             steps {
                 echo 'Création et envoi de l\'image Docker vers Docker Hub...'
@@ -62,7 +59,8 @@ pipeline {
                         sh "docker build -t ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
                         sh "docker tag ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_USER}/${IMAGE_NAME}:latest"
                         
-                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        // Utilisation des guillemets doubles pour évaluer $PASS et $USER
+                        sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
                         sh "docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                         sh "docker push ${DOCKER_USER}/${IMAGE_NAME}:latest"
                     }
@@ -74,11 +72,12 @@ pipeline {
             steps {
                 echo 'Déploiement sur le cluster Kubernetes...'
                 script {
-                    sh "sed -i 's|${DOCKER_USER}/${IMAGE_NAME}:.*|${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}|g' k8s/deployment.yaml"
-                    
-                    sh "kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/deployment.yaml"
-                    
-                    sh "kubectl --kubeconfig=${KUBECONFIG} rollout status deployment/${IMAGE_NAME}-deployment"
+                    // Utilisation de withCredentials pour extraire le fichier kubeconfig
+                    withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {
+                        sh "sed -i 's|${DOCKER_USER}/${IMAGE_NAME}:.*|${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}|g' k8s/deployment.yaml"
+                        sh "kubectl --kubeconfig=${KUBE_FILE} apply -f k8s/deployment.yaml"
+                        sh "kubectl --kubeconfig=${KUBE_FILE} rollout status deployment/${IMAGE_NAME}-deployment"
+                    }
                 }
             }
         }
