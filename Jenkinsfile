@@ -49,11 +49,21 @@ stage('3. Build & Push Docker') {
         stage('4. Déploiement Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {
-                    sh """
-                        sed -i 's|${DOCKER_USER}/${IMAGE_NAME}:.*|${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}|g' k8s/deployment.yaml
-                        kubectl --kubeconfig=${KUBE_FILE} apply -f k8s/deployment.yaml
-                        kubectl --kubeconfig=${KUBE_FILE} rollout status deployment/${IMAGE_NAME}-deployment
-                    """
+                    sh '''
+                        # 1. Ampidinina ny kubectl raha tsy mbola eo
+                        if [ ! -f ./kubectl ]; then
+                            echo "Downloading kubectl..."
+                            curl -LO "https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl"
+                            chmod +x kubectl
+                        fi
+
+                        # 2. Ovaina ny version an'ny Image
+                        sed -i "s|nantenaina11/aina-app:.*|nantenaina11/aina-app:${IMAGE_TAG}|g" k8s/deployment.yaml
+
+                        # 3. Alefa amin'ny Kubernetes ny deployment
+                        ./kubectl --kubeconfig="${KUBE_FILE}" apply -f k8s/deployment.yaml
+                        ./kubectl --kubeconfig="${KUBE_FILE}" rollout status deployment/aina-app-deployment
+                    '''
                 }
             }
         }
