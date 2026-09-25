@@ -32,16 +32,13 @@ pipeline {
 stage('3. Build & Push Docker') {
             steps {
                 script {
-                    // Miditra mivantana ao amin'ny dossier frontend
                     dir('frontend') {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                             def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                             def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
 
-                            // Mampiasa BuildKit mba ho haingana sady tsy hisy erreur de pipe
-                            withEnv(['DOCKER_BUILDKIT=1']) {
-                                sh "docker build -t ${imageFull} -t ${imageLatest} ."
-                            }
+                            // Build standard sans BuildKit
+                            sh "docker build -t ${imageFull} -t ${imageLatest} ."
 
                             sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
                             sh "docker push ${imageFull}"
