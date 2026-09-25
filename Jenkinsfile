@@ -32,11 +32,13 @@ pipeline {
 stage('3. Build & Push Docker') {
             steps {
                 script {
+                    // Atsaharo vonjimaika ny Kubernetes mba hanamora ny RAM mandritra ny build
+                    sh 'sudo systemctl stop kubelet || true'
+
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                         def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                         def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
 
-                        // Mandeha eo amin'ny RACINE (.) ny build mba hahitany ny "frontend/package*.json"
                         sh "docker build -f frontend/Dockerfile -t ${imageFull} -t ${imageLatest} ."
 
                         sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
@@ -46,8 +48,15 @@ stage('3. Build & Push Docker') {
                 }
             }
         }
+
         stage('4. Déploiement Kubernetes') {
             steps {
+                script {
+                    // Velomy indray ny Kubernetes alohan'ny hanao apply
+                    sh 'sudo systemctl start kubelet'
+                    // Miandry 10 segondra kely mba ho velona tsara ny service
+                    sh 'sleep 10'
+                }
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {
                     sh """
                         sed -i 's|${DOCKER_USER}/${IMAGE_NAME}:.*|${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}|g' k8s/deployment.yaml
@@ -57,7 +66,6 @@ stage('3. Build & Push Docker') {
                 }
             }
         }
-    }
 
     post {
         always {
