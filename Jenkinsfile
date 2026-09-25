@@ -29,21 +29,28 @@ pipeline {
             }
         }
 
-stage('3. Build & Push Docker') {
+sstage('3. Build & Push Docker') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                        def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                        def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
-                        sh "docker build -f frontend/Dockerfile -t ${imageFull} -t ${imageLatest} ."
-                        sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"          
-                        sh "docker push ${imageFull}"
-                        sh "docker push ${imageLatest}"
+                    // Miditra mivantana ao amin'ny dossier frontend
+                    dir('frontend') {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                            def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                            def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
+
+                            // Mampiasa BuildKit mba ho haingana sady tsy hisy erreur de pipe
+                            withEnv(['DOCKER_BUILDKIT=1']) {
+                                sh "docker build -t ${imageFull} -t ${imageLatest} ."
+                            }
+
+                            sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
+                            sh "docker push ${imageFull}"
+                            sh "docker push ${imageLatest}"
+                        }
                     }
                 }
             }
         }
-
         stage('4. Déploiement Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {

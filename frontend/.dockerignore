@@ -1,4 +1,5 @@
 node_modules
 .git
-npm-debug.log
-.env
+frontend/node_modules
+dist
+build
