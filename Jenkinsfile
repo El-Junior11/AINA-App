@@ -29,15 +29,14 @@ pipeline {
             }
         }
 
-        stage('3. Build & Push Docker') {
+stage('3. Build & Push Docker') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                         def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                         def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
-
-                        sh "docker build -t ${imageFull} -t ${imageLatest} ."
-                        sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
+                        sh "docker build -f frontend/Dockerfile -t ${imageFull} -t ${imageLatest} ."
+                        sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"          
                         sh "docker push ${imageFull}"
                         sh "docker push ${imageLatest}"
                     }
