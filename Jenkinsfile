@@ -32,18 +32,16 @@ pipeline {
 stage('3. Build & Push Docker') {
             steps {
                 script {
-                    dir('frontend') {
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                            def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                            def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
 
-                            // Build standard sans BuildKit
-                            sh "docker build -t ${imageFull} -t ${imageLatest} ."
+                        // Mandeha eo amin'ny RACINE (.) ny build mba hahitany ny "frontend/package*.json"
+                        sh "docker build -f frontend/Dockerfile -t ${imageFull} -t ${imageLatest} ."
 
-                            sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
-                            sh "docker push ${imageFull}"
-                            sh "docker push ${imageLatest}"
-                        }
+                        sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
+                        sh "docker push ${imageFull}"
+                        sh "docker push ${imageLatest}"
                     }
                 }
             }
