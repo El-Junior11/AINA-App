@@ -12,25 +12,24 @@ pipeline {
     }
 
     stages {
-        stage('1. Build Dépendances & Frontend') {
-            parallel {
-                stage('Configuration Backend') {
-                    steps {
-                        sh 'npm install --prefer-offline --no-audit --no-fund'
-                    }
-                }
-                stage('Build Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh 'npm install --prefer-offline --no-audit --no-fund'
-                            sh 'NODE_OPTIONS="--max-old-space-size=2048" npm run build'
-                        }
-                    }
+        stage('1. Configuration Backend') {
+            steps {
+                echo 'Installation des dépendances du Backend...'
+                sh 'npm install --prefer-offline --no-audit --no-fund'
+            }
+        }
+
+        stage('2. Build Frontend') {
+            steps {
+                echo 'Installation et Build du Frontend...'
+                dir('frontend') {
+                    sh 'npm install --prefer-offline --no-audit --no-fund'
+                    sh 'NODE_OPTIONS="--max-old-space-size=2048" npm run build'
                 }
             }
-        } // Fin de stage('1. Build Dépendances & Frontend')
+        }
 
-        stage('2. Build & Push Docker') {
+        stage('3. Build & Push Docker') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
@@ -46,7 +45,7 @@ pipeline {
             }
         }
 
-        stage('3. Déploiement Kubernetes') {
+        stage('4. Déploiement Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {
                     sh """
@@ -57,7 +56,7 @@ pipeline {
                 }
             }
         }
-    } // Fin de stages
+    }
 
     post {
         always {
