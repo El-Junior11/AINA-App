@@ -12,23 +12,24 @@ pipeline {
     }
 
     stages {
-        stage('1. Build Dépendances & Frontend') {
-            parallel {
-                stage('Configuration Backend') {
-                    steps {
-                        sh 'npm install --prefer-offline --no-audit'
-                    }
+    stage('1. Build Dépendances & Frontend') {
+        parallel {
+            stage('Configuration Backend') {
+                steps {
+                    sh 'npm install --prefer-offline --no-audit --no-fund'
                 }
-                stage('Build Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh 'npm ci --prefer-offline --no-audit --no-fund'
-                            sh 'NODE_OPTIONS="--max-old-space-size=1024" npm run build'
-                        }
+            }
+            stage('Build Frontend') {
+                steps {
+                    dir('frontend') {
+                        sh 'npm install --prefer-offline --no-audit --no-fund'
+                        sh 'NODE_OPTIONS="--max-old-space-size=2048" npm run build'
                     }
                 }
             }
         }
+    }
+}
 
         stage('2. Build & Push Docker') {
             steps {
