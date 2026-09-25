@@ -34,15 +34,16 @@ pipeline {
             }
         }
 
-        stage('3. Installation & Build Frontend') {
-            steps {
-                echo 'Installation et compilation de l\'application React (dossier frontend)...'
-                dir('frontend') {
-                    sh 'npm install'
-                    sh 'npm run build'
-                }
-            }
+stage('3. Installation & Build Frontend') {
+    steps {
+        echo 'Installation et compilation du Frontend React...'
+        dir('frontend') {
+            sh 'npm ci --prefer-offline --no-audit --no-fund || npm install --prefer-offline --no-audit --no-fund'
+            
+            sh 'NODE_OPTIONS="--max-old-space-size=1024" npm run build'
         }
+    }
+}
 
         stage('4. Tests (Optionnel)') {
             steps {
