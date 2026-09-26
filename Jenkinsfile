@@ -29,14 +29,15 @@ pipeline {
             }
         }
 
-stage('3. Build & Push Docker') {
+        stage('3. Build & Push Docker') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                         def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
                         def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
 
-                        sh "docker build -f frontend/Dockerfile -t ${imageFull} -t ${imageLatest} ."
+                        // Mampiasa ny Dockerfile eo amin'ny racine (.)
+                        sh "docker build -t ${imageFull} -t ${imageLatest} ."
 
                         sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
                         sh "docker push ${imageFull}"
@@ -50,7 +51,6 @@ stage('3. Build & Push Docker') {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {
                     sh '''
-                       
                         if [ ! -f ./kubectl ]; then
                             echo "Downloading kubectl..."
                             curl -LO "https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl"
