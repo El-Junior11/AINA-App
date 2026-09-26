@@ -1,18 +1,19 @@
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
+
 COPY frontend/package*.json ./
-RUN npm ci --prefer-offline --no-audit
+RUN npm install --prefer-offline --no-audit
+
 COPY frontend/ ./
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci --only=production --prefer-offline --no-audit
+COPY backend/package*.json ./
+RUN npm install --production --prefer-offline --no-audit
 
-COPY . .
-
+COPY backend/ ./
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 EXPOSE 5000
