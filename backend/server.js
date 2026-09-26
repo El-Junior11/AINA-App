@@ -6,11 +6,9 @@ const { Server } = require('socket.io');
 require('dotenv').config();
 require('./models/associations');
 
-// Imports
 const sequelize = require('./config/db');
 const auditMiddleware = require('./middleware/audit');
 
-// Routes
 const authRoutes = require('./routes/authRoutes');
 const membreRoutes = require('./routes/membreRoutes');
 const groupeRoutes = require('./routes/groupeRoutes');
@@ -23,7 +21,6 @@ const auditRoutes = require('./routes/auditRoutes');
 const app = express();
 const server = http.createServer(app);
 
-// 1. Configure-o ny Socket.io miaraka amin'ny CORS marina
 const io = new Server(server, {
     cors: {
         origin: "http://localhost:5173", 
@@ -32,10 +29,8 @@ const io = new Server(server, {
     }
 });
 
-// 2. Apetraka ho global mba ho hitan'ny middleware rehetra
 global.io = io;
 
-// Middlewares
 app.use(cors({
     origin: [
         "http://localhost:5173",
@@ -50,7 +45,13 @@ app.use(express.json());
 
 app.use(auditMiddleware);
 
-// Routes
+app.get('/', (req, res) => {
+    res.json({ 
+        status: "success", 
+        message: "Bienvenue sur l'API Aina-App, le serveur fonctionne parfaitement !" 
+    });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/membres', membreRoutes);
 app.use('/api/groupes', groupeRoutes);
@@ -64,7 +65,6 @@ app.use((req, res, next) => {
     res.status(404).json({ message: "Route introuvable sur le serveur" });
 });
 
-// Database Sync sy Server Launch
 const connectWithRetry = async () => {
     const MAX_RETRIES = 5;
     const DELAY = 3000;
