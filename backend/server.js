@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 require('dotenv').config();
 require('./models/associations');
@@ -45,12 +46,7 @@ app.use(express.json());
 
 app.use(auditMiddleware);
 
-app.get('/', (req, res) => {
-    res.json({ 
-        status: "success", 
-        message: "Bienvenue sur l'API Aina-App, le serveur fonctionne parfaitement !" 
-    });
-});
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/membres', membreRoutes);
@@ -60,6 +56,10 @@ app.use('/api/responsables', responsableRoutes);
 app.use('/api/formations', formationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/audit-logs', auditRoutes);
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
 
 app.use((req, res, next) => {
     res.status(404).json({ message: "Route introuvable sur le serveur" });
