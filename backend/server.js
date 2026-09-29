@@ -24,7 +24,10 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", 
+        origin: [
+            "http://localhost:5173", 
+            "http://192.168.56.9:30080"
+        ], 
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
     }
@@ -35,7 +38,8 @@ global.io = io;
 app.use(cors({
     origin: [
         "http://localhost:5173",
-        "http://172.19.0.1:5275"
+        "http://172.19.0.1:5275",
+        "http://192.168.56.9:30080"
     ],
     credentials: true
 }));
@@ -48,6 +52,7 @@ app.use(express.json());
 app.use(auditMiddleware);
 
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
+app.use('/assets', express.static(path.join(__dirname, 'frontend/dist/assets')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/membres', membreRoutes);
