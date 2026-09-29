@@ -46,6 +46,7 @@ app.use(cors({
 app.use(helmet({
     crossOriginResourcePolicy: false,
     contentSecurityPolicy: false,
+    hsts: false,
 }));
 app.use(express.json());
 
