@@ -46,7 +46,7 @@ app.use(express.json());
 
 app.use(auditMiddleware);
 
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/membres', membreRoutes);
@@ -58,7 +58,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/audit-logs', auditRoutes);
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+    res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
 });
 
 app.use((req, res, next) => {
