@@ -49,7 +49,7 @@ const AdminNotifications=()=>{
 
   useEffect(()=>{
     fetchHistory();
-    const socket=io(import.meta.env.VITE_SOCKET_URL,{transports:['websocket']});
+    const socket=io(import.meta.env.VITE_SOCKET_URL || window.location.origin,{transports:['websocket']});
     socket.on('admin_alert',newData=>{
       setLogs(prev=>[newData,...prev].slice(0,50));
     });

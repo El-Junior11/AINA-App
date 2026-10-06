@@ -11,19 +11,21 @@ spec:
     metadata:
       labels:
         app: postgres
+        run: aina
     spec:
       containers:
-      - name: postgres
-        image: postgres:15-alpine
-        env:
-        - name: POSTGRES_USER
-          value: "postgres"
-        - name: POSTGRES_PASSWORD
-          value: "postgres"
-        - name: POSTGRES_DB
-          value: "aina_db"
-        ports:
-        - containerPort: 5432
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "asus"
+            - name: POSTGRES_DB
+              value: "tsinjo_db"
+          ports:
+            - containerPort: 5432
+
 ---
 apiVersion: v1
 kind: Service
@@ -32,6 +34,7 @@ metadata:
 spec:
   selector:
     app: postgres
+    run: aina
   ports:
     - protocol: TCP
       port: 5432
