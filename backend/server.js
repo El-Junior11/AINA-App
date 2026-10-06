@@ -25,9 +25,10 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: [
-            "http://localhost:5173", 
-            "http://192.168.56.9:30080"
-        ], 
+            "http://localhost:5173",
+            "http://192.168.56.9:30080",
+	    "http://tsinjoaina.local"
+        ],
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
     }
@@ -39,7 +40,8 @@ app.use(cors({
     origin: [
         "http://localhost:5173",
         "http://172.19.0.1:5275",
-        "http://192.168.56.9:30080"
+        "http://192.168.56.9:30080",
+	"http://tsinjoaina.local"
     ],
     credentials: true
 }));
@@ -75,12 +77,12 @@ app.use((req, res, next) => {
 const connectWithRetry = async () => {
     const MAX_RETRIES = 5;
     const DELAY = 3000;
-    
+
     for (let i = 1; i <= MAX_RETRIES; i++) {
         try {
             await sequelize.sync();
             console.log("Connexion à PostgreSQL réussie.");
-            
+
             const PORT = process.env.PORT || 5000;
             server.listen(PORT, () => {
                 console.log(`Serveur démarré sur : http://localhost:${PORT}`);
