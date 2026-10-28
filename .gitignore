@@ -1,0 +1,30 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+
+# Logs
+*.log
+
+# Backups
+*.backup
+*.bak
+*.old
+Dockerfile.backup-*
+docker-compose.yml.backup
+
+# OS and editor files
+.DS_Store
+.vscode/
+.idea/

@@ -18,4 +18,6 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 EXPOSE 5000
 
+USER node
+
 CMD ["node", "server.js"]
