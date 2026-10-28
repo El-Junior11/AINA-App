@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -8,20 +9,29 @@ pipeline {
     environment {
         DOCKER_USER = 'nantenaina11'
         IMAGE_NAME  = 'aina-app'
-        IMAGE_TAG   = "${BUILD_NUMBER}"
+        VPS_HOST    = '15.235.242.72'
+        VPS_USER    = 'ubuntu'
+        VPS_DIR     = '/opt/tsinjo-aina'
     }
 
     stages {
-        stage('1. Configuration Backend') {
+        stage('1. Checkout') {
+            steps {
+                echo 'Récupération du code source depuis GitHub...'
+                checkout scm
+            }
+        }
+
+        stage('2. Configuration Backend') {
             steps {
                 echo 'Installation des dépendances du Backend...'
                 sh 'npm install --prefer-offline --no-audit --no-fund'
             }
         }
 
-        stage('2. Build Frontend') {
+        stage('3. Build Frontend') {
             steps {
-                echo 'Installation et Build du Frontend...'
+                echo 'Construction du Frontend...'
                 dir('frontend') {
                     sh 'npm install --prefer-offline --no-audit --no-fund'
                     sh 'NODE_OPTIONS="--max-old-space-size=2048" npm run build'
@@ -29,40 +39,126 @@ pipeline {
             }
         }
 
-        stage('3. Build & Push Docker') {
+        stage('4. Build & Push Docker') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                        def imageFull = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                        def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
+                    def imageTag = "${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                    def imageLatest = "${DOCKER_USER}/${IMAGE_NAME}:latest"
 
-                        // Mampiasa ny Dockerfile eo amin'ny racine (.)
-                        sh "docker build -t ${imageFull} -t ${imageLatest} ."
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'dockerhub-credentials',
+                            usernameVariable: 'DOCKER_LOGIN',
+                            passwordVariable: 'DOCKER_TOKEN'
+                        )
+                    ]) {
+                        try {
+                            sh '''
+                                set -eu
+                                echo "$DOCKER_TOKEN" | docker login \
+                                    --username "$DOCKER_LOGIN" \
+                                    --password-stdin
+                            '''
 
-                        sh "echo \"$PASS\" | docker login -u \"$USER\" --password-stdin"
-                        sh "docker push ${imageFull}"
-                        sh "docker push ${imageLatest}"
+                            sh """
+                                docker build \
+                                    --tag '${imageTag}' \
+                                    --tag '${imageLatest}' \
+                                    .
+                            """
+
+                            sh "docker push '${imageTag}'"
+                            sh "docker push '${imageLatest}'"
+                        } finally {
+                            sh 'docker logout || true'
+                        }
                     }
                 }
             }
         }
 
-        stage('4. Déploiement Kubernetes') {
+        stage('5. Déploiement sur VPS') {
             steps {
-                withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBE_FILE')]) {
+                script {
+                    def imageTag = "${BUILD_NUMBER}"
+
+                    withCredentials([
+                        sshUserPrivateKey(
+                            credentialsId: 'vps-ssh-credentials',
+                            keyFileVariable: 'SSH_KEY',
+                            usernameVariable: 'SSH_CREDENTIAL_USER'
+                        )
+                    ]) {
+                        sh """
+                            set -eu
+
+                            ssh -i "\$SSH_KEY" \
+                                -o BatchMode=yes \
+                                -o StrictHostKeyChecking=yes \
+                                "\$SSH_CREDENTIAL_USER@${VPS_HOST}" \
+                                'cd ${VPS_DIR} &&
+                                 test -f .env &&
+                                 test -f docker-compose.yml &&
+                                 docker compose config -q'
+                        """
+
+                        sh """
+                            set -eu
+
+                            ssh -i "\$SSH_KEY" \
+                                -o BatchMode=yes \
+                                -o StrictHostKeyChecking=yes \
+                                "\$SSH_CREDENTIAL_USER@${VPS_HOST}" \
+                                'cd ${VPS_DIR} &&
+                                 export IMAGE_TAG=${imageTag} &&
+                                 docker compose pull backend &&
+                                 docker compose up -d --no-deps backend'
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('6. Vérification du déploiement') {
+            steps {
+                script {
+                    withCredentials([
+                        sshUserPrivateKey(
+                            credentialsId: 'vps-ssh-credentials',
+                            keyFileVariable: 'SSH_KEY',
+                            usernameVariable: 'SSH_CREDENTIAL_USER'
+                        )
+                    ]) {
+                        sh """
+                            set -eu
+
+                            ssh -i "\$SSH_KEY" \
+                                -o BatchMode=yes \
+                                -o StrictHostKeyChecking=yes \
+                                "\$SSH_CREDENTIAL_USER@${VPS_HOST}" \
+                                'set -eu;
+                                 cd ${VPS_DIR};
+                                 docker compose ps backend;
+                                 docker inspect --format="{{.State.Status}}" tsinjo-aina-app'
+                        """
+                    }
+
                     sh '''
-                        if [ ! -f ./kubectl ]; then
-                            echo "Downloading kubectl..."
-                            curl -LO "https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl"
-                            chmod +x kubectl
-                        fi
+                        set -eu
+                        for attempt in $(seq 1 12); do
+                            if curl --fail --silent --show-error \
+                                --output /dev/null \
+                                https://ongtsinjoainafi.org/; then
+                                echo "Application accessible en HTTPS."
+                                exit 0
+                            fi
 
-                        # 2. Mise à jour de l'image dans le fichier de déploiement Kubernetes
-                        sed -i "s|nantenaina11/aina-app:.*|nantenaina11/aina-app:${IMAGE_TAG}|g" k8s/deployment.yaml
+                            echo "Application en cours de démarrage..."
+                            sleep 5
+                        done
 
-                        # 3. Alefa amin'ny Kubernetes ny deployment
-                        ./kubectl --kubeconfig="${KUBE_FILE}" apply -f k8s/deployment.yaml
-                        ./kubectl --kubeconfig="${KUBE_FILE}" rollout status deployment/aina-app-deployment
+                        echo "ERREUR : application inaccessible après le déploiement."
+                        exit 1
                     '''
                 }
             }
@@ -70,14 +166,16 @@ pipeline {
     }
 
     post {
-        always {
-            sh 'docker logout || true'
-        }
         success {
-            echo 'Pipeline exécuté avec succès !'
+            echo 'Déploiement TSINJO AINA terminé avec succès.'
         }
+
         failure {
-            echo 'Le pipeline a échoué.'
+            echo 'Échec du pipeline. Consultez les logs du stage en erreur.'
+        }
+
+        always {
+            echo 'Fin du pipeline Jenkins.'
         }
     }
 }
