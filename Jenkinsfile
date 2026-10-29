@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -12,6 +11,7 @@ pipeline {
         VPS_HOST    = '15.235.242.72'
         VPS_USER    = 'ubuntu'
         VPS_DIR     = '/opt/tsinjo-aina'
+        K8S_NAMESPACE = 'tsinjo-test'
     }
 
     stages {
@@ -77,7 +77,95 @@ pipeline {
             }
         }
 
-        stage('5. Déploiement sur VPS') {
+        stage('5. Déploiement Kubernetes Test') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig-tsinjo-test',
+                        variable: 'KUBECONFIG_FILE'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        export KUBECONFIG="$KUBECONFIG_FILE"
+
+                        kubectl set image \
+                            deployment/aina-app-test \
+                            aina-app="$DOCKER_USER/$IMAGE_NAME:$BUILD_NUMBER" \
+                            -n "$K8S_NAMESPACE"
+
+                        kubectl rollout status \
+                            deployment/aina-app-test \
+                            -n "$K8S_NAMESPACE" \
+                            --timeout=180s
+                    '''
+                }
+            }
+        }
+
+        stage('6. Validation HTTP Kubernetes') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig-tsinjo-test',
+                        variable: 'KUBECONFIG_FILE'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        export KUBECONFIG="$KUBECONFIG_FILE"
+
+                        TEST_POD="http-test-$BUILD_NUMBER"
+
+                        cleanup() {
+                            kubectl delete pod "$TEST_POD" \
+                                -n "$K8S_NAMESPACE" \
+                                --ignore-not-found=true \
+                                --wait=true
+                        }
+
+                        trap cleanup EXIT
+
+                        kubectl run "$TEST_POD" \
+                            --namespace="$K8S_NAMESPACE" \
+                            --image=curlimages/curl:latest \
+                            --restart=Never \
+                            --command -- sh -c \
+                            'code=$(curl --silent --show-error --max-time 15 \
+                                --output /dev/null --write-out "%{http_code}" \
+                                http://aina-app-test:5000/) || exit 1
+                             echo "HTTP_STATUS=$code"
+                             [ "$code" = "200" ]'
+
+                        for attempt in $(seq 1 24); do
+                            PHASE=$(kubectl get pod "$TEST_POD" \
+                                -n "$K8S_NAMESPACE" \
+                                -o jsonpath='{.status.phase}' 2>/dev/null || true)
+
+                            if [ "$PHASE" = "Succeeded" ]; then
+                                kubectl logs "$TEST_POD" -n "$K8S_NAMESPACE"
+                                echo "Validation HTTP 200 réussie."
+                                exit 0
+                            fi
+
+                            if [ "$PHASE" = "Failed" ]; then
+                                kubectl logs "$TEST_POD" -n "$K8S_NAMESPACE" || true
+                                echo "Échec de la validation HTTP."
+                                exit 1
+                            fi
+
+                            sleep 5
+                        done
+
+                        kubectl logs "$TEST_POD" -n "$K8S_NAMESPACE" || true
+                        echo "Délai dépassé pendant la validation HTTP."
+                        exit 1
+                    '''
+                }
+            }
+        }
+
+        stage('7. Déploiement sur VPS') {
             steps {
                 script {
                     def imageTag = "${BUILD_NUMBER}"
@@ -119,7 +207,7 @@ pipeline {
             }
         }
 
-        stage('6. Vérification du déploiement') {
+        stage('8. Vérification du déploiement Production') {
             steps {
                 script {
                     withCredentials([
