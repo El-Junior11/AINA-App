@@ -3,31 +3,31 @@ import axios from '../api/axios';
 import domtoimage from 'dom-to-image-more';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, RadarChart, PolarGrid,
-  PolarAngleAxis, Radar, AreaChart, Area
+  PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
 import {
-  Users, Home, Network, ShieldCheck, GraduationCap,
-  Target, Activity, Loader2, CalendarDays, Download,
+  Users, Building2, Network, ShieldCheck, GraduationCap,
+  PieChart as PieIcon, Activity, Loader2, CalendarDays, Download,
   AlertTriangle, RefreshCw, Inbox
 } from 'lucide-react';
 
-const COLORS = ['#0EA5E9', '#10B981', '#F59E0B', '#F43F5E', '#8B5CF6'];
+const COLORS = ['#0EA5E9', '#10B981', '#F59E0B', '#8B5CF6', '#F43F5E'];
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px',
   border: '1px solid #e2e8f0',
   fontSize: '12px',
   background: '#ffffff',
-  color: '#0f172a'
+  color: '#0f172a',
+  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
 };
 
 const KPI_CONFIG = [
-  { key: 'membres', label: 'Membres', icon: Users, col: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/40', bar: 'from-sky-400 to-sky-600' },
-  { key: 'groupes', label: 'Groupes GS', icon: Home, col: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', bar: 'from-emerald-400 to-emerald-600' },
-  { key: 'reseaux', label: 'Réseaux', icon: Network, col: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40', bar: 'from-amber-400 to-amber-600' },
-  { key: 'responsables', label: 'Responsables', icon: ShieldCheck, col: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', bar: 'from-violet-400 to-violet-600' },
-  { key: 'formations', label: 'Formations', icon: GraduationCap, col: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40', bar: 'from-rose-400 to-rose-600' }
+  { key: 'membres', label: 'Membres', icon: Users, col: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/40' },
+  { key: 'groupes', label: 'Groupes GS', icon: Building2, col: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+  { key: 'reseaux', label: 'Réseaux', icon: Network, col: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
+  { key: 'responsables', label: 'Responsables', icon: ShieldCheck, col: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40' },
+  { key: 'formations', label: 'Formations', icon: GraduationCap, col: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40' }
 ];
 
 // --- Reusable pieces -------------------------------------------------
@@ -51,12 +51,12 @@ const DownloadButton = ({ id, filename, downloading, onDownload }) => (
 const ChartCard = ({ id, filename, title, icon: Icon, iconWrapClass, iconClass, downloading, onDownload, isEmpty, children }) => (
   <div
     id={id}
-    className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-sm"
+    className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-md"
   >
     {!isEmpty && <DownloadButton id={id} filename={filename} downloading={downloading} onDownload={onDownload} />}
 
     <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm mb-5 flex items-center gap-3">
-      <span className={`p-2 bg-gradient-to-br ${iconWrapClass} rounded-xl ${iconClass}`}>
+      <span className={`p-2 bg-gradient-to-br ${iconWrapClass} rounded-xl ${iconClass} shadow-inner`}>
         <Icon size={17} aria-hidden="true" />
       </span>
       {title}
@@ -193,7 +193,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-sky-500 text-white rounded-2xl shrink-0 shadow-sm">
-            <Target size={24} aria-hidden="true" />
+            <Activity size={24} aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-lg font-display font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -206,15 +206,14 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards (Nesorina ireo top color bars) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
         {KPI_CONFIG.map((item) => (
           <div
             key={item.key}
-            className="relative bg-white dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:-translate-y-0.5 hover:shadow-md overflow-hidden flex items-center gap-4"
+            className="relative bg-white dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-4"
           >
-            <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${item.bar}`} />
-            <div className={`${item.bg} ${item.col} w-12 h-12 flex items-center justify-center rounded-xl shrink-0`}>
+            <div className={`${item.bg} ${item.col} w-12 h-12 flex items-center justify-center rounded-xl shrink-0 shadow-sm`}>
               <item.icon size={22} aria-hidden="true" />
             </div>
             <div className="flex flex-col justify-center">
@@ -231,20 +230,33 @@ const Dashboard = () => {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Équilibre du programme - Radar Chart */}
+        {/* 1. Équilibre du programme - Nosoloina Pie Chart misy loko 5 samihafa tsara (araka ny sary) */}
         <ChartCard
           id="chart-equilibre" filename="equilibre-programme" title="Équilibre du programme"
-          icon={Target} iconWrapClass="from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30" iconClass="text-sky-600 dark:text-sky-400"
+          icon={PieIcon} iconWrapClass="from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30" iconClass="text-sky-600 dark:text-sky-400"
           downloading={downloading} onDownload={downloadChart}
           isEmpty={!stats.resumeData?.length}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="75%" data={stats.resumeData}>
-              <PolarGrid stroke="#e2e8f0" />
-              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontWeight: '600', fill: '#64748b' }} />
-              <Radar name="ONG" dataKey="A" stroke="#0EA5E9" fill="#0EA5E9" fillOpacity={0.35} />
+            <PieChart>
+              <Pie
+                data={stats.resumeData}
+                dataKey="A"
+                nameKey="subject"
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={4}
+                label
+              >
+                {stats.resumeData?.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
               <Tooltip contentStyle={TOOLTIP_STYLE} />
-            </RadarChart>
+              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: '500' }} />
+            </PieChart>
           </ResponsiveContainer>
         </ChartCard>
 
