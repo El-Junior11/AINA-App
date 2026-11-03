@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
+import { getGroupes } from '../services/groupeService';
 import Swal from 'sweetalert2';
-import { Trash2, Edit2, X, Loader2, Save, Network, ShieldCheck, Search, FileText, Download, BarChart3, Printer, Calendar, Plus, Eye } from 'lucide-react';
+import { Trash2, Edit2, X, Loader2, Save, Network, ShieldCheck, Search, FileText, Download, BarChart3, Printer, Calendar, Plus, Eye, MapPin } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -20,9 +20,21 @@ const Toast = Swal.mixin({
   }
 });
 
+// Classes partagées pour garder des champs de formulaire cohérents (mêmes que MembresList / GroupePage)
+const fieldClass =
+  'w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
+const labelClass = 'block text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5';
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
+
+// Badge Oui / Non
+const yesBadge = 'bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900';
+const noBadge = 'bg-slate-100 text-slate-500 ring-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700';
+
 const ReseauPage = () => {
   const [reseaux, setReseaux] = useState([]);
   const [filteredReseaux, setFilteredReseaux] = useState([]);
+  const [groupes, setGroupes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -44,6 +56,7 @@ const ReseauPage = () => {
 
   useEffect(() => {
     fetchReseaux();
+    fetchGroupes();
   }, []);
 
   useEffect(() => {
@@ -72,6 +85,39 @@ const ReseauPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Récupère les groupes solidaires pour retrouver la commune de chaque groupe membre
+  const fetchGroupes = async () => {
+    try {
+      const res = await getGroupes();
+      setGroupes(res.data || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // nom du groupe (minuscule, sans espaces autour) -> commune
+  const communeParGroupe = new Map(
+    groupes.map(g => [String(g.nomgs || '').trim().toLowerCase(), String(g.commune || '').trim()])
+  );
+
+  // Communes distinctes des groupes membres d'un réseau
+  const getCommunes = (r) => {
+    const vues = new Set();
+    const communes = [];
+    (r.NomGS || '')
+      .split(',')
+      .map(g => g.trim().toLowerCase())
+      .filter(Boolean)
+      .forEach(g => {
+        const commune = communeParGroupe.get(g);
+        if (commune && !vues.has(commune.toLowerCase())) {
+          vues.add(commune.toLowerCase());
+          communes.push(commune);
+        }
+      });
+    return communes;
   };
 
   const exportPDF = async () => {
@@ -119,6 +165,7 @@ const ReseauPage = () => {
         r.NomRS || '-',
         r.DateCreation ? new Date(r.DateCreation).toLocaleDateString('fr-FR') : '-',
         r.NomGS || '-',
+        getCommunes(r).join(', ') || '-',
         r.Activite || 'Non',
         r.Plaidoyer || 'Non',
         r.Plan || 'Non',
@@ -126,7 +173,7 @@ const ReseauPage = () => {
       ]);
 
       autoTable(doc, {
-        head: [['N°', 'Nom Réseau', 'Date création', 'Groupes', 'Activité', 'Plaidoyer', 'Plan', 'Autonomie']],
+        head: [['N°', 'Nom Réseau', 'Date création', 'Groupes', 'Localisation', 'Activité', 'Plaidoyer', 'Plan', 'Autonomie']],
         body: tableData,
         startY: 55,
         styles: { fontSize: 8 },
@@ -149,6 +196,7 @@ const ReseauPage = () => {
         'Nom Réseau': r.NomRS || '',
         'Date création': r.DateCreation ? new Date(r.DateCreation).toLocaleDateString('fr-FR') : '',
         'Groupes': r.NomGS || '',
+        'Localisation': getCommunes(r).join(', '),
         'Activité': r.Activite || 'Non',
         'Plaidoyer': r.Plaidoyer || 'Non',
         'Plan': r.Plan || 'Non',
@@ -269,34 +317,38 @@ const ReseauPage = () => {
   const reseauxEnCours = filteredReseaux.filter(r => r.Autonomie !== 'Oui').length;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-950 transition-colors font-body overflow-hidden relative">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
-        .font-body { font-family: 'DM Sans', sans-serif; }
-        .font-display { font-family: 'Manrope', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
+        .font-body { font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+        .font-display { font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: -0.01em; }
+        @media (prefers-reduced-motion: reduce) { .animate-in { animation: none !important; } }
       `}</style>
 
-      <div className="p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-sky-500 text-white rounded-2xl shrink-0 shadow-sm">
-            <Network size={24} />
+      {/* En-tête de page */}
+      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3.5">
+          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+            <Network size={20} strokeWidth={2} />
           </div>
 
-          <div>
-            <h1 className="text-lg font-display font-extrabold text-slate-900 dark:text-white tracking-tight">Réseaux communautaires</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Gestion, structuration et suivi des réseaux communautaires.</p>
+          <div className="min-w-0">
+            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">Réseaux communautaires</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Gestion, structuration et suivi des réseaux communautaires.</p>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="px-4 md:px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
-        <div className="relative group flex-1 min-w-[240px] max-w-xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
+      {/* Barre d'outils */}
+      <div className="px-4 md:px-6 pt-5 pb-4 flex items-center justify-between gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" size={17} />
 
           <input
             type="text"
             placeholder="Rechercher un réseau ou un groupe..."
-            className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-medium transition-all"
+            aria-label="Rechercher un réseau ou un groupe"
+            className="w-full h-10 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -304,9 +356,10 @@ const ReseauPage = () => {
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors"
+              aria-label="Effacer la recherche"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
             >
-              <X size={17} />
+              <X size={15} />
             </button>
           )}
         </div>
@@ -317,7 +370,7 @@ const ReseauPage = () => {
               resetForm();
               setShowModal(true);
             }}
-            className="bg-gradient-to-r from-emerald-500 to-sky-500 hover:opacity-90 text-white px-3 py-2.5 rounded-xl flex items-center gap-2 text-xs font-bold transition-all shadow-sm hover:shadow-md shrink-0"
+            className={`h-10 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm transition-colors shrink-0 ${focusRing}`}
           >
             <Plus size={16} />
             <span className="hidden sm:block">Ajouter</span>
@@ -325,36 +378,40 @@ const ReseauPage = () => {
 
           <button
             onClick={() => setShowVoirPlusModal(true)}
-            className="flex items-center gap-2 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-950/50 px-3 py-2.5 rounded-xl transition-all font-bold text-xs border border-sky-100 dark:border-sky-900/40 shrink-0"
+            className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shrink-0 ${focusRing}`}
           >
-            <Eye size={16} />
+            <Eye size={16} className="text-slate-500 dark:text-slate-400" />
             <span className="hidden sm:block">Voir plus</span>
           </button>
 
           <div className="relative shrink-0">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2.5 rounded-xl transition-all flex items-center gap-2 text-xs font-bold shadow-sm hover:shadow-md"
+              aria-haspopup="menu"
+              aria-expanded={showExportMenu}
+              className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
             >
-              <Printer size={16} />
+              <Printer size={16} className="text-slate-500 dark:text-slate-400" />
               <span className="hidden md:block">Exporter</span>
             </button>
 
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 text-slate-900 dark:text-white overflow-hidden">
+              <div role="menu" className="absolute right-0 mt-2 w-52 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
                 <button
+                  role="menuitem"
                   onClick={exportPDF}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium border-b border-slate-100 dark:border-slate-800 transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors"
                 >
-                  <FileText size={17} className="text-rose-500" />
+                  <FileText size={16} className="text-rose-600 dark:text-rose-400" />
                   Document PDF
                 </button>
 
                 <button
+                  role="menuitem"
                   onClick={exportExcel}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors"
                 >
-                  <Download size={17} className="text-emerald-600" />
+                  <Download size={16} className="text-emerald-700 dark:text-emerald-400" />
                   Feuille Excel
                 </button>
               </div>
@@ -363,123 +420,142 @@ const ReseauPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-6">
-        <div className="bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
+      {/* Tableau */}
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-5">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
           <div className="flex-1 overflow-x-auto overflow-y-auto">
             <table className="w-full border-collapse text-left">
-              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800/90 text-sm font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">
+              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 text-[13px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-5 py-4 w-16">N°</th>
-                  <th className="px-5 py-4 min-w-[220px]">Réseau</th>
-                  <th className="px-5 py-4 min-w-[240px]">Groupes membres</th>
-                  <th className="px-5 py-4 text-center min-w-[100px]">Activité</th>
-                  <th className="px-5 py-4 text-center min-w-[100px]">Plaidoyer</th>
-                  <th className="px-5 py-4 text-center min-w-[100px]">Plan</th>
-                  <th className="px-5 py-4 text-center min-w-[130px]">Autonomie</th>
-                  <th className="px-5 py-4 text-right w-24 sticky right-0 bg-slate-50 dark:bg-slate-800">Actions</th>
+                  <th className="px-5 py-3 w-16 font-semibold">N°</th>
+                  <th className="px-5 py-3 min-w-[220px] font-semibold">Réseau</th>
+                  <th className="px-5 py-3 min-w-[240px] font-semibold">Groupes membres</th>
+                  <th className="px-5 py-3 min-w-[180px] font-semibold">Localisation</th>
+                  <th className="px-5 py-3 text-center min-w-[100px] font-semibold">Activité</th>
+                  <th className="px-5 py-3 text-center min-w-[100px] font-semibold">Plaidoyer</th>
+                  <th className="px-5 py-3 text-center min-w-[100px] font-semibold">Plan</th>
+                  <th className="px-5 py-3 text-center min-w-[130px] font-semibold">Autonomie</th>
+                  <th className="px-5 py-3 text-right w-24 sticky right-0 bg-slate-50 dark:bg-slate-800 font-semibold">Actions</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="p-12 text-center">
-                      <Loader2 size={28} className="animate-spin inline text-emerald-500" />
+                    <td colSpan={9} className="p-12 text-center">
+                      <Loader2 size={26} className="animate-spin inline text-emerald-600" aria-label="Chargement" />
                     </td>
                   </tr>
-                ) : filteredReseaux.map((r, index) => (
-                  <tr
-                    key={r.codeRS}
-                    className="h-[64px] hover:bg-emerald-50/40 dark:hover:bg-slate-800/50 transition-colors group"
-                  >
-                    <td className="px-5 py-3 text-sm font-bold text-slate-900 dark:text-slate-100 w-16">
-                      {index + 1}
-                    </td>
+                ) : filteredReseaux.map((r, index) => {
+                  const communes = getCommunes(r);
 
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30 text-sky-600 dark:text-sky-400 rounded-xl shrink-0">
-                          <Network size={17} />
-                        </div>
+                  return (
+                    <tr
+                      key={r.codeRS}
+                      className="h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                    >
+                      <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 tabular-nums w-16">
+                        {index + 1}
+                      </td>
 
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white capitalize truncate">
-                            {r.NomRS}
-                          </p>
-
-                          {r.DateCreation && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 flex items-center gap-1">
-                              <Calendar size={11} />
-                              {new Date(r.DateCreation).toLocaleDateString('fr-FR')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        {(r.NomGS || '').split(',').filter(Boolean).map((g, i) => (
-                          <span
-                            key={i}
-                            className="px-2.5 py-1 bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 rounded-lg text-xs font-bold capitalize"
-                          >
-                            {g.trim()}
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="h-9 w-9 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60" aria-hidden="true">
+                            <Network size={16} />
                           </span>
-                        ))}
-                      </div>
-                    </td>
 
-                    <td className="px-5 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${r.Activite === 'Oui' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                        {r.Activite || 'Non'}
-                      </span>
-                    </td>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white capitalize truncate">
+                              {r.NomRS}
+                            </p>
 
-                    <td className="px-5 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${r.Plaidoyer === 'Oui' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                        {r.Plaidoyer || 'Non'}
-                      </span>
-                    </td>
+                            {r.DateCreation && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1 tabular-nums">
+                                <Calendar size={11} />
+                                {new Date(r.DateCreation).toLocaleDateString('fr-FR')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
 
-                    <td className="px-5 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${r.Plan === 'Oui' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                        {r.Plan || 'Non'}
-                      </span>
-                    </td>
+                      <td className="px-5 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {(r.NomGS || '').split(',').filter(Boolean).map((g, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-md text-xs font-medium capitalize"
+                            >
+                              {g.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
 
-                    <td className="px-5 py-3 text-center">
-                      <span className={`px-3 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1 ${r.Autonomie === 'Oui' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}>
-                        <ShieldCheck size={13} />
-                        {r.Autonomie === 'Oui' ? 'Autonome' : 'En cours'}
-                      </span>
-                    </td>
+                      <td className="px-5 py-3">
+                        {communes.length > 0 ? (
+                          <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                            <MapPin size={16} className="text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" />
+                            <span className="capitalize">{communes.join(', ')}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400 dark:text-slate-500">—</span>
+                        )}
+                      </td>
 
-                    <td className="px-5 py-3 text-right w-24 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-emerald-50/40 dark:group-hover:bg-slate-800/50">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(r)}
-                          title="Modifier"
-                          className="p-2 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                        >
-                          <Edit2 size={16} />
-                        </button>
+                      <td className="px-5 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${r.Activite === 'Oui' ? yesBadge : noBadge}`}>
+                          {r.Activite || 'Non'}
+                        </span>
+                      </td>
 
-                        <button
-                          onClick={() => handleDelete(r.codeRS)}
-                          title="Supprimer"
-                          className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-5 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${r.Plaidoyer === 'Oui' ? yesBadge : noBadge}`}>
+                          {r.Plaidoyer || 'Non'}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${r.Plan === 'Oui' ? yesBadge : noBadge}`}>
+                          {r.Plan || 'Non'}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3 text-center">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-medium inline-flex items-center gap-1.5 ring-1 ring-inset ${r.Autonomie === 'Oui' ? 'bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900' : 'bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900'}`}>
+                          <ShieldCheck size={13} />
+                          {r.Autonomie === 'Oui' ? 'Autonome' : 'En cours'}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3 text-right w-24 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => openEditModal(r)}
+                            title="Modifier"
+                            aria-label="Modifier ce réseau"
+                            className={`p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(r.codeRS)}
+                            title="Supprimer"
+                            aria-label="Supprimer ce réseau"
+                            className={`p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {!loading && filteredReseaux.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-12 text-center text-slate-500 dark:text-slate-400 font-medium text-sm">
+                    <td colSpan={9} className="p-12 text-center text-slate-500 dark:text-slate-400 text-sm">
                       Aucun réseau trouvé
                     </td>
                   </tr>
@@ -490,84 +566,71 @@ const ReseauPage = () => {
         </div>
       </div>
 
+      {/* Fenêtre de vue d'ensemble */}
       {showVoirPlusModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-5 bg-gradient-to-r from-emerald-500 to-sky-500 text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reseaux-stats-title"
+            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150 overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
               <div>
-                <h2 className="text-base font-display font-bold flex items-center gap-2">
-                  <Eye size={19} />
+                <h2 id="reseaux-stats-title" className="text-base font-display font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Eye size={18} className="text-emerald-700 dark:text-emerald-400" />
                   Vue d'ensemble des réseaux
                 </h2>
-                <p className="text-sm font-medium text-white/80 mt-1">Résumé global des réseaux communautaires</p>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Résumé global des réseaux communautaires</p>
               </div>
 
               <button
                 onClick={() => setShowVoirPlusModal(false)}
-                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
+                aria-label="Fermer"
+                className={`text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 -mr-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             <div className="p-5 grid grid-cols-2 gap-3">
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
-                <div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Total réseaux</span>
-                  <p className="text-xl font-display font-extrabold text-slate-900 dark:text-white mt-1">
-                    {filteredReseaux.length}
-                  </p>
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 flex items-center justify-center">
+                  <Network size={17} />
                 </div>
-
-                <div className="p-2 bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30 rounded-lg">
-                  <Network size={18} className="text-sky-600 dark:text-sky-400" />
-                </div>
+                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-3">{filteredReseaux.length}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">Total réseaux</span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
-                <div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Groupes membres</span>
-                  <p className="text-xl font-display font-extrabold text-slate-900 dark:text-white mt-1">
-                    {totalGroupes}
-                  </p>
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+                  <MapPin size={17} />
                 </div>
-
-                <div className="p-2 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 rounded-lg">
-                  <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
-                </div>
+                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-3">{totalGroupes}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">Groupes membres</span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
-                <div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Réseaux autonomes</span>
-                  <p className="text-xl font-display font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
-                    {reseauxAutonomes}
-                  </p>
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                  <ShieldCheck size={17} />
                 </div>
-
-                <div className="p-2 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 rounded-lg">
-                  <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
-                </div>
+                <p className="text-2xl font-display font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums mt-3">{reseauxAutonomes}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">Réseaux autonomes</span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
-                <div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">En structuration</span>
-                  <p className="text-xl font-display font-extrabold text-amber-600 dark:text-amber-400 mt-1">
-                    {reseauxEnCours}
-                  </p>
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+                  <BarChart3 size={17} />
                 </div>
-
-                <div className="p-2 bg-gradient-to-br from-amber-50 to-sky-50 dark:from-amber-950/30 dark:to-sky-950/30 rounded-lg">
-                  <BarChart3 size={18} className="text-amber-500" />
-                </div>
+                <p className="text-2xl font-display font-semibold text-amber-700 dark:text-amber-400 tabular-nums mt-3">{reseauxEnCours}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">En structuration</span>
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+            <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
               <button
                 onClick={() => setShowVoirPlusModal(false)}
-                className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors"
+                className={`h-9 px-4 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors ${focusRing}`}
               >
                 Fermer
               </button>
@@ -576,15 +639,21 @@ const ReseauPage = () => {
         </div>
       )}
 
+      {/* Fenêtre d'ajout / modification */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-5 bg-gradient-to-r from-emerald-500 to-sky-500 text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reseau-title"
+            className="w-full max-w-xl max-h-[calc(100vh-2rem)] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150"
+          >
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
               <div>
-                <h2 className="text-base font-display font-bold">
+                <h2 id="reseau-title" className="text-base font-display font-semibold text-slate-900 dark:text-white">
                   {editingId ? 'Modifier un réseau' : 'Nouveau réseau'}
                 </h2>
-                <p className="text-sm font-medium text-white/80 mt-1">Fiche de saisie des données</p>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Fiche de saisie des données</p>
               </div>
 
               <button
@@ -592,99 +661,106 @@ const ReseauPage = () => {
                   setShowModal(false);
                   resetForm();
                 }}
-                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
+                aria-label="Fermer"
+                className={`text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 -mr-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nom du réseau *</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium capitalize transition-all"
-                    value={formData.NomRS}
-                    onChange={(e) => setFormData({ ...formData, NomRS: e.target.value })}
-                  />
-                </div>
+            <form onSubmit={handleSubmit}>
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+                  <div>
+                    <label htmlFor="r-nom" className={labelClass}>Nom du réseau *</label>
+                    <input
+                      id="r-nom"
+                      type="text"
+                      required
+                      className={`${fieldClass} capitalize`}
+                      value={formData.NomRS}
+                      onChange={(e) => setFormData({ ...formData, NomRS: e.target.value })}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Date de création *</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium transition-all"
-                    value={formData.DateCreation}
-                    onChange={(e) => setFormData({ ...formData, DateCreation: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Groupes membres</label>
-                <input
-                  type="text"
-                  placeholder="Nom du groupe"
-                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sky-600 dark:text-sky-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-bold placeholder:font-normal placeholder:text-slate-400 transition-all"
-                  value={formData.NomGS}
-                  onChange={(e) => setFormData({ ...formData, NomGS: e.target.value })}
-                />
-              </div>
-
-              {editingId && (
-                <div className="pt-2 space-y-3 border-t border-slate-200 dark:border-slate-800">
-                  {[
-                    ['Activite', 'Activités'],
-                    ['Plaidoyer', 'Plaidoyers'],
-                    ['Plan', 'Plan de développement']
-                  ].map(([key, label]) => (
-                    <div
-                      key={key}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800"
-                    >
-                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</span>
-
-                      <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-xl">
-                        {['Oui', 'Non'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, [key]: opt })}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${formData[key] === opt ? 'bg-gradient-to-r from-emerald-500 to-sky-500 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl flex justify-between items-center border border-emerald-200 dark:border-emerald-900">
-                    <div>
-                      <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300 block">
-                        Statut d'autonomie
-                      </span>
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                        Calculé automatiquement selon les critères
-                      </span>
-                    </div>
-
-                    <span className={`px-3 py-1.5 rounded-lg text-sm font-bold ${formData.Autonomie === 'Oui' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
-                      {formData.Autonomie === 'Oui' ? 'Autonome' : 'En cours'}
-                    </span>
+                  <div>
+                    <label htmlFor="r-date" className={labelClass}>Date de création *</label>
+                    <input
+                      id="r-date"
+                      type="date"
+                      required
+                      className={fieldClass}
+                      value={formData.DateCreation}
+                      onChange={(e) => setFormData({ ...formData, DateCreation: e.target.value })}
+                    />
                   </div>
                 </div>
-              )}
 
-              <div className="pt-3">
+                <div>
+                  <label htmlFor="r-groupes" className={labelClass}>Groupes membres</label>
+                  <input
+                    id="r-groupes"
+                    type="text"
+                    placeholder="Nom du groupe"
+                    className={`${fieldClass} font-medium`}
+                    value={formData.NomGS}
+                    onChange={(e) => setFormData({ ...formData, NomGS: e.target.value })}
+                  />
+                </div>
+
+                {editingId && (
+                  <div className="pt-4 space-y-3 border-t border-slate-200 dark:border-slate-800">
+                    {[
+                      ['Activite', 'Activités'],
+                      ['Plaidoyer', 'Plaidoyers'],
+                      ['Plan', 'Plan de développement']
+                    ].map(([key, label]) => (
+                      <div
+                        key={key}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700"
+                      >
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</span>
+
+                        <div className="inline-flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg self-start sm:self-auto" role="group" aria-label={label}>
+                          {['Oui', 'Non'].map(opt => (
+                            <button
+                              key={opt}
+                              type="button"
+                              aria-pressed={formData[key] === opt}
+                              onClick={() => setFormData({ ...formData, [key]: opt })}
+                              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${focusRing} ${formData[key] === opt ? 'bg-emerald-700 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="px-3.5 py-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg flex justify-between items-center gap-3 border border-emerald-200 dark:border-emerald-900">
+                      <div>
+                        <span className="text-sm font-medium text-emerald-900 dark:text-emerald-300 block">
+                          Statut d'autonomie
+                        </span>
+                        <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                          Calculé automatiquement selon les critères
+                        </span>
+                      </div>
+
+                      <span className={`px-3 py-1 rounded-md text-sm font-medium shrink-0 ${formData.Autonomie === 'Oui' ? 'bg-emerald-700 text-white' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}`}>
+                        {formData.Autonomie === 'Oui' ? 'Autonome' : 'En cours'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-emerald-500 to-sky-500 hover:opacity-90 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm transition-all shadow-sm hover:shadow-md"
+                  className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors ${focusRing}`}
                 >
-                  <Save size={17} />
+                  <Save size={16} />
                   {editingId ? 'Mettre à jour' : 'Enregistrer'}
                 </button>
               </div>
