@@ -49,109 +49,102 @@ const Register = () => {
     };
 
     const dotVariants = {
-        animate: {
-            y: [0, -6, 0],
+        animate: (index) => ({
+            x: [-60, 0, 0, 60],
+            opacity: [0, 1, 1, 0],
+            scale: [0.6, 1, 1, 0.6],
             transition: {
-                duration: 0.6,
+                duration: 1.6,
                 repeat: Infinity,
-                ease: "easeInOut"
+                ease: "easeInOut",
+                delay: index * 0.3,
+                times: [0, 0.35, 0.65, 1]
             }
-        }
+        })
     };
 
     const isAdmin = formData.role === 'admin';
 
     return (
-        <div className="h-screen w-full flex bg-gradient-to-br from-emerald-50 via-slate-50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-sky-950/40 font-body transition-colors duration-500 overflow-hidden relative">
-
+        <div className="h-screen w-full flex bg-slate-900 font-body text-slate-900 overflow-hidden relative">
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
-                .font-body { font-family: 'DM Sans', sans-serif; }
-                .font-display { font-family: 'Manrope', sans-serif; }
+                @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
+                .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+                .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
             `}</style>
 
-            {/* Halos décoratifs de fond */}
-            <div className="absolute -top-32 -right-24 w-[420px] h-[420px] rounded-full bg-emerald-400/15 dark:bg-emerald-500/10 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-32 -left-24 w-[420px] h-[420px] rounded-full bg-sky-400/15 dark:bg-sky-500/10 blur-3xl pointer-events-none" />
+            {/* Background image & gradient overlay mitovy amin'ny Login/Home */}
+            <div className="fixed inset-0 z-0 bg-slate-900" />
+            <div className="fixed inset-0 z-0 bg-gradient-to-br from-emerald-950/80 via-slate-950/70 to-slate-900/90" />
 
-            {/* Fizarana Ankavia : Fampahalalana sy Branding */}
-            <div className="hidden lg:flex lg:w-1/2 bg-emerald-900 dark:bg-slate-900 text-white flex-col justify-between p-12 relative overflow-hidden border-r border-slate-200/20 dark:border-slate-800/80">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 opacity-90" />
-                
-                {/* Logo / Entrée */}
+            {/* Fizarana Ankavia : Fampahalalana sy Branding (Logo boribory tsara) */}
+            <div className="hidden lg:flex lg:w-1/2 bg-emerald-950/40 backdrop-blur-md text-white flex-col justify-between p-12 relative overflow-hidden border-r border-white/10 z-10">
                 <div className="relative z-10 flex items-center gap-3.5">
-                    <div className="h-11 w-11 rounded-2xl bg-white/10 flex items-center justify-center ring-1 ring-white/20 p-1.5 shadow-lg">
-                        <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-xl" />
+                    <div className="h-11 w-11 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/20 overflow-hidden p-0.5 shadow-sm">
+                        <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
-                        <span className="font-display font-extrabold text-base tracking-tight block">ONG Tsinjo Aina</span>
+                        <span className="font-display font-bold text-base tracking-tight block">ONG Tsinjo Aina</span>
                         <span className="text-xs text-emerald-300/80 font-medium">Fianarantsoa, Madagascar</span>
                     </div>
                 </div>
 
-                {/* Hafatra na Fanazavana eo ankavia */}
-                <div className="relative z-10 max-w-md space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-800/60 text-emerald-300 text-xs font-bold ring-1 ring-emerald-700/50 shadow-sm">
-                        <ShieldCheck size={15} /> Plateforme Sécurisée
+                <div className="relative z-10 max-w-md space-y-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/60 text-emerald-300 text-xs font-semibold ring-1 ring-emerald-700/50">
+                        <ShieldCheck size={14} /> Plateforme Sécurisée
                     </div>
-                    <h1 className="text-3xl font-display font-extrabold leading-tight tracking-tight">
+                    <h1 className="text-3xl font-display font-bold leading-tight tracking-tight">
                         Rejoignez notre réseau de collaboration.
                     </h1>
-                    <p className="text-emerald-100/80 text-sm leading-relaxed font-medium">
+                    <p className="text-emerald-100/80 text-sm leading-relaxed">
                         Créez votre compte pour participer à la gestion centralisée des membres, suivre les rapports et collaborer efficacement au sein de l'ONG Tsinjo Aina.
                     </p>
                 </div>
 
-                {/* Fanamarihana ambany */}
-                <div className="relative z-10 text-xs text-emerald-300/60 font-medium">
+                <div className="relative z-10 text-xs text-emerald-300/60">
                     © {new Date().getFullYear()} ONG Tsinjo Aina. Tous droits réservés.
                 </div>
             </div>
 
-            {/* Fizarana Ankavanana : Ilay Formulaire d'Inscription */}
+            {/* Fizarana Ankavanana : Formulaire d'Inscription (Transparent & Backdrop blur) */}
             <div className="flex-1 flex items-center justify-center p-6 relative z-10 overflow-y-auto">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="max-w-md w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-[2rem] shadow-[0_25px_60px_-15px_rgba(16,185,129,0.15)] p-7 relative overflow-hidden border border-white dark:border-slate-800/60"
+                    className="max-w-md w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 relative overflow-hidden border border-white/20"
                 >
                     <Link 
                         to="/" 
                         aria-label="Fermer et retourner à l'accueil"
-                        className="absolute top-5 right-5 z-20 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all active:scale-95"
+                        className="absolute top-4 right-4 z-20 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </Link>
 
                     {/* Header Logo & Title */}
                     <div className="text-center mb-6 relative z-10">
-                        {/* Logo visible sur mobile */}
-                        <motion.div 
-                            whileHover={{ scale: 1.05 }}
-                            className="w-16 h-16 rounded-full p-[2px] mx-auto mb-4 bg-gradient-to-br from-emerald-400 to-sky-400 shadow-lg overflow-hidden lg:hidden"
-                        >
-                            <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center">
-                                <img src={logo} alt="Logo" className="w-full h-full object-cover rounded-full" />
-                            </div>
-                        </motion.div>
+                        {/* Logo boribory tsara amin'ny mobile */}
+                        <div className="w-14 h-14 rounded-full p-0.5 mx-auto mb-3 bg-emerald-50 ring-1 ring-emerald-100 overflow-hidden lg:hidden shadow-sm flex items-center justify-center">
+                            <img src={logo} alt="Logo" className="w-full h-full object-cover rounded-full" />
+                        </div>
 
-                        <h2 className="text-2xl font-display font-extrabold text-slate-900 dark:text-white tracking-tight">Créer un compte</h2>
+                        <h2 className="text-xl font-display font-semibold text-slate-900 tracking-tight">Créer un compte</h2>
                         
-                        <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full border ${
+                        <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded-md text-xs font-semibold ${
                             isAdmin 
-                                ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800/60' 
-                                : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/60'
+                                ? 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200' 
+                                : 'bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200'
                         }`}>
                             {isAdmin ? (
                                 <>
-                                    <ShieldCheck size={12} className="text-sky-600 dark:text-sky-400" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">Admin</span>
+                                    <ShieldCheck size={13} />
+                                    <span>Administrateur</span>
                                 </>
                             ) : (
                                 <>
-                                    <User size={12} className="text-emerald-600 dark:text-emerald-400" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">User</span>
+                                    <User size={13} />
+                                    <span>Utilisateur</span>
                                 </>
                             )}
                         </div>
@@ -164,14 +157,20 @@ const Register = () => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="text-center py-10 relative z-10 flex flex-col items-center justify-center gap-3"
+                                className="text-center py-10 relative z-10 flex flex-col items-center justify-center gap-4"
                             >
-                                <div className="flex items-center gap-1.5 h-6">
-                                    <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0 }} className="w-3 h-3 bg-emerald-500 rounded-full" />
-                                    <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.15 }} className="w-3 h-3 bg-teal-500 rounded-full" />
-                                    <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.3 }} className="w-3 h-3 bg-sky-500 rounded-full" />
+                                <div className="relative w-40 h-8 flex items-center justify-center">
+                                    {[0, 1, 2].map((i) => (
+                                        <motion.span 
+                                            key={i}
+                                            custom={i} 
+                                            variants={dotVariants} 
+                                            animate="animate" 
+                                            className="absolute w-3 h-3 bg-gradient-to-br from-emerald-600 to-sky-500 rounded-full" 
+                                        />
+                                    ))}
                                 </div>
-                                <p className="text-sm text-slate-900 dark:text-slate-300 font-bold">Création de votre compte...</p>
+                                <p className="text-sm text-slate-600 font-medium mt-2">Création de votre compte...</p>
                             </motion.div>
                         ) : isSuccess ? (
                             <motion.div 
@@ -185,13 +184,13 @@ const Register = () => {
                                     initial={{ rotate: -45, opacity: 0 }}
                                     animate={{ rotate: 0, opacity: 1 }}
                                     transition={{ type: "spring", duration: 0.8 }}
-                                    className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full mb-3"
+                                    className="inline-flex items-center justify-center w-14 h-14 bg-emerald-50 text-emerald-700 rounded-full mb-3 ring-1 ring-emerald-100"
                                 >
-                                    <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 w-10 h-10" />
+                                    <CheckCircle2 size={28} />
                                 </motion.div>
-                                <h3 className="text-xl font-display font-extrabold text-slate-900 dark:text-white">Compte créé !</h3>
-                                <p className="text-sm text-slate-900 dark:text-slate-300 mt-1 font-bold">
-                                    Inscription réussie. <br /> Redirection vers l'espace de connexion...
+                                <h3 className="text-base font-display font-semibold text-slate-900">Compte créé avec succès !</h3>
+                                <p className="text-sm text-slate-500 mt-1">
+                                    Redirection vers l'espace de connexion...
                                 </p>
                             </motion.div>
                         ) : (
@@ -202,7 +201,7 @@ const Register = () => {
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
-                                            className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-slate-900 dark:text-red-400 p-3.5 mb-4 rounded-xl text-xs font-bold"
+                                            className="bg-rose-50 border border-rose-200 text-rose-700 p-3 mb-4 rounded-lg text-xs font-medium"
                                         >
                                             {error}
                                         </motion.div>
@@ -210,14 +209,14 @@ const Register = () => {
                                 </AnimatePresence>
 
                                 <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold text-slate-900 dark:text-slate-300 ml-1">Nom</label>
-                                        <div className="relative group">
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={18} />
+                                    <div>
+                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Nom *</label>
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                                             <input
                                                 type="text"
                                                 required
-                                                className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-white text-sm font-bold"
+                                                className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
                                                 placeholder="Votre nom"
                                                 value={formData.name}
                                                 onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -225,29 +224,29 @@ const Register = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold text-slate-900 dark:text-slate-300 ml-1">Email</label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={18} />
+                                    <div>
+                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Adresse email *</label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                                             <input
                                                 type="email"
                                                 required
-                                                className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-white text-sm font-bold"
-                                                placeholder="Adresse email"
+                                                className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
+                                                placeholder="nom@exemple.com"
                                                 value={formData.email}
                                                 onChange={(e) => setFormData({...formData, email: e.target.value.toLowerCase()})}
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold text-slate-900 dark:text-slate-300 ml-1">Mot de passe</label>
-                                        <div className="relative group">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={18} />
+                                    <div>
+                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Mot de passe *</label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                                             <input
                                                 type={showPassword ? "text" : "password"}
                                                 required
-                                                className="w-full pl-12 pr-12 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-white text-sm font-bold"
+                                                className="w-full h-10 px-3 pl-10 pr-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
                                                 placeholder="••••••••"
                                                 value={formData.password}
                                                 onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -255,35 +254,33 @@ const Register = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                                             >
-                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                             </button>
                                         </div>
                                     </div>
 
                                     <div className="pt-2">
-                                        <motion.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
+                                        <button
                                             type="submit"
-                                            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-600 hover:to-sky-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 group text-sm cursor-pointer"
+                                            className="w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
                                         >
-                                            <UserPlus size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+                                            <UserPlus size={16} />
                                             <span>S'inscrire</span>
-                                        </motion.button>
+                                        </button>
                                     </div>
                                 </form>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    <div className="mt-6 text-center relative z-10 border-t border-slate-100 dark:border-slate-800/80 pt-4">
-                        <p className="text-slate-900 dark:text-slate-400 text-xs font-bold">
+                    <div className="mt-5 text-center relative z-10 border-t border-slate-200 pt-4">
+                        <p className="text-slate-600 text-xs font-medium">
                             Déjà un compte ?{' '}
                             <Link 
                                 to="/login" 
-                                className="text-sky-600 dark:text-sky-400 font-black hover:underline underline-offset-4"
+                                className="text-emerald-700 font-semibold hover:underline"
                             >
                                 Se connecter
                             </Link>
