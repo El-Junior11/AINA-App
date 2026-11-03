@@ -1,11 +1,35 @@
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Mail, Lock, CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck, X } from 'lucide-react';
+import { LogIn, Mail, Lock, CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck, X, Users, Network, GraduationCap, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast'; 
 import api from '../api/axios'; 
 import logo from '../assets/logo.png';
+
+// Classes partagées pour garder des champs de formulaire cohérents avec le reste de l'application
+const fieldClass =
+    'w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
+const labelClass = 'flex items-center gap-1.5 text-[13px] font-medium text-slate-700 mb-1.5';
+const labelIconClass = 'text-slate-500 shrink-0';
+const focusRing =
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1';
+
+// Contenu du panneau d'information (côté gauche)
+const features = [
+    { icon: Users, title: 'Membres', text: 'Enregistrez les membres, leurs ménages et leurs chefs de ménage.' },
+    { icon: Users, title: 'Groupes solidaires', text: 'Administrez les groupes, leurs ménages rattachés et leur localisation.' },
+    { icon: Network, title: 'Réseaux communautaires', text: 'Suivez la structuration des réseaux jusqu\'à leur autonomie.' },
+    { icon: ShieldCheck, title: 'Responsables du bureau', text: 'Attribuez les postes de président, trésorier, secrétaire et conseiller.' },
+    { icon: GraduationCap, title: 'Suivi des formations', text: 'Consultez les modules suivis par chaque membre.' },
+    { icon: BarChart3, title: 'Statistiques', text: 'Analysez la répartition hommes / femmes et exportez vos listes en PDF ou Excel.' }
+];
+
+const securityPoints = [
+    'Vos identifiants sont strictement personnels.',
+    'Mot de passe oublié : récupération par code OTP envoyé à votre adresse email.',
+    'Les nouvelles inscriptions sont approuvées par un administrateur.'
+];
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -106,7 +130,7 @@ const Login = () => {
     };
 
     return (
-        <div className="h-screen w-full flex bg-slate-50 font-body text-slate-900 overflow-hidden relative">
+        <div className="h-screen w-full flex bg-slate-50 font-body text-slate-900 overflow-hidden relative antialiased">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
                 .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
@@ -115,12 +139,10 @@ const Login = () => {
 
             <Toaster />
 
-            {/* Fizarana Ankavia : Branding maitso mifanaraka amin'ny ONG */}
-            <div className="hidden lg:flex lg:w-1/2 bg-emerald-900 text-white flex-col justify-between p-12 relative overflow-hidden border-r border-emerald-800 z-10">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 opacity-95" />
-                
-                <div className="relative z-10 flex items-center gap-3.5">
-                    <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm">
+            {/* Panneau gauche : présentation de l'ONG et de la plateforme */}
+            <aside className="hidden lg:flex lg:w-1/2 bg-emerald-900 text-white flex-col justify-between gap-10 px-12 py-10 relative overflow-y-auto border-r border-emerald-800 z-10">
+                <div className="flex items-center gap-3.5">
+                    <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm shrink-0">
                         <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
@@ -129,35 +151,66 @@ const Login = () => {
                     </div>
                 </div>
 
-                <div className="relative z-10 max-w-md space-y-3">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/80 text-emerald-200 text-xs font-semibold ring-1 ring-emerald-600/50">
-                        <ShieldCheck size={14} /> Plateforme Sécurisée
+                <div className="max-w-lg space-y-8">
+                    <div className="space-y-3">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/80 text-emerald-200 text-xs font-semibold ring-1 ring-emerald-600/50">
+                            <ShieldCheck size={14} /> Plateforme Sécurisée
+                        </div>
+                        <h1 className="text-3xl font-display font-bold leading-tight tracking-tight">
+                            Gestion centralisée et suivi des activités.
+                        </h1>
+                        <p className="text-emerald-100/90 text-sm leading-relaxed font-medium">
+                            Accédez à votre espace de travail pour administrer les membres, suivre les rapports et gérer les enregistrements en toute sécurité au sein de l'ONG.
+                        </p>
                     </div>
-                    <h1 className="text-3xl font-display font-bold leading-tight tracking-tight">
-                        Gestion centralisée et suivi des activités.
-                    </h1>
-                    <p className="text-emerald-100/90 text-sm leading-relaxed font-medium">
-                        Accédez à votre espace de travail pour administrer les membres, suivre les rapports et gérer les enregistrements en toute sécurité au sein de l'ONG.
-                    </p>
+
+                    <div>
+                        <h2 className="text-sm font-display font-semibold text-white mb-3">Ce que vous pouvez faire</h2>
+                        <ul className="space-y-3">
+                            {features.map(({ icon: Icon, title, text }) => (
+                                <li key={title} className="flex items-start gap-3">
+                                    <span className="h-8 w-8 rounded-lg bg-white/10 ring-1 ring-white/15 flex items-center justify-center shrink-0">
+                                        <Icon size={16} className="text-emerald-200" />
+                                    </span>
+                                    <div className="min-w-0">
+                                        <span className="block text-sm font-semibold text-white leading-tight">{title}</span>
+                                        <span className="block text-[13px] text-emerald-100/80 leading-snug mt-0.5">{text}</span>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="rounded-lg bg-emerald-950/40 ring-1 ring-white/10 px-4 py-3.5">
+                        <h2 className="text-sm font-display font-semibold text-white mb-2">Accès et sécurité</h2>
+                        <ul className="space-y-1.5">
+                            {securityPoints.map((point) => (
+                                <li key={point} className="flex items-start gap-2 text-[13px] text-emerald-100/85 leading-snug">
+                                    <CheckCircle2 size={14} className="text-emerald-300 shrink-0 mt-0.5" />
+                                    <span>{point}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </div>
 
-                <div className="relative z-10 text-xs text-emerald-200/70">
+                <div className="text-xs text-emerald-200/70">
                     © {new Date().getFullYear()} ONG Tsinjo Aina. Tous droits réservés.
                 </div>
-            </div>
+            </aside>
 
-            {/* Fizarana Ankavanana : Background fotsy miaraka amin'ny Formulaire tsy mangarahara (solid white card) */}
+            {/* Panneau droit : formulaire */}
             <div className="flex-1 flex items-center justify-center p-6 relative z-10 overflow-y-auto bg-slate-50">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 relative overflow-hidden border border-slate-200"
+                    className="max-w-md w-full bg-white rounded-xl shadow-lg p-6 sm:p-7 relative overflow-hidden border border-slate-200"
                 >
                     <Link 
                         to="/" 
                         aria-label="Fermer et retourner à l'accueil"
-                        className="absolute top-4 right-4 z-20 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        className={`absolute top-4 right-4 z-20 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${focusRing}`}
                     >
                         <X size={18} />
                     </Link>
@@ -171,8 +224,12 @@ const Login = () => {
                         <h2 className="text-xl font-display font-semibold text-slate-900 tracking-tight">
                             {isForgotPassword ? "Mot de passe oublié" : "Connexion"}
                         </h2>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">
-                            ONG Tsinjo Aina Fianarantsoa
+                        <p className="text-sm text-slate-500 mt-1">
+                            {!isForgotPassword
+                                ? "Connectez-vous à votre espace de travail"
+                                : isOtpSent
+                                    ? "Saisissez le code reçu par email"
+                                    : "Saisissez votre email pour recevoir un code OTP"}
                         </p>
                     </div>
                     
@@ -192,7 +249,7 @@ const Login = () => {
                                             custom={i} 
                                             variants={dotVariants} 
                                             animate="animate" 
-                                            className="absolute w-3 h-3 bg-gradient-to-br from-emerald-600 to-sky-500 rounded-full" 
+                                            className="absolute w-3 h-3 bg-emerald-600 rounded-full" 
                                         />
                                     ))}
                                 </div>
@@ -224,28 +281,34 @@ const Login = () => {
                                 {!isForgotPassword ? (
                                     <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
                                         <div>
-                                            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Adresse email</label>
-                                            <div className="relative">
-                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                                                <input
-                                                    type="email"
-                                                    required
-                                                    className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
-                                                    placeholder="nom@exemple.com"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                                                />
-                                            </div>
+                                            <label htmlFor="login-email" className={labelClass}>
+                                                <Mail size={14} className={labelIconClass} />
+                                                Adresse email
+                                            </label>
+                                            <input
+                                                id="login-email"
+                                                type="email"
+                                                required
+                                                autoComplete="email"
+                                                className={fieldClass}
+                                                placeholder="nom@exemple.com"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                                            />
                                         </div>
 
                                         <div>
-                                            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Mot de passe</label>
+                                            <label htmlFor="login-password" className={labelClass}>
+                                                <Lock size={14} className={labelIconClass} />
+                                                Mot de passe
+                                            </label>
                                             <div className="relative">
-                                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                                                 <input
+                                                    id="login-password"
                                                     type={showPassword ? "text" : "password"}
                                                     required
-                                                    className="w-full h-10 px-3 pl-10 pr-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
+                                                    autoComplete="current-password"
+                                                    className={`${fieldClass} pr-11`}
                                                     placeholder="••••••••"
                                                     value={password}
                                                     onChange={(e) => setPassword(e.target.value)}
@@ -253,7 +316,9 @@ const Login = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                                                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                                                    aria-pressed={showPassword}
+                                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${focusRing}`}
                                                 >
                                                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                                 </button>
@@ -262,7 +327,7 @@ const Login = () => {
                                                 <button 
                                                     type="button"
                                                     onClick={() => setIsForgotPassword(true)}
-                                                    className="text-xs font-medium text-sky-600 hover:underline cursor-pointer"
+                                                    className={`text-xs font-medium text-sky-700 hover:underline cursor-pointer rounded ${focusRing}`}
                                                 >
                                                     Mot de passe oublié ?
                                                 </button>
@@ -272,7 +337,7 @@ const Login = () => {
                                         <div className="pt-2">
                                             <button
                                                 type="submit"
-                                                className="w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
+                                                className={`w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer ${focusRing}`}
                                             >
                                                 <LogIn size={16} />
                                                 <span>Se connecter</span>
@@ -282,19 +347,21 @@ const Login = () => {
                                 ) : (
                                     <form onSubmit={isOtpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4 relative z-10">
                                         <div>
-                                            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Adresse email</label>
-                                            <div className="relative">
-                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                                                <input
-                                                    type="email"
-                                                    required
-                                                    disabled={isOtpSent}
-                                                    className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 disabled:opacity-60"
-                                                    placeholder="nom@exemple.com"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                                                />
-                                            </div>
+                                            <label htmlFor="otp-email" className={labelClass}>
+                                                <Mail size={14} className={labelIconClass} />
+                                                Adresse email
+                                            </label>
+                                            <input
+                                                id="otp-email"
+                                                type="email"
+                                                required
+                                                disabled={isOtpSent}
+                                                autoComplete="email"
+                                                className={`${fieldClass} disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed`}
+                                                placeholder="nom@exemple.com"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                                            />
                                         </div>
 
                                         {isOtpSent && (
@@ -302,26 +369,28 @@ const Login = () => {
                                                 initial={{ opacity: 0, y: -10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                             >
-                                                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Code OTP</label>
-                                                <div className="relative">
-                                                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        maxLength={6}
-                                                        className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25 tracking-widest text-center font-bold"
-                                                        placeholder="000000"
-                                                        value={otp}
-                                                        onChange={(e) => setOtp(e.target.value)}
-                                                    />
-                                                </div>
+                                                <label htmlFor="otp-code" className={labelClass}>
+                                                    <KeyRound size={14} className={labelIconClass} />
+                                                    Code OTP
+                                                </label>
+                                                <input
+                                                    id="otp-code"
+                                                    type="text"
+                                                    required
+                                                    maxLength={6}
+                                                    autoComplete="one-time-code"
+                                                    className={`${fieldClass} tracking-widest text-center font-semibold`}
+                                                    placeholder="000000"
+                                                    value={otp}
+                                                    onChange={(e) => setOtp(e.target.value)}
+                                                />
                                             </motion.div>
                                         )}
 
                                         <div className="pt-2 flex flex-col gap-2">
                                             <button
                                                 type="submit"
-                                                className="w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
+                                                className={`w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer ${focusRing}`}
                                             >
                                                 <span>{isOtpSent ? "Vérifier le code" : "Envoyer le code OTP"}</span>
                                             </button>
@@ -333,7 +402,7 @@ const Login = () => {
                                                     setIsOtpSent(false);
                                                     setOtp('');
                                                 }}
-                                                className="text-xs font-medium text-slate-500 hover:underline py-1 cursor-pointer"
+                                                className={`text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline py-1 cursor-pointer rounded ${focusRing}`}
                                             >
                                                 Retour à la connexion
                                             </button>
@@ -345,11 +414,11 @@ const Login = () => {
                     </AnimatePresence>
 
                     <div className="mt-5 text-center relative z-10 border-t border-slate-200 pt-4">
-                        <p className="text-slate-600 text-xs font-medium">
+                        <p className="text-slate-600 text-[13px]">
                             Pas encore de compte ?{' '}
                             <Link 
                                 to="/register" 
-                                className="text-emerald-700 font-semibold hover:underline"
+                                className={`text-emerald-700 font-semibold hover:underline rounded ${focusRing}`}
                             >
                                 Créer un compte
                             </Link>
