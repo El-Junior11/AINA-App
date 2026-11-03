@@ -33,14 +33,14 @@ const Home = () => {
       eyebrow: 'Racine',
       title: 'Valeurs',
       icon: HeartHandshake,
-      accent: '#34d399',
+      accent: '#6ee7b7',
       text: "Guidés par l'effort propre, la volonté de ne laisser personne de côté et une approche sans discrimination.",
     },
     {
       eyebrow: 'Terrain',
       title: 'Mission',
       icon: Sprout,
-      accent: '#10b981',
+      accent: '#34d399',
       text: "Œuvrer pour le développement humain durable, l'autopromotion des communautés et la protection de l'environnement.",
     },
     {
@@ -77,27 +77,26 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen w-screen overflow-x-hidden relative bg-slate-900 font-body text-white antialiased">
+    <div className="min-h-screen w-screen overflow-x-hidden relative bg-emerald-950 font-body text-white antialiased">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
         .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
         .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
       `}</style>
 
-      {/* Background */}
-      <div className="fixed inset-0 z-0 bg-slate-900" />
+      {/* Background mazava sy miloko vert voajanahary */}
+      <div className="fixed inset-0 z-0 bg-emerald-900" />
       <div
         className="fixed inset-0 z-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${bgImage})`, filter: 'brightness(1.15) saturate(1.05)' }}
+        style={{ backgroundImage: `url(${bgImage})`, filter: 'brightness(1.25) saturate(1.1)' }}
       />
-      <div className="fixed inset-0 z-0 bg-gradient-to-br from-emerald-950/75 via-slate-950/70 to-slate-900/85" />
-      <div className="fixed inset-0 z-0 bg-black/20" />
+      <div className="fixed inset-0 z-0 bg-gradient-to-br from-emerald-800/50 via-emerald-950/45 to-teal-950/60 backdrop-blur-[2px]" />
 
       {/* Navbar */}
-      <nav className="relative z-50 px-4 md:px-6 py-4 border-b border-white/15 bg-white/10 backdrop-blur-md">
+      <nav className="relative z-50 px-4 md:px-6 py-4 border-b border-white/20 bg-emerald-950/30 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3.5">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-white/20 flex items-center justify-center ring-1 ring-inset ring-white/30 overflow-hidden p-0.5 shadow-sm">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-white/20 flex items-center justify-center ring-1 ring-inset ring-white/40 overflow-hidden p-0.5 shadow-sm">
               <img src={logo} alt="Logo Tsinjo Aina" className="h-full w-full object-cover rounded-full" />
             </div>
 
@@ -122,7 +121,7 @@ const Home = () => {
             <div className="relative">
               <button
                 onClick={() => setShowRoles(!showRoles)}
-                className="h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
+                className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
               >
                 <span>S'inscrire</span>
                 <motion.div animate={{ rotate: showRoles ? 180 : 0 }}>
@@ -136,12 +135,12 @@ const Home = () => {
                     initial={{ opacity: 0, y: 8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                    className="absolute right-0 mt-2 w-52 p-1 rounded-xl bg-white/95 backdrop-blur-xl border border-slate-200 shadow-xl z-50 text-slate-900"
+                    className="absolute right-0 mt-2 w-52 p-1 rounded-xl bg-white/95 backdrop-blur-xl border border-emerald-100 shadow-xl z-50 text-slate-900"
                   >
                     <Link
                       to="/register?role=admin"
                       onClick={() => setShowRoles(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-50 transition-colors"
                     >
                       <span className="w-8 h-8 rounded-md bg-sky-100 text-sky-700 flex items-center justify-center ring-1 ring-sky-200">
                         <ShieldCheck size={16} />
@@ -152,7 +151,7 @@ const Home = () => {
                     <Link
                       to="/register?role=user"
                       onClick={() => setShowRoles(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-50 transition-colors"
                     >
                       <span className="w-8 h-8 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center ring-1 ring-emerald-200">
                         <User size={16} />
@@ -180,7 +179,7 @@ const Home = () => {
             <div className="text-center lg:text-left">
               <motion.div
                 variants={fadeInUp}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-semibold shadow-sm"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-900/50 backdrop-blur-md border border-emerald-500/40 text-emerald-100 text-xs font-semibold shadow-sm"
               >
                 <span className="w-4 h-4 rounded-full bg-emerald-400/30 flex items-center justify-center">
                   <Leaf size={11} className="text-emerald-200" />
@@ -196,7 +195,7 @@ const Home = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
-                    className="font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white max-w-4xl whitespace-pre-line"
+                    className="font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white max-w-4xl whitespace-pre-line drop-shadow-sm"
                   >
                     {currentText}
                   </motion.h1>
@@ -210,7 +209,7 @@ const Home = () => {
 
               <motion.p
                 variants={fadeInUp}
-                className="mt-6 max-w-xl mx-auto lg:mx-0 text-sm sm:text-base leading-relaxed text-slate-200 font-medium"
+                className="mt-6 max-w-xl mx-auto lg:mx-0 text-sm sm:text-base leading-relaxed text-emerald-50 font-medium"
               >
                 Construire ensemble un avenir durable en plaçant les communautés, l'environnement et le développement humain au cœur de notre action.
               </motion.p>
@@ -221,31 +220,31 @@ const Home = () => {
               >
                 <Link
                   to="/login"
-                  className="group h-11 px-6 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
+                  className="group h-11 px-6 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-md transition-colors cursor-pointer"
                 >
                   Découvrir nos actions
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
 
-                <div className="flex items-center gap-2 px-4 py-3 text-slate-200 text-sm font-medium">
+                <div className="flex items-center gap-2 px-4 py-3 text-emerald-100 text-sm font-medium">
                   <MapPin size={16} className="text-sky-300" />
                   Haute Matsiatra
                 </div>
               </motion.div>
             </div>
 
-            {/* Notre engagement — Nesorina ny card background, napetraka mivantana mangarahara */}
+            {/* Notre engagement */}
             <motion.div variants={fadeInUp} className="relative space-y-6">
               <div>
-                <span className="text-xs font-semibold text-sky-300 uppercase tracking-wider block mb-1">
+                <span className="text-xs font-semibold text-emerald-300 uppercase tracking-wider block mb-1">
                   Notre engagement
                 </span>
-                <h2 className="font-display text-2xl font-bold text-white">
+                <h2 className="font-display text-2xl font-bold text-white drop-shadow-sm">
                   Agir. Construire. Transformer.
                 </h2>
               </div>
 
-              <div className="space-y-5 divide-y divide-white/10">
+              <div className="space-y-5 divide-y divide-white/15">
                 {pillars.map((p, index) => {
                   const Icon = p.icon;
                   return (
@@ -254,7 +253,7 @@ const Home = () => {
                       whileHover={prefersReducedMotion ? {} : { x: 4 }}
                       className="flex items-start gap-4 pt-4 first:pt-0 transition-transform"
                     >
-                      <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white/10 ring-1 ring-white/20">
+                      <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-emerald-900/60 ring-1 ring-emerald-500/40">
                         <Icon size={18} style={{ color: p.accent }} />
                       </div>
 
@@ -270,7 +269,7 @@ const Home = () => {
                           {p.title}
                         </h3>
 
-                        <p className="mt-1 text-xs sm:text-sm leading-relaxed text-slate-300 font-medium">
+                        <p className="mt-1 text-xs sm:text-sm leading-relaxed text-emerald-100 font-medium">
                           {p.text}
                         </p>
                       </div>
@@ -279,7 +278,7 @@ const Home = () => {
                 })}
               </div>
 
-              <div className="pt-4 border-t border-white/15 flex items-center justify-between text-xs text-slate-300 font-medium">
+              <div className="pt-4 border-t border-white/20 flex items-center justify-between text-xs text-emerald-200 font-medium">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   Une vision durable
@@ -295,8 +294,8 @@ const Home = () => {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-20 px-4 md:px-6 pb-6 pt-4 border-t border-white/15 bg-white/10 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-200 text-xs font-medium">
+      <footer className="relative z-20 px-4 md:px-6 pb-6 pt-4 border-t border-white/20 bg-emerald-950/30 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-emerald-200 text-xs font-medium">
           <p className="text-center sm:text-left">
             © {new Date().getFullYear()} ONG TSINJO AINA — FIANARANTSOA, HAUTE MATSIATRA
           </p>
