@@ -14,21 +14,24 @@ import {
 const COLORS = ['#0EA5E9', '#10B981', '#F59E0B', '#8B5CF6', '#F43F5E'];
 
 const TOOLTIP_STYLE = {
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  border: '1px solid #cbd5e1',
   fontSize: '12px',
   background: '#ffffff',
   color: '#0f172a',
-  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
 };
 
 const KPI_CONFIG = [
-  { key: 'membres', label: 'Membres', icon: Users, col: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/40' },
-  { key: 'groupes', label: 'Groupes GS', icon: Building2, col: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
-  { key: 'reseaux', label: 'Réseaux', icon: Network, col: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
-  { key: 'responsables', label: 'Responsables', icon: ShieldCheck, col: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40' },
-  { key: 'formations', label: 'Formations', icon: GraduationCap, col: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40' }
+  { key: 'membres', label: 'Membres', icon: Users },
+  { key: 'groupes', label: 'Groupes GS', icon: Building2 },
+  { key: 'reseaux', label: 'Réseaux', icon: Network },
+  { key: 'responsables', label: 'Responsables', icon: ShieldCheck },
+  { key: 'formations', label: 'Formations', icon: GraduationCap }
 ];
+
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
 
 // --- Reusable pieces -------------------------------------------------
 
@@ -39,36 +42,36 @@ const DownloadButton = ({ id, filename, downloading, onDownload }) => (
     onClick={() => onDownload(id, filename)}
     disabled={downloading === id}
     aria-label={`Télécharger le graphique "${filename}" en image`}
-    className="absolute top-4 right-4 z-20 w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 dark:hover:border-emerald-900/60 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+    className={`absolute top-3.5 right-3.5 z-20 h-8 w-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${focusRing}`}
     title="Télécharger en image"
   >
     {downloading === id
-      ? <Loader2 size={17} className="animate-spin" aria-hidden="true" />
-      : <Download size={17} aria-hidden="true" />}
+      ? <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+      : <Download size={15} aria-hidden="true" />}
   </button>
 );
 
-const ChartCard = ({ id, filename, title, icon: Icon, iconWrapClass, iconClass, downloading, onDownload, isEmpty, children }) => (
+const ChartCard = ({ id, filename, title, icon: Icon, downloading, onDownload, isEmpty, children }) => (
   <div
     id={id}
-    className="relative bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:shadow-md"
+    className="relative bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[350px]"
   >
     {!isEmpty && <DownloadButton id={id} filename={filename} downloading={downloading} onDownload={onDownload} />}
 
-    <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm mb-5 flex items-center gap-3">
-      <span className={`p-2 bg-gradient-to-br ${iconWrapClass} rounded-xl ${iconClass} shadow-inner`}>
-        <Icon size={17} aria-hidden="true" />
-      </span>
-      {title}
+    <h3 className="font-display font-semibold text-slate-900 dark:text-white text-sm mb-4 flex items-center gap-2.5">
+      <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60 shrink-0">
+        <Icon size={16} strokeWidth={2} aria-hidden="true" />
+      </div>
+      <span className="truncate">{title}</span>
     </h3>
 
     {isEmpty ? (
-      <div className="h-[280px] w-full flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-600">
-        <Inbox size={28} aria-hidden="true" />
-        <p className="text-sm font-medium">Pas encore de données</p>
+      <div className="flex-1 w-full flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-500">
+        <Inbox size={24} aria-hidden="true" />
+        <p className="text-xs font-medium">Pas encore de données</p>
       </div>
     ) : (
-      <div className="h-[280px] w-full">{children}</div>
+      <div className="flex-1 w-full min-h-0">{children}</div>
     )}
   </div>
 );
@@ -148,8 +151,8 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950">
-        <Loader2 size={36} className="animate-spin text-emerald-500 mb-3" aria-hidden="true" />
-        <p className="font-semibold text-slate-500 dark:text-slate-400 text-sm tracking-wide">
+        <Loader2 size={32} className="animate-spin text-emerald-600 mb-3" aria-hidden="true" />
+        <p className="font-semibold text-slate-500 dark:text-slate-400 text-sm">
           Chargement des données...
         </p>
       </div>
@@ -159,14 +162,14 @@ const Dashboard = () => {
   if (error) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950 gap-4 px-6 text-center">
-        <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-          <AlertTriangle size={22} aria-hidden="true" />
+        <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+          <AlertTriangle size={20} aria-hidden="true" />
         </div>
         <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm max-w-sm">{error}</p>
         <button
           type="button"
           onClick={() => fetchDashboardData()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium transition-colors ${focusRing}`}
         >
           <RefreshCw size={15} aria-hidden="true" />
           Réessayer
@@ -182,205 +185,203 @@ const Dashboard = () => {
     : 0;
 
   return (
-    <div className="w-full min-h-full p-4 md:p-6 font-body space-y-8 text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-950 transition-colors">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
-        .font-body { font-family: 'DM Sans', sans-serif; }
-        .font-display { font-family: 'Manrope', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
+        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
+        @media (prefers-reduced-motion: reduce){.animate-in{animation:none!important}}
       `}</style>
 
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-sky-500 text-white rounded-2xl shrink-0 shadow-sm">
-            <Activity size={24} aria-hidden="true" />
+      {/* En-tête de page */}
+      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3.5">
+          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+            <Activity size={20} strokeWidth={2} aria-hidden="true" />
           </div>
-          <div>
-            <h1 className="text-lg font-display font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <div className="min-w-0">
+            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">
               Tableau de bord & Statistiques
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               Vue d'ensemble des performances et indicateurs clés de la plateforme.
             </p>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* KPI Cards (Nesorina ireo top color bars) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-        {KPI_CONFIG.map((item) => (
-          <div
-            key={item.key}
-            className="relative bg-white dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-4"
-          >
-            <div className={`${item.bg} ${item.col} w-12 h-12 flex items-center justify-center rounded-xl shrink-0 shadow-sm`}>
-              <item.icon size={22} aria-hidden="true" />
-            </div>
-            <div className="flex flex-col justify-center">
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-none mb-2">
-                {item.label}
-              </p>
-              <p className="text-2xl font-display font-extrabold text-slate-900 dark:text-white leading-none">
-                {stats.kpis[item.key] ?? 0}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Équilibre du programme - Nosoloina Pie Chart misy loko 5 samihafa tsara (araka ny sary) */}
-        <ChartCard
-          id="chart-equilibre" filename="equilibre-programme" title="Équilibre du programme"
-          icon={PieIcon} iconWrapClass="from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30" iconClass="text-sky-600 dark:text-sky-400"
-          downloading={downloading} onDownload={downloadChart}
-          isEmpty={!stats.resumeData?.length}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={stats.resumeData}
-                dataKey="A"
-                nameKey="subject"
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={85}
-                paddingAngle={4}
-                label
-              >
-                {stats.resumeData?.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: '500' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* 2. Taux de maîtrise par module - Bar Chart */}
-        <ChartCard
-          id="chart-modules" filename="taux-maitrise-modules" title="Taux de maîtrise par module"
-          icon={Activity} iconWrapClass="from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30" iconClass="text-emerald-600 dark:text-emerald-400"
-          downloading={downloading} onDownload={downloadChart}
-          isEmpty={!stats.moduleStats?.length}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.moduleStats}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: '500' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-              <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={TOOLTIP_STYLE} />
-              <Bar dataKey="valeur" fill="#10B981" radius={[6, 6, 0, 0]} barSize={32} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 3. Croissance des groupes - Horizontal Bar Chart */}
-        <ChartCard
-          id="chart-croissance" filename="croissance-groupes" title="Croissance des groupes (% par année)"
-          icon={CalendarDays} iconWrapClass="from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30" iconClass="text-emerald-600 dark:text-emerald-400"
-          downloading={downloading} onDownload={downloadChart}
-          isEmpty={!stats.evolutionGS?.length}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart layout="vertical" data={stats.evolutionGS}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-              <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} unit="%" />
-              <YAxis dataKey="year" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: '500' }} />
-              <Tooltip formatter={(value) => [`${value}%`, 'Répartition']} contentStyle={TOOLTIP_STYLE} />
-              <Bar dataKey="pourcentage" fill="#0EA5E9" radius={[0, 6, 6, 0]} barSize={22} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* 4. Pyramide des âges - Area Chart */}
-        <ChartCard
-          id="chart-ages" filename="pyramide-ages" title="Pyramide des âges"
-          icon={Users} iconWrapClass="from-sky-50 to-emerald-50 dark:from-sky-950/40 dark:to-emerald-950/30" iconClass="text-sky-600 dark:text-sky-400"
-          downloading={downloading} onDownload={downloadChart}
-          isEmpty={!stats.ageData?.length}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={stats.ageData}>
-              <defs>
-                <linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: '500' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Area type="monotone" dataKey="value" stroke="#0EA5E9" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAge)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 5. Maturité des réseaux - Donut Chart */}
-        <ChartCard
-          id="chart-reseaux" filename="maturite-reseaux" title="Maturité des réseaux"
-          icon={Network} iconWrapClass="from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30" iconClass="text-amber-600 dark:text-amber-400"
-          downloading={downloading} onDownload={downloadChart}
-          isEmpty={!stats.kpis.reseaux}
-        >
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="relative">
-              <ResponsiveContainer width={220} height={220}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { value: stats.kpis.reseauxAutonomes },
-                      { value: stats.kpis.reseaux - stats.kpis.reseauxAutonomes }
-                    ]}
-                    innerRadius={75} outerRadius={92} startAngle={180} endAngle={0}
-                    dataKey="value" stroke="none"
-                  >
-                    <Cell fill="#F59E0B" />
-                    <Cell fill="#e2e8f0" />
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pt-8">
-                <span className="text-3xl font-display font-extrabold text-slate-900 dark:text-white">
-                  {reseauxAutonomesPct}%
-                </span>
-                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                  Autonomes
-                </span>
+      {/* Contenu principal défilable */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {KPI_CONFIG.map((item) => (
+            <div
+              key={item.key}
+              className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3.5"
+            >
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+                <item.icon size={18} strokeWidth={2} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                  {item.label}
+                </p>
+                <p className="text-xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-0.5">
+                  {stats.kpis[item.key] ?? 0}
+                </p>
               </div>
             </div>
-            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mt-3">
-              {stats.kpis.reseauxAutonomes} sur {stats.kpis.reseaux} réseaux
-            </p>
-          </div>
-        </ChartCard>
+          ))}
+        </div>
 
-        {/* 6. Répartition des postes - Full Pie Chart */}
-        <ChartCard
-          id="chart-postes" filename="repartition-postes" title="Répartition des postes"
-          icon={ShieldCheck} iconWrapClass="from-violet-50 to-sky-50 dark:from-violet-950/30 dark:to-sky-950/30" iconClass="text-violet-600 dark:text-violet-400"
-          downloading={downloading} onDownload={downloadChart}
-          isEmpty={!stats.respData?.length}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={stats.respData} innerRadius={0} outerRadius={85} paddingAngle={2} dataKey="valeur" label>
-                {stats.respData?.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: '500' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* 1. Équilibre du programme */}
+          <ChartCard
+            id="chart-equilibre" filename="equilibre-programme" title="Équilibre du programme"
+            icon={PieIcon} downloading={downloading} onDownload={downloadChart}
+            isEmpty={!stats.resumeData?.length}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={stats.resumeData}
+                  dataKey="A"
+                  nameKey="subject"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={75}
+                  paddingAngle={3}
+                  label
+                >
+                  {stats.resumeData?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '500' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* 2. Taux de maîtrise par module */}
+          <ChartCard
+            id="chart-modules" filename="taux-maitrise-modules" title="Taux de maîtrise par module"
+            icon={Activity} downloading={downloading} onDownload={downloadChart}
+            isEmpty={!stats.moduleStats?.length}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.moduleStats}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.03)' }} contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="valeur" fill="#047857" radius={[4, 4, 0, 0]} barSize={28} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* 3. Croissance des groupes */}
+          <ChartCard
+            id="chart-croissance" filename="croissance-groupes" title="Croissance des groupes (% par année)"
+            icon={CalendarDays} downloading={downloading} onDownload={downloadChart}
+            isEmpty={!stats.evolutionGS?.length}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart layout="vertical" data={stats.evolutionGS}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} unit="%" />
+                <YAxis dataKey="year" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Répartition']} contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="pourcentage" fill="#0284c7" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* 4. Pyramide des âges */}
+          <ChartCard
+            id="chart-ages" filename="pyramide-ages" title="Pyramide des âges"
+            icon={Users} downloading={downloading} onDownload={downloadChart}
+            isEmpty={!stats.ageData?.length}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={stats.ageData}>
+                <defs>
+                  <linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#0284c7" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Area type="monotone" dataKey="value" stroke="#0284c7" strokeWidth={2} fillOpacity={1} fill="url(#colorAge)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-2">
+          {/* 5. Maturité des réseaux */}
+          <ChartCard
+            id="chart-reseaux" filename="maturite-reseaux" title="Maturité des réseaux"
+            icon={Network} downloading={downloading} onDownload={downloadChart}
+            isEmpty={!stats.kpis.reseaux}
+          >
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="relative">
+                <ResponsiveContainer width={200} height={180}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { value: stats.kpis.reseauxAutonomes },
+                        { value: stats.kpis.reseaux - stats.kpis.reseauxAutonomes }
+                      ]}
+                      innerRadius={65} outerRadius={80} startAngle={180} endAngle={0}
+                      dataKey="value" stroke="none"
+                    >
+                      <Cell fill="#f59e0b" />
+                      <Cell fill="#e2e8f0" />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pt-6">
+                  <span className="text-2xl font-display font-bold text-slate-900 dark:text-white tabular-nums">
+                    {reseauxAutonomesPct}%
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Autonomes
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1 tabular-nums">
+                {stats.kpis.reseauxAutonomes} sur {stats.kpis.reseaux} réseaux
+              </p>
+            </div>
+          </ChartCard>
+
+          {/* 6. Répartition des postes */}
+          <ChartCard
+            id="chart-postes" filename="repartition-postes" title="Répartition des postes"
+            icon={ShieldCheck} downloading={downloading} onDownload={downloadChart}
+            isEmpty={!stats.respData?.length}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={stats.respData} innerRadius={0} outerRadius={75} paddingAngle={2} dataKey="valeur" label>
+                  {stats.respData?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '500' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
       </div>
     </div>
   );
