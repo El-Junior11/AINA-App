@@ -19,6 +19,22 @@ const Toast=Swal.mixin({
   }
 });
 
+// Présentation uniquement : initiales affichées dans l'avatar de la liste
+const getInitials=(nomComplet)=>{
+  const parts=String(nomComplet||'').trim().split(/\s+/).filter(Boolean);
+  if(parts.length===0)return 'M';
+  return `${parts[0].charAt(0)}${parts[1]?parts[1].charAt(0):''}`.toUpperCase();
+};
+
+// Classes partagées pour garder des champs de formulaire cohérents (mêmes que les autres pages)
+const fieldClass=
+  'w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
+const disabledFieldClass=
+  'w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-sm text-slate-500 dark:text-slate-400 outline-none cursor-not-allowed';
+const labelClass='block text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5';
+const focusRing=
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
+
 const ResponsablePage=()=>{
   const [responsables,setResponsables]=useState([]);
   const [filteredData,setFilteredData]=useState([]);
@@ -194,205 +210,308 @@ const ResponsablePage=()=>{
   const femmesMoins26=responsables.filter(r=>Number(r.age)<26&&(String(r.sexe).toUpperCase()==='F'||String(r.sexe).toUpperCase()==='FEMME')).length;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-950 transition-colors font-body overflow-hidden relative">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
-        .font-body{font-family:'DM Sans',sans-serif}
-        .font-display{font-family:'Manrope',sans-serif}
+        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
+        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
+        @media (prefers-reduced-motion: reduce){.animate-in{animation:none!important}}
       `}</style>
 
-      <div className="p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-sky-500 text-white rounded-2xl shrink-0 shadow-sm">
-            <Users size={24}/>
+      {/* En-tête de page */}
+      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3.5">
+          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+            <Users size={20} strokeWidth={2}/>
           </div>
-          <div>
-            <h1 className="text-lg font-display font-extrabold text-slate-900 dark:text-white tracking-tight">Gestion des responsables</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Attribution des postes du bureau</p>
+          <div className="min-w-0">
+            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">Gestion des responsables</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Attribution des postes du bureau</p>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="px-4 md:px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
-        <div className="relative group flex-1 min-w-[240px] max-w-xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18}/>
-          <input type="text" placeholder="Rechercher un responsable ou un groupe..." className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm font-medium transition-all" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}/>
-          {searchTerm&&<button onClick={()=>setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors"><X size={17}/></button>}
+      {/* Barre d'outils */}
+      <div className="px-4 md:px-6 pt-5 pb-4 flex items-center justify-between gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" size={17}/>
+          <input
+            type="text"
+            placeholder="Rechercher un responsable ou un groupe..."
+            aria-label="Rechercher un responsable ou un groupe"
+            className="w-full h-10 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
+            value={searchTerm}
+            onChange={e=>setSearchTerm(e.target.value)}
+          />
+          {searchTerm&&(
+            <button
+              onClick={()=>setSearchTerm('')}
+              aria-label="Effacer la recherche"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
+            >
+              <X size={15}/>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={()=>setShowVoirPlusModal(true)} className="flex items-center gap-2 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-950/50 px-3 py-2.5 rounded-xl transition-all font-bold text-xs border border-sky-100 dark:border-sky-900/40 shrink-0">
-            <Eye size={16}/>
+          <button
+            onClick={()=>setShowVoirPlusModal(true)}
+            className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shrink-0 ${focusRing}`}
+          >
+            <Eye size={16} className="text-slate-500 dark:text-slate-400"/>
             <span className="hidden sm:block">Voir plus</span>
           </button>
 
           <div className="relative shrink-0">
-            <button onClick={()=>setShowExportMenu(!showExportMenu)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2.5 rounded-xl transition-all flex items-center gap-2 text-xs font-bold shadow-sm hover:shadow-md">
-              <Printer size={16}/>
+            <button
+              onClick={()=>setShowExportMenu(!showExportMenu)}
+              aria-haspopup="menu"
+              aria-expanded={showExportMenu}
+              className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
+            >
+              <Printer size={16} className="text-slate-500 dark:text-slate-400"/>
               <span className="hidden md:block">Exporter</span>
             </button>
 
-            {showExportMenu&&<div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 text-slate-900 dark:text-white overflow-hidden">
-              <button onClick={exportPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium border-b border-slate-100 dark:border-slate-800 transition-colors">
-                <FileText size={17} className="text-rose-500"/>
-                Document PDF
-              </button>
-              <button onClick={exportExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium border-b border-slate-100 dark:border-slate-800 transition-colors">
-                <Download size={17} className="text-emerald-600"/>
-                Feuille Excel
-              </button>
-              <button onClick={exportBureauFemmesPDF} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium border-b border-slate-100 dark:border-slate-800 transition-colors">
-                <FileText size={17} className="text-pink-500"/>
-                Femmes bureau PDF
-              </button>
-              <button onClick={exportBureauFemmesExcel} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors">
-                <Download size={17} className="text-pink-500"/>
-                Femmes bureau Excel
-              </button>
-            </div>}
+            {showExportMenu&&(
+              <div role="menu" className="absolute right-0 mt-2 w-56 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
+                <button role="menuitem" onClick={exportPDF} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors">
+                  <FileText size={16} className="text-rose-600 dark:text-rose-400"/>
+                  Document PDF
+                </button>
+                <button role="menuitem" onClick={exportExcel} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors">
+                  <Download size={16} className="text-emerald-700 dark:text-emerald-400"/>
+                  Feuille Excel
+                </button>
+                <div className="my-1 border-t border-slate-100 dark:border-slate-800" role="separator"/>
+                <button role="menuitem" onClick={exportBureauFemmesPDF} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors">
+                  <FileText size={16} className="text-rose-600 dark:text-rose-400"/>
+                  Femmes bureau PDF
+                </button>
+                <button role="menuitem" onClick={exportBureauFemmesExcel} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors">
+                  <Download size={16} className="text-emerald-700 dark:text-emerald-400"/>
+                  Femmes bureau Excel
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-6">
-        <div className="bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
+      {/* Tableau */}
+      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-5">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
           <div className="flex-1 overflow-x-auto overflow-y-auto">
             <table className="w-full border-collapse text-left min-w-[850px]">
-              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800/90 text-sm font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800">
+              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 text-[13px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-5 py-4 w-16">N°</th>
-                  <th className="px-5 py-4 min-w-[260px]">Responsable / Membre</th>
-                  <th className="px-5 py-4 min-w-[220px]">Groupe GS</th>
-                  <th className="px-5 py-4 min-w-[180px]">Poste / Fonction</th>
-                  <th className="px-5 py-4 text-center w-24">Actions</th>
+                  <th className="px-5 py-3 w-16 font-semibold">N°</th>
+                  <th className="px-5 py-3 min-w-[260px] font-semibold">Responsable / Membre</th>
+                  <th className="px-5 py-3 min-w-[220px] font-semibold">Groupe GS</th>
+                  <th className="px-5 py-3 min-w-[180px] font-semibold">Poste / Fonction</th>
+                  <th className="px-5 py-3 text-center w-24 sticky right-0 bg-slate-50 dark:bg-slate-800 font-semibold">Actions</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {loading?<tr><td colSpan={5} className="p-12 text-center"><Loader2 size={28} className="animate-spin inline text-emerald-500"/></td></tr>:filteredData.map((r,i)=>(
-                  <tr key={`${r.nummembre||r.NumMembre||r.id}-${i}`} className="h-[64px] hover:bg-emerald-50/40 dark:hover:bg-slate-800/50 transition-colors group">
-                    <td className="px-5 py-3 text-sm font-bold text-slate-900 dark:text-slate-100 w-16">{i+1}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-sky-500 text-white rounded-xl flex items-center justify-center text-sm font-bold shrink-0">{r.nom_complet?.charAt(0)?.toUpperCase()||'M'}</div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{r.nom_complet||'Nom non renseigné'}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">N° {r.nummembre||r.NumMembre||r.id||'-'}</p>
-                        </div>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {loading?(
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center">
+                      <Loader2 size={26} className="animate-spin inline text-emerald-600" aria-label="Chargement"/>
+                    </td>
+                  </tr>
+                ):filteredData.map((r,i)=>(
+                  <tr key={`${r.nummembre||r.NumMembre||r.id}-${i}`} className="h-[56px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td className="px-5 py-2.5 text-sm text-slate-500 dark:text-slate-400 tabular-nums w-16">{i+1}</td>
+                    <td className="px-5 py-2.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="h-8 w-8 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60" aria-hidden="true">
+                          {getInitials(r.nom_complet)}
+                        </span>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{r.nom_complet||'Nom non renseigné'}</p>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
-                      <span className="px-2.5 py-1 bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 rounded-lg text-xs font-bold inline-flex">{r.nomgs||'Aucun groupe'}</span>
+                    <td className="px-5 py-2.5">
+                      {r.nomgs&&r.nomgs!=='Aucun groupe'?(
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-md text-xs font-medium inline-flex">{r.nomgs}</span>
+                      ):(
+                        <span className="text-sm text-slate-400 dark:text-slate-500">Aucun groupe</span>
+                      )}
                     </td>
-                    <td className="px-5 py-3">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold inline-flex ${r.Poste==='Membres'?'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300':'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'}`}>{r.Poste}</span>
+                    <td className="px-5 py-2.5">
+                      {r.Poste==='Membres'?(
+                        <span className="text-sm text-slate-500 dark:text-slate-400">{r.Poste}</span>
+                      ):(
+                        <span className="px-2.5 py-1 rounded-md text-xs font-medium inline-flex bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900">{r.Poste}</span>
+                      )}
                     </td>
-                    <td className="px-5 py-3 text-center w-24">
-                      <button onClick={()=>{setFormData({NumMembre:r.nummembre||r.NumMembre||r.id||'',Poste:r.Poste||'',CodeRp:r.CodeRp||null,nom_complet:r.nom_complet||'',nomgs:r.nomgs||''});setShowModal(true)}} title="Modifier" className="p-2 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                    <td className="px-5 py-2.5 text-center w-24 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
+                      <button
+                        onClick={()=>{setFormData({NumMembre:r.nummembre||r.NumMembre||r.id||'',Poste:r.Poste||'',CodeRp:r.CodeRp||null,nom_complet:r.nom_complet||'',nomgs:r.nomgs||''});setShowModal(true)}}
+                        title="Modifier"
+                        aria-label="Modifier le poste de ce membre"
+                        className={`p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
+                      >
                         <Edit2 size={16}/>
                       </button>
                     </td>
                   </tr>
                 ))}
-                {!loading&&filteredData.length===0&&<tr><td colSpan={5} className="p-12 text-center text-slate-500 dark:text-slate-400 font-medium text-sm">Aucun responsable trouvé</td></tr>}
+                {!loading&&filteredData.length===0&&(
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-slate-500 dark:text-slate-400 text-sm">Aucun responsable trouvé</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
-          <div className="shrink-0 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <div className="shrink-0 px-5 py-2.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-[13px] text-slate-500 dark:text-slate-400 tabular-nums">
             {filteredData.length} membre{filteredData.length>1?'s':''} affiché{filteredData.length>1?'s':''}
           </div>
         </div>
       </div>
 
-      {showVoirPlusModal&&<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-          <div className="p-5 bg-gradient-to-r from-emerald-500 to-sky-500 text-white flex justify-between items-center">
-            <div>
-              <h2 className="text-base font-display font-bold flex items-center gap-2"><Eye size={19}/>Vue d'ensemble des responsables</h2>
-              <p className="text-sm font-medium text-white/80 mt-1">Résumé global du bureau</p>
-            </div>
-            <button onClick={()=>setShowVoirPlusModal(false)} className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"><X size={20}/></button>
-          </div>
-
-          <div className="p-5 grid grid-cols-2 gap-3">
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
+      {/* Fenêtre de vue d'ensemble */}
+      {showVoirPlusModal&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="responsables-stats-title"
+            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150 overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
               <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Total Bureau</span>
-                <p className="text-xl font-display font-extrabold text-slate-900 dark:text-white mt-1">{totalBureau}</p>
+                <h2 id="responsables-stats-title" className="text-base font-display font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Eye size={18} className="text-emerald-700 dark:text-emerald-400"/>
+                  Vue d'ensemble des responsables
+                </h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Résumé global du bureau</p>
               </div>
-              <div className="p-2 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/30 rounded-lg"><ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400"/></div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Femmes au bureau</span>
-                <p className="text-xl font-display font-extrabold text-pink-600 dark:text-pink-400 mt-1">{femmesBureau}</p>
-              </div>
-              <div className="p-2 bg-pink-50 dark:bg-pink-950/30 rounded-lg"><Users size={18} className="text-pink-600 dark:text-pink-400"/></div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Hommes &lt; 26 ans</span>
-                <p className="text-xl font-display font-extrabold text-sky-600 dark:text-sky-400 mt-1">{hommesMoins26}</p>
-              </div>
-              <div className="p-2 bg-sky-50 dark:bg-sky-950/30 rounded-lg"><Users size={18} className="text-sky-600 dark:text-sky-400"/></div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Femmes &lt; 26 ans</span>
-                <p className="text-xl font-display font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{femmesMoins26}</p>
-              </div>
-              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg"><Users size={18} className="text-emerald-600 dark:text-emerald-400"/></div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-            <button onClick={()=>setShowVoirPlusModal(false)} className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">Fermer</button>
-          </div>
-        </div>
-      </div>}
-
-      {showModal&&<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-          <div className="p-5 bg-gradient-to-r from-emerald-500 to-sky-500 text-white flex justify-between items-center">
-            <div>
-              <h2 className="text-base font-display font-bold flex items-center gap-2"><Edit2 size={18}/>Modifier le responsable</h2>
-              <p className="text-sm font-medium text-white/80 mt-1">Attribution du poste</p>
-            </div>
-            <button onClick={()=>setShowModal(false)} className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"><X size={20}/></button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Membre</label>
-              <input type="text" value={formData.nom_complet} disabled className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none text-sm font-medium"/>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Groupe GS</label>
-              <input type="text" value={formData.nomgs} disabled className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none text-sm font-medium"/>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Poste / Fonction</label>
-              <select value={formData.Poste} onChange={e=>setFormData({...formData,Poste:e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm font-medium transition-all">
-                {postesDisponibles.map(poste=><option key={poste} value={poste}>{poste}</option>)}
-              </select>
-            </div>
-
-            <div className="pt-3 flex gap-3">
-              <button type="button" onClick={()=>setShowModal(false)} className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-bold text-sm transition-colors">Annuler</button>
-              <button type="submit" disabled={loading} className="flex-1 bg-gradient-to-r from-emerald-500 to-sky-500 hover:opacity-90 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-60">
-                {loading?<Loader2 size={17} className="animate-spin"/>:<Save size={17}/>}
-                Enregistrer
+              <button
+                onClick={()=>setShowVoirPlusModal(false)}
+                aria-label="Fermer"
+                className={`text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 -mr-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
+              >
+                <X size={18}/>
               </button>
             </div>
-          </form>
+
+            <div className="p-5 grid grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                  <ShieldCheck size={17}/>
+                </div>
+                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-3">{totalBureau}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">Total Bureau</span>
+              </div>
+
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <Users size={17}/>
+                </div>
+                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-3">{femmesBureau}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">Femmes au bureau</span>
+              </div>
+
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 flex items-center justify-center">
+                  <Users size={17}/>
+                </div>
+                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-3">{hommesMoins26}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">Hommes &lt; 26 ans</span>
+              </div>
+
+              <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="h-8 w-8 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+                  <Users size={17}/>
+                </div>
+                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-3">{femmesMoins26}</p>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400">Femmes &lt; 26 ans</span>
+              </div>
+            </div>
+
+            <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <button
+                onClick={()=>setShowVoirPlusModal(false)}
+                className={`h-9 px-4 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors ${focusRing}`}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
         </div>
-      </div>}
+      )}
+
+      {/* Fenêtre de modification du poste */}
+      {showModal&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="responsable-title"
+            className="w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150"
+          >
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
+              <div>
+                <h2 id="responsable-title" className="text-base font-display font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Edit2 size={17} className="text-emerald-700 dark:text-emerald-400"/>
+                  Modifier le responsable
+                </h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Attribution du poste</p>
+              </div>
+              <button
+                onClick={()=>setShowModal(false)}
+                aria-label="Fermer"
+                className={`text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 -mr-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
+              >
+                <X size={18}/>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label htmlFor="resp-membre" className={labelClass}>Membre</label>
+                  <input id="resp-membre" type="text" value={formData.nom_complet} disabled className={disabledFieldClass}/>
+                </div>
+
+                <div>
+                  <label htmlFor="resp-groupe" className={labelClass}>Groupe GS</label>
+                  <input id="resp-groupe" type="text" value={formData.nomgs} disabled className={disabledFieldClass}/>
+                </div>
+
+                <div>
+                  <label htmlFor="resp-poste" className={labelClass}>Poste / Fonction</label>
+                  <select id="resp-poste" value={formData.Poste} onChange={e=>setFormData({...formData,Poste:e.target.value})} className={fieldClass}>
+                    {postesDisponibles.map(poste=><option key={poste} value={poste}>{poste}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={()=>setShowModal(false)}
+                  className={`h-10 px-5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors ${focusRing}`}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`h-10 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}
+                >
+                  {loading?<Loader2 size={16} className="animate-spin"/>:<Save size={16}/>}
+                  Enregistrer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,8 +1,208 @@
-
 import React,{useState,useEffect} from 'react';
 import axios from '../api/axios';
 import {Activity,GraduationCap,ShieldCheck,Heart,Leaf,Users,BarChart3,PieChart,ArrowLeft} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
+
+// Deux couleurs seulement pour toute la page : bleu = hommes, rose = femmes
+const COLOR_H='#0284c7';
+const COLOR_F='#f43f5e';
+
+// Part en pourcentage (la somme fait toujours 100 quand il y a des données)
+const getShares=(h,f)=>{
+  const total=h+f;
+  if(total===0)return {total:0,pctH:0,pctF:0};
+  const pctH=Math.round((h/total)*100);
+  return {total,pctH,pctF:100-pctH};
+};
+
+/* ---------- Diagrammes (SVG, sans dépendance externe) ---------- */
+
+// Anneau : part hommes / femmes, total au centre
+const DonutChart=({h,f})=>{
+  const {total,pctH,pctF}=getShares(h,f);
+  const r=44;
+  const C=2*Math.PI*r;
+  const lenH=(pctH/100)*C;
+  const lenF=(pctF/100)*C;
+  return (
+    <svg viewBox="0 0 120 120" className="w-44 h-44" role="img" aria-label={`Hommes ${h}, Femmes ${f}`}>
+      <g transform="rotate(-90 60 60)" fill="none" strokeWidth="16">
+        <circle cx="60" cy="60" r={r} className="stroke-slate-100 dark:stroke-slate-800"/>
+        <circle cx="60" cy="60" r={r} stroke={COLOR_H} strokeDasharray={`${lenH} ${C}`}/>
+        <circle cx="60" cy="60" r={r} stroke={COLOR_F} strokeDasharray={`${lenF} ${C}`} strokeDashoffset={-lenH}/>
+      </g>
+      <text x="60" y="60" textAnchor="middle" fontSize="22" fontWeight="600" className="fill-slate-900 dark:fill-white">{total}</text>
+      <text x="60" y="76" textAnchor="middle" fontSize="9" className="fill-slate-500 dark:fill-slate-400">Total</text>
+    </svg>
+  );
+};
+
+// Barres verticales : valeurs comparées
+const BarChartV=({h,f})=>{
+  const max=Math.max(h,f,1);
+  const baseY=118;
+  const maxH=80;
+  const hH=h>0?Math.max((h/max)*maxH,3):0;
+  const hF=f>0?Math.max((f/max)*maxH,3):0;
+  return (
+    <svg viewBox="0 0 220 150" className="w-full max-w-[280px] h-44" role="img" aria-label={`Hommes ${h}, Femmes ${f}`}>
+      <line x1="16" y1={baseY} x2="204" y2={baseY} strokeWidth="1" className="stroke-slate-200 dark:stroke-slate-700"/>
+      <rect x="50" y={baseY-hH} width="46" height={hH} rx="4" fill={COLOR_H}/>
+      <rect x="124" y={baseY-hF} width="46" height={hF} rx="4" fill={COLOR_F}/>
+      <text x="73" y={baseY-hH-7} textAnchor="middle" fontSize="14" fontWeight="600" className="fill-slate-900 dark:fill-white">{h}</text>
+      <text x="147" y={baseY-hF-7} textAnchor="middle" fontSize="14" fontWeight="600" className="fill-slate-900 dark:fill-white">{f}</text>
+      <text x="73" y="136" textAnchor="middle" fontSize="11" className="fill-slate-500 dark:fill-slate-400">Hommes</text>
+      <text x="147" y="136" textAnchor="middle" fontSize="11" className="fill-slate-500 dark:fill-slate-400">Femmes</text>
+    </svg>
+  );
+};
+
+// Barre empilée à 100 %
+const StackedBar=({h,f})=>{
+  const {pctH,pctF}=getShares(h,f);
+  return (
+    <div className="w-full px-1" role="img" aria-label={`Hommes ${pctH}%, Femmes ${pctF}%`}>
+      <div className="flex h-11 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
+        {pctH>0&&(
+          <div className="h-full flex items-center justify-center text-sm font-semibold text-white tabular-nums" style={{width:`${pctH}%`,backgroundColor:COLOR_H}}>
+            {pctH>=12?`${pctH}%`:''}
+          </div>
+        )}
+        {pctF>0&&(
+          <div className="h-full flex items-center justify-center text-sm font-semibold text-white tabular-nums" style={{width:`${pctF}%`,backgroundColor:COLOR_F}}>
+            {pctF>=12?`${pctF}%`:''}
+          </div>
+        )}
+      </div>
+      <div className="flex justify-between mt-2 text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+        <span>0%</span><span>50%</span><span>100%</span>
+      </div>
+    </div>
+  );
+};
+
+// Jauge en demi-cercle
+const GaugeChart=({h,f})=>{
+  const {total,pctH,pctF}=getShares(h,f);
+  const r=50;
+  const L=Math.PI*r;
+  const lenH=(pctH/100)*L;
+  const lenF=(pctF/100)*L;
+  const d='M 10 64 A 50 50 0 0 1 110 64';
+  return (
+    <svg viewBox="0 0 120 78" className="w-56 h-36" role="img" aria-label={`Hommes ${h}, Femmes ${f}`}>
+      <g fill="none" strokeWidth="16">
+        <path d={d} className="stroke-slate-100 dark:stroke-slate-800"/>
+        <path d={d} stroke={COLOR_H} strokeDasharray={`${lenH} ${L}`}/>
+        <path d={d} stroke={COLOR_F} strokeDasharray={`${lenF} ${L}`} strokeDashoffset={-lenH}/>
+      </g>
+      <text x="60" y="58" textAnchor="middle" fontSize="22" fontWeight="600" className="fill-slate-900 dark:fill-white">{total}</text>
+      <text x="60" y="71" textAnchor="middle" fontSize="8" className="fill-slate-500 dark:fill-slate-400">Total</text>
+    </svg>
+  );
+};
+
+// Anneaux concentriques : un anneau par genre
+const RingsChart=({h,f})=>{
+  const {total,pctH,pctF}=getShares(h,f);
+  const r1=50;
+  const r2=35;
+  const C1=2*Math.PI*r1;
+  const C2=2*Math.PI*r2;
+  return (
+    <svg viewBox="0 0 120 120" className="w-44 h-44" role="img" aria-label={`Hommes ${h}, Femmes ${f}`}>
+      <g transform="rotate(-90 60 60)" fill="none" strokeWidth="11" strokeLinecap="round">
+        <circle cx="60" cy="60" r={r1} className="stroke-slate-100 dark:stroke-slate-800"/>
+        <circle cx="60" cy="60" r={r2} className="stroke-slate-100 dark:stroke-slate-800"/>
+        {pctH>0&&<circle cx="60" cy="60" r={r1} stroke={COLOR_H} strokeDasharray={`${(pctH/100)*C1} ${C1}`}/>}
+        {pctF>0&&<circle cx="60" cy="60" r={r2} stroke={COLOR_F} strokeDasharray={`${(pctF/100)*C2} ${C2}`}/>}
+      </g>
+      <text x="60" y="64" textAnchor="middle" fontSize="18" fontWeight="600" className="fill-slate-900 dark:fill-white">{total}</text>
+    </svg>
+  );
+};
+
+const charts={donut:DonutChart,bar:BarChartV,stacked:StackedBar,gauge:GaugeChart,rings:RingsChart};
+
+/* ---------- Carte de statistique ---------- */
+
+const StatCard=({title,h,f,icon:Icon,chart})=>{
+  const totalHomme=parseInt(h)||0;
+  const totalFemme=parseInt(f)||0;
+  const {total,pctH,pctF}=getShares(totalHomme,totalFemme);
+  const Chart=charts[chart]||DonutChart;
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+      <div className="px-5 pt-5 flex items-center gap-3">
+        <div className="h-9 w-9 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+          <Icon size={18}/>
+        </div>
+        <h3 className="text-[15px] font-display font-semibold text-slate-900 dark:text-white leading-tight">{title}</h3>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center px-5 py-5 min-h-[200px]">
+        {total>0?<Chart h={totalHomme} f={totalFemme}/>:<p className="text-sm text-slate-400 dark:text-slate-500">Aucune donnée</p>}
+      </div>
+
+      <div className="grid grid-cols-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="px-5 py-3.5">
+          <span className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:COLOR_H}}/>Hommes</span>
+          <p className="mt-1 text-xl font-display font-semibold text-slate-900 dark:text-white tabular-nums">{totalHomme}<span className="ml-1.5 text-[13px] font-normal text-slate-400 dark:text-slate-500">{total>0?`${pctH}%`:''}</span></p>
+        </div>
+        <div className="px-5 py-3.5 border-l border-slate-100 dark:border-slate-800">
+          <span className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:COLOR_F}}/>Femmes</span>
+          <p className="mt-1 text-xl font-display font-semibold text-slate-900 dark:text-white tabular-nums">{totalFemme}<span className="ml-1.5 text-[13px] font-normal text-slate-400 dark:text-slate-500">{total>0?`${pctF}%`:''}</span></p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ---------- Comparaison de toutes les formations ---------- */
+
+const OverviewChart=({items})=>{
+  const rows=items.map(it=>({title:it.title,h:parseInt(it.h)||0,f:parseInt(it.f)||0}));
+  const max=Math.max(...rows.flatMap(r=>[r.h,r.f]),1);
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-base font-display font-semibold text-slate-900 dark:text-white">Comparaison des formations</h2>
+          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Nombre de personnes formées, hommes et femmes, pour chaque thème.</p>
+        </div>
+        <div className="flex items-center gap-4 text-[13px] text-slate-600 dark:text-slate-300">
+          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:COLOR_H}}/>Hommes</span>
+          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor:COLOR_F}}/>Femmes</span>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {rows.map(r=>(
+          <div key={r.title} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-x-4 gap-y-1.5 items-center">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{r.title}</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{width:`${(r.h/max)*100}%`,backgroundColor:COLOR_H}}/>
+                </div>
+                <span className="w-8 text-right text-sm font-medium text-slate-700 dark:text-slate-200 tabular-nums">{r.h}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{width:`${(r.f/max)*100}%`,backgroundColor:COLOR_F}}/>
+                </div>
+                <span className="w-8 text-right text-sm font-medium text-slate-700 dark:text-slate-200 tabular-nums">{r.f}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const focusRing='focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
+
 const FormationStats=()=>{
   const [stats,setStats]=useState(null);
   const [loading,setLoading]=useState(true);
@@ -19,51 +219,67 @@ const FormationStats=()=>{
     };
     fetchStats();
   },[]);
-  const MiniChart=({type,h,f,color})=>{
-    const total=h+f||1;
-    const pctH=Math.round((h/total)*100);
-    const pctF=Math.round((f/total)*100);
-    if(type==='donut'){
-      const radius=14;
-      const circumference=2*Math.PI*radius;
-      const strokeDashoffset=circumference-(pctH/100)*circumference;
-      return <div className="relative w-10 h-10 flex items-center justify-center shrink-0"><svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36"><circle cx="18" cy="18" r={radius} fill="transparent" stroke="#e2e8f0" strokeWidth="4" className="dark:stroke-slate-800"/><circle cx="18" cy="18" r={radius} fill="transparent" stroke={color} strokeWidth="4" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"/></svg><span className="absolute text-[9px] font-bold text-slate-700 dark:text-slate-300">{pctH}%</span></div>;
-    }
-    if(type==='bar'){
-      return <div className="flex items-end gap-1.5 h-8 w-10 justify-center shrink-0 pt-1"><div className="w-2 bg-blue-500 rounded-t transition-all duration-500" style={{height:`${Math.max(pctH,15)}%`}}/><div className="w-2 bg-pink-500 rounded-t transition-all duration-500" style={{height:`${Math.max(pctF,15)}%`}}/></div>;
-    }
-    if(type==='progress'){
-      return <div className="flex flex-col w-14 gap-1 shrink-0 justify-center"><div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden"><div className="bg-blue-500 h-full rounded-full" style={{width:`${pctH}%`}}/></div><div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden"><div className="bg-pink-500 h-full rounded-full" style={{width:`${pctF}%`}}/></div></div>;
-    }
-    return <div className="flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800"><span className="text-[11px] font-bold text-blue-500">{pctH}%</span><span className="text-slate-300 dark:text-slate-700 text-[10px]">|</span><span className="text-[11px] font-bold text-pink-500">{pctF}%</span></div>;
-  };
-  const StatCard=({title,h,f,icon:Icon,colorClass,bgClass,chartType,strokeColor})=>{
-    const totalHomme=parseInt(h)||0;
-    const totalFemme=parseInt(f)||0;
-    return <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-slate-700 shadow-sm"><div className="flex items-start justify-between gap-2 mb-4"><div className="flex items-center gap-2.5 min-w-0 flex-1"><div className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 ${bgClass} ${colorClass}`}><Icon size={18}/></div><h3 className="text-sm font-bold text-slate-800 dark:text-white leading-tight break-words">{title}</h3></div><div className="pt-0.5 shrink-0"><MiniChart type={chartType} h={totalHomme} f={totalFemme} color={strokeColor}/></div></div><div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80"><div className="flex flex-col bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800"><span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 mb-0.5">Hommes</span><span className="text-base font-bold text-slate-900 dark:text-white">{totalHomme}</span></div><div className="flex flex-col bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-right"><span className="text-[10px] font-semibold text-pink-600 dark:text-pink-400 mb-0.5">Femmes</span><span className="text-base font-bold text-slate-900 dark:text-white">{totalFemme}</span></div></div></div>;
-  };
-  if(loading)return <div className="h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950"><Activity size={32} className="animate-spin text-emerald-500 mb-3"/><p className="font-semibold text-slate-500 text-xs">Chargement des statistiques...</p></div>;
-  return <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950 transition-colors font-body overflow-hidden relative">
-    <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');.font-body{font-family:'DM Sans',sans-serif}.font-display{font-family:'Manrope',sans-serif}`}</style>
-    <div className="p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-sky-500 text-white rounded-2xl shrink-0 shadow-sm"><GraduationCap size={24}/></div>
-        <div><h1 className="text-lg font-display font-extrabold text-slate-900 dark:text-white tracking-tight">Statistiques des formations</h1><p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Répartition par genre des formations.</p></div>
-      </div>
-      <button type="button" onClick={()=>navigate(-1)} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2.5 rounded-xl transition-all font-bold text-xs"><ArrowLeft size={16}/>Retour</button>
+
+  const items=[
+    {title:'Genre & Social',h:stats?.genre_h,f:stats?.genre_f,icon:Users,chart:'donut'},
+    {title:'Agroécologie',h:stats?.agroeco_h,f:stats?.agroeco_f,icon:Leaf,chart:'bar'},
+    {title:'Production semence',h:stats?.semence_h,f:stats?.semence_f,icon:Activity,chart:'stacked'},
+    {title:'Nutrition',h:stats?.nutrition_h,f:stats?.nutrition_f,icon:Heart,chart:'gauge'},
+    {title:'Conservation produit',h:stats?.conservation_h,f:stats?.conservation_f,icon:ShieldCheck,chart:'rings'},
+    {title:'Transformation produit',h:stats?.transformation_h,f:stats?.transformation_f,icon:BarChart3,chart:'bar'},
+    {title:'Gestion simplifiée',h:stats?.gestion_h,f:stats?.gestion_f,icon:PieChart,chart:'gauge'},
+    {title:'EPRACC',h:stats?.epracc_h,f:stats?.epracc_f,icon:GraduationCap,chart:'donut'}
+  ];
+
+  if(loading)return (
+    <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <Activity size={30} className="animate-spin text-emerald-600 mb-3"/>
+      <p className="text-sm text-slate-500 dark:text-slate-400">Chargement des statistiques...</p>
     </div>
-    <div className="flex-1 overflow-y-auto px-4 md:px-6 py-5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
-        <StatCard title="Genre & Social" h={stats?.genre_h} f={stats?.genre_f} icon={Users} colorClass="text-indigo-600 dark:text-indigo-400" bgClass="bg-indigo-50 dark:bg-indigo-950/40" chartType="donut" strokeColor="#4f46e5"/>
-        <StatCard title="Agroécologie" h={stats?.agroeco_h} f={stats?.agroeco_f} icon={Leaf} colorClass="text-emerald-600 dark:text-emerald-400" bgClass="bg-emerald-50 dark:bg-emerald-950/40" chartType="bar" strokeColor="#10b981"/>
-        <StatCard title="Production semence" h={stats?.semence_h} f={stats?.semence_f} icon={Activity} colorClass="text-amber-600 dark:text-amber-400" bgClass="bg-amber-50 dark:bg-amber-950/40" chartType="progress" strokeColor="#f59e0b"/>
-        <StatCard title="Nutrition" h={stats?.nutrition_h} f={stats?.nutrition_f} icon={Heart} colorClass="text-rose-600 dark:text-rose-400" bgClass="bg-rose-50 dark:bg-rose-950/40" chartType="badge" strokeColor="#f43f5e"/>
-        <StatCard title="Conservation produit" h={stats?.conservation_h} f={stats?.conservation_f} icon={ShieldCheck} colorClass="text-cyan-600 dark:text-cyan-400" bgClass="bg-cyan-50 dark:bg-cyan-950/40" chartType="donut" strokeColor="#06b6d4"/>
-        <StatCard title="Transformation produit" h={stats?.transformation_h} f={stats?.transformation_f} icon={BarChart3} colorClass="text-purple-600 dark:text-purple-400" bgClass="bg-purple-50 dark:bg-purple-950/40" chartType="bar" strokeColor="#a855f7"/>
-        <StatCard title="Gestion simplifiée" h={stats?.gestion_h} f={stats?.gestion_f} icon={PieChart} colorClass="text-orange-600 dark:text-orange-400" bgClass="bg-orange-50 dark:bg-orange-950/40" chartType="progress" strokeColor="#f97316"/>
-        <StatCard title="EPRACC" h={stats?.epracc_h} f={stats?.epracc_f} icon={GraduationCap} colorClass="text-teal-600 dark:text-teal-400" bgClass="bg-teal-50 dark:bg-teal-950/40" chartType="badge" strokeColor="#14b8a6"/>
+  );
+
+  return (
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
+        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
+        svg text{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+      `}</style>
+
+      {/* En-tête de page */}
+      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+            <GraduationCap size={20} strokeWidth={2}/>
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">Statistiques des formations</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Répartition par genre des formations.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={()=>navigate(-1)}
+          className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
+        >
+          <ArrowLeft size={16} className="text-slate-500 dark:text-slate-400"/>
+          Retour
+        </button>
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-5">
+        <div className="max-w-7xl mx-auto space-y-5">
+          <OverviewChart items={items}/>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {items.map(it=>(
+              <StatCard key={it.title} title={it.title} h={it.h} f={it.f} icon={it.icon} chart={it.chart}/>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
-  </div>;
+  );
 };
 export default FormationStats;
