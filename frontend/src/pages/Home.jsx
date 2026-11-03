@@ -11,34 +11,19 @@ const Home = () => {
   const prefersReducedMotion = useReducedMotion();
 
   const titles = [
-    'Agir pour un avenir durable',
-    'ONG Tsinjo Aina Fianarantsoa',
-    'Haute Matsiatra, Madagascar',
+    'Agir pour un avenir\ndurable',
+    'ONG Tsinjo Aina\nFianarantsoa',
+    'Haute Matsiatra,\nMadagascar',
   ];
 
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
 
-  // Animation letter by letter
   const currentText = titles[currentTitleIndex];
-
-  const letterVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: (i) => ({
-      opacity: 1,
-      y: 0,
-      transition: { delay: i * 0.04, duration: 0.1 },
-    }),
-    exit: (i) => ({
-      opacity: 0,
-      y: -10,
-      transition: { delay: i * 0.02, duration: 0.08 },
-    }),
-  };
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       setCurrentTitleIndex((prev) => (prev + 1) % titles.length);
-    }, currentText.length * 50 + 2000);
+    }, currentText.length * 40 + 2500);
 
     return () => clearTimeout(timeout);
   }, [currentTitleIndex, currentText.length]);
@@ -48,21 +33,21 @@ const Home = () => {
       eyebrow: 'Racine',
       title: 'Valeurs',
       icon: HeartHandshake,
-      accent: '#047857',
+      accent: '#34d399',
       text: "Guidés par l'effort propre, la volonté de ne laisser personne de côté et une approche sans discrimination.",
     },
     {
       eyebrow: 'Terrain',
       title: 'Mission',
       icon: Sprout,
-      accent: '#059669',
+      accent: '#10b981',
       text: "Œuvrer pour le développement humain durable, l'autopromotion des communautés et la protection de l'environnement.",
     },
     {
       eyebrow: 'Horizon',
       title: 'Vision',
       icon: Compass,
-      accent: '#0284c7',
+      accent: '#38bdf8',
       text: 'Faire de chaque bénéficiaire un citoyen responsable, acteur de son développement, dans une société équitable.',
     },
   ];
@@ -92,7 +77,7 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen w-screen overflow-x-hidden relative bg-slate-50 font-body text-slate-900 antialiased">
+    <div className="min-h-screen w-screen overflow-x-hidden relative bg-slate-900 font-body text-white antialiased">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
         .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
@@ -105,10 +90,10 @@ const Home = () => {
         className="fixed inset-0 z-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${bgImage})`, filter: 'brightness(1.15) saturate(1.05)' }}
       />
-      <div className="fixed inset-0 z-0 bg-gradient-to-br from-emerald-950/70 via-slate-950/60 to-slate-900/80" />
-      <div className="fixed inset-0 z-0 bg-black/15" />
+      <div className="fixed inset-0 z-0 bg-gradient-to-br from-emerald-950/75 via-slate-950/70 to-slate-900/85" />
+      <div className="fixed inset-0 z-0 bg-black/20" />
 
-      {/* Navbar — Transparent sy backdrop-blur */}
+      {/* Navbar */}
       <nav className="relative z-50 px-4 md:px-6 py-4 border-b border-white/15 bg-white/10 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3.5">
@@ -191,6 +176,7 @@ const Home = () => {
             animate="visible"
             className="grid lg:grid-cols-[1.08fr_0.92fr] gap-10 lg:gap-16 items-center"
           >
+            {/* Hero Section */}
             <div className="text-center lg:text-left">
               <motion.div
                 variants={fadeInUp}
@@ -202,26 +188,17 @@ const Home = () => {
                 Développement humain & autopromotion
               </motion.div>
 
-              {/* Lohateny manao animation lettre par lettre */}
-              <div className="mt-6 min-h-[120px] sm:min-h-[140px] flex items-center justify-center lg:justify-start">
+              <div className="mt-6 min-h-[140px] sm:min-h-[160px] flex items-center justify-center lg:justify-start">
                 <AnimatePresence mode="wait">
                   <motion.h1
                     key={currentTitleIndex}
-                    className="font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white max-w-4xl"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.5, ease: 'easeInOut' }}
+                    className="font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white max-w-4xl whitespace-pre-line"
                   >
-                    {currentText.split('').map((char, i) => (
-                      <motion.span
-                        key={i}
-                        custom={i}
-                        variants={letterVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        style={{ display: char === ' ' ? 'inline' : 'inline-block' }}
-                      >
-                        {char === ' ' ? '\u00A0' : char}
-                      </motion.span>
-                    ))}
+                    {currentText}
                   </motion.h1>
                 </AnimatePresence>
               </div>
@@ -257,27 +234,27 @@ const Home = () => {
               </motion.div>
             </div>
 
-            {/* Card misy ny "Notre engagement" — Natao transparent tanteraka sy backdrop-blur */}
-            <motion.div variants={fadeInUp} className="relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-6 md:p-8 shadow-2xl">
-              <div className="mb-6">
-                <span className="text-xs font-semibold text-sky-300 uppercase tracking-wider">
+            {/* Notre engagement — Nesorina ny card background, napetraka mivantana mangarahara */}
+            <motion.div variants={fadeInUp} className="relative space-y-6">
+              <div>
+                <span className="text-xs font-semibold text-sky-300 uppercase tracking-wider block mb-1">
                   Notre engagement
                 </span>
-                <h2 className="mt-1 font-display text-xl font-bold text-white">
+                <h2 className="font-display text-2xl font-bold text-white">
                   Agir. Construire. Transformer.
                 </h2>
               </div>
 
-              <div className="divide-y divide-white/15">
+              <div className="space-y-5 divide-y divide-white/10">
                 {pillars.map((p, index) => {
                   const Icon = p.icon;
                   return (
                     <motion.div
                       key={p.title}
                       whileHover={prefersReducedMotion ? {} : { x: 4 }}
-                      className="flex items-start gap-4 py-4 first:pt-0 last:pb-0 transition-transform"
+                      className="flex items-start gap-4 pt-4 first:pt-0 transition-transform"
                     >
-                      <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white/15 ring-1 ring-white/30">
+                      <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white/10 ring-1 ring-white/20">
                         <Icon size={18} style={{ color: p.accent }} />
                       </div>
 
@@ -293,7 +270,7 @@ const Home = () => {
                           {p.title}
                         </h3>
 
-                        <p className="mt-1 text-xs sm:text-sm leading-relaxed text-slate-200">
+                        <p className="mt-1 text-xs sm:text-sm leading-relaxed text-slate-300 font-medium">
                           {p.text}
                         </p>
                       </div>
@@ -302,13 +279,13 @@ const Home = () => {
                 })}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-white/15 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-slate-300">
+              <div className="pt-4 border-t border-white/15 flex items-center justify-between text-xs text-slate-300 font-medium">
+                <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   Une vision durable
                 </div>
 
-                <span className="text-xs font-semibold text-sky-300">
+                <span className="font-semibold text-sky-300">
                   Madagascar
                 </span>
               </div>
@@ -317,7 +294,7 @@ const Home = () => {
         </div>
       </main>
 
-      {/* Footer — Transparent sy backdrop-blur */}
+      {/* Footer */}
       <footer className="relative z-20 px-4 md:px-6 pb-6 pt-4 border-t border-white/15 bg-white/10 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-200 text-xs font-medium">
           <p className="text-center sm:text-left">
