@@ -106,7 +106,7 @@ const Login = () => {
     };
 
     return (
-        <div className="h-screen w-full flex bg-slate-900 font-body text-slate-900 overflow-hidden relative">
+        <div className="h-screen w-full flex bg-slate-50 font-body text-slate-900 overflow-hidden relative">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
                 .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
@@ -115,46 +115,44 @@ const Login = () => {
 
             <Toaster />
 
-            {/* Background overlay mitovy amin'ny Register */}
-            <div className="fixed inset-0 z-0 bg-slate-900" />
-            <div className="fixed inset-0 z-0 bg-gradient-to-br from-emerald-950/80 via-slate-950/70 to-slate-900/90" />
-
-            {/* Fizarana Ankavia : Logo boribory tsara sy Branding */}
-            <div className="hidden lg:flex lg:w-1/2 bg-emerald-950/40 backdrop-blur-md text-white flex-col justify-between p-12 relative overflow-hidden border-r border-white/10 z-10">
+            {/* Fizarana Ankavia : Branding maitso mifanaraka amin'ny ONG */}
+            <div className="hidden lg:flex lg:w-1/2 bg-emerald-900 text-white flex-col justify-between p-12 relative overflow-hidden border-r border-emerald-800 z-10">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 opacity-95" />
+                
                 <div className="relative z-10 flex items-center gap-3.5">
-                    <div className="h-11 w-11 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/20 overflow-hidden p-0.5 shadow-sm">
+                    <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm">
                         <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
                         <span className="font-display font-bold text-base tracking-tight block">ONG Tsinjo Aina</span>
-                        <span className="text-xs text-emerald-300/80 font-medium">Fianarantsoa, Madagascar</span>
+                        <span className="text-xs text-emerald-200 font-medium">Fianarantsoa, Madagascar</span>
                     </div>
                 </div>
 
                 <div className="relative z-10 max-w-md space-y-3">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/60 text-emerald-300 text-xs font-semibold ring-1 ring-emerald-700/50">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/80 text-emerald-200 text-xs font-semibold ring-1 ring-emerald-600/50">
                         <ShieldCheck size={14} /> Plateforme Sécurisée
                     </div>
                     <h1 className="text-3xl font-display font-bold leading-tight tracking-tight">
                         Gestion centralisée et suivi des activités.
                     </h1>
-                    <p className="text-emerald-100/80 text-sm leading-relaxed">
+                    <p className="text-emerald-100/90 text-sm leading-relaxed font-medium">
                         Accédez à votre espace de travail pour administrer les membres, suivre les rapports et gérer les enregistrements en toute sécurité au sein de l'ONG.
                     </p>
                 </div>
 
-                <div className="relative z-10 text-xs text-emerald-300/60">
+                <div className="relative z-10 text-xs text-emerald-200/70">
                     © {new Date().getFullYear()} ONG Tsinjo Aina. Tous droits réservés.
                 </div>
             </div>
 
-            {/* Fizarana Ankavanana : Formulaire de Connexion */}
-            <div className="flex-1 flex items-center justify-center p-6 relative z-10 overflow-y-auto">
+            {/* Fizarana Ankavanana : Background fotsy miaraka amin'ny Formulaire tsy mangarahara (solid white card) */}
+            <div className="flex-1 flex items-center justify-center p-6 relative z-10 overflow-y-auto bg-slate-50">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="max-w-md w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 relative overflow-hidden border border-white/20"
+                    className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 relative overflow-hidden border border-slate-200"
                 >
                     <Link 
                         to="/" 
