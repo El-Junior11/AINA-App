@@ -5,24 +5,6 @@ import { UserPlus, User, Mail, Lock, CheckCircle2, ShieldCheck, X, Eye, EyeOff }
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/logo.png';
 
-// Classes partagées pour garder des champs de formulaire cohérents avec le reste de l'application
-const fieldClass =
-    'w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
-const labelClass = 'flex items-center gap-1.5 text-[13px] font-medium text-slate-700 mb-1.5';
-const labelIconClass = 'text-slate-500 shrink-0';
-const focusRing =
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1';
-
-// Contenu du panneau d'information (côté gauche)
-const steps = [
-    { title: 'Renseignez vos informations', text: 'Votre nom, votre adresse email et un mot de passe.' },
-    { title: 'Votre compte est créé', text: 'Vous êtes redirigé vers la page de connexion.' },
-    { title: 'Validation par un administrateur', text: 'Les nouvelles inscriptions sont approuvées par un administrateur.' },
-    { title: 'Connectez-vous', text: 'Accédez à votre espace de travail avec vos identifiants.' }
-];
-
-const modules = ['Membres', 'Groupes solidaires', 'Réseaux', 'Responsables', 'Formations', 'Statistiques'];
-
 const Register = () => {
     const [searchParams] = useSearchParams();
     const roleFromUrl = searchParams.get('role') || 'user';
@@ -84,17 +66,19 @@ const Register = () => {
     const isAdmin = formData.role === 'admin';
 
     return (
-        <div className="h-screen w-full flex bg-slate-50 font-body text-slate-900 overflow-hidden relative antialiased">
+        <div className="h-screen w-full flex bg-slate-50 font-body text-slate-900 overflow-hidden relative">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
                 .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
                 .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
             `}</style>
 
-            {/* Panneau gauche : présentation de l'inscription */}
-            <aside className="hidden lg:flex lg:w-1/2 bg-emerald-900 text-white flex-col justify-between gap-10 px-12 py-10 relative overflow-y-auto border-r border-emerald-800 z-10">
-                <div className="flex items-center gap-3.5">
-                    <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm shrink-0">
+            {/* Fizarana Ankavia : Ilay phrase lava + Comment ça marche roa */}
+            <div className="hidden lg:flex lg:w-1/2 bg-emerald-900 text-white flex-col justify-between p-12 relative overflow-hidden border-r border-emerald-800 z-10">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 opacity-95" />
+                
+                <div className="relative z-10 flex items-center gap-3.5">
+                    <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm">
                         <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
@@ -103,7 +87,7 @@ const Register = () => {
                     </div>
                 </div>
 
-                <div className="max-w-lg space-y-8">
+                <div className="relative z-10 max-w-md space-y-6">
                     <div className="space-y-3">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/80 text-emerald-200 text-xs font-semibold ring-1 ring-emerald-600/50">
                             <ShieldCheck size={14} /> Plateforme Sécurisée
@@ -116,74 +100,51 @@ const Register = () => {
                         </p>
                     </div>
 
-                    <div>
-                        <h2 className="text-sm font-display font-semibold text-white mb-3">Comment ça marche</h2>
-                        <ol className="space-y-3">
-                            {steps.map((step, index) => (
-                                <li key={step.title} className="flex items-start gap-3">
-                                    <span className="h-7 w-7 rounded-full bg-white/10 ring-1 ring-white/20 text-xs font-semibold text-emerald-100 flex items-center justify-center shrink-0 tabular-nums">
-                                        {index + 1}
-                                    </span>
-                                    <div className="min-w-0">
-                                        <span className="block text-sm font-semibold text-white leading-tight">{step.title}</span>
-                                        <span className="block text-[13px] text-emerald-100/80 leading-snug mt-0.5">{step.text}</span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ol>
-                    </div>
-
-                    <div>
-                        <h2 className="text-sm font-display font-semibold text-white mb-3">Type de compte</h2>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className={`rounded-lg px-3.5 py-3 ring-1 ${!isAdmin ? 'bg-white/10 ring-emerald-300/60' : 'bg-emerald-950/30 ring-white/10'}`}>
-                                <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                                    <User size={14} className="text-emerald-200" /> Utilisateur
-                                </span>
-                                <span className="block text-[13px] text-emerald-100/80 leading-snug mt-1">
-                                    Saisit et consulte les données selon ses droits.
+                    {/* Toromarika Comment ça marche 2 voa */}
+                    <div className="space-y-3 pt-2">
+                        <h2 className="text-xs font-display font-semibold uppercase tracking-wider text-emerald-300">
+                            Comment ça marche
+                        </h2>
+                        
+                        <div className="flex items-start gap-3 bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-800/60">
+                            <span className="w-6 h-6 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                            <div>
+                                <span className="text-sm font-semibold text-white block">Inscription & Validation</span>
+                                <span className="text-xs text-emerald-200/80 mt-0.5 block leading-relaxed">
+                                    Remplissez le formulaire avec vos vraies informations, puis l'administrateur validera votre accès.
                                 </span>
                             </div>
-                            <div className={`rounded-lg px-3.5 py-3 ring-1 ${isAdmin ? 'bg-white/10 ring-emerald-300/60' : 'bg-emerald-950/30 ring-white/10'}`}>
-                                <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                                    <ShieldCheck size={14} className="text-emerald-200" /> Administrateur
-                                </span>
-                                <span className="block text-[13px] text-emerald-100/80 leading-snug mt-1">
-                                    Approuve les inscriptions et gère la structure des données.
+                        </div>
+
+                        <div className="flex items-start gap-3 bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-800/60">
+                            <span className="w-6 h-6 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                            <div>
+                                <span className="text-sm font-semibold text-white block">Connexion & Collaboration</span>
+                                <span className="text-xs text-emerald-200/80 mt-0.5 block leading-relaxed">
+                                    Connectez-vous à votre espace sécurisé pour gérer les membres et suivre les activités en temps réel.
                                 </span>
                             </div>
                         </div>
                     </div>
-
-                    <div>
-                        <h2 className="text-sm font-display font-semibold text-white mb-3">Une fois connecté, vous accédez à</h2>
-                        <ul className="flex flex-wrap gap-2">
-                            {modules.map((name) => (
-                                <li key={name} className="px-2.5 py-1 rounded-md bg-white/10 ring-1 ring-white/15 text-[13px] text-emerald-50">
-                                    {name}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
                 </div>
 
-                <div className="text-xs text-emerald-200/70">
+                <div className="relative z-10 text-xs text-emerald-200/70">
                     © {new Date().getFullYear()} ONG Tsinjo Aina. Tous droits réservés.
                 </div>
-            </aside>
+            </div>
 
-            {/* Panneau droit : formulaire */}
+            {/* Fizarana Ankavanana : Formulaire d'Inscription madio tsara */}
             <div className="flex-1 flex items-center justify-center p-6 relative z-10 overflow-y-auto bg-slate-50">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="max-w-md w-full bg-white rounded-xl shadow-lg p-6 sm:p-7 relative overflow-hidden border border-slate-200"
+                    className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 relative overflow-hidden border border-slate-200"
                 >
                     <Link 
                         to="/" 
                         aria-label="Fermer et retourner à l'accueil"
-                        className={`absolute top-4 right-4 z-20 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${focusRing}`}
+                        className="absolute top-4 right-4 z-20 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                     >
                         <X size={18} />
                     </Link>
@@ -214,10 +175,6 @@ const Register = () => {
                                 </>
                             )}
                         </div>
-
-                        <p className="text-sm text-slate-500 mt-2">
-                            Renseignez vos informations pour demander l'accès à la plateforme.
-                        </p>
                     </div>
 
                     <AnimatePresence mode="wait">
@@ -236,7 +193,7 @@ const Register = () => {
                                             custom={i} 
                                             variants={dotVariants} 
                                             animate="animate" 
-                                            className="absolute w-3 h-3 bg-emerald-600 rounded-full" 
+                                            className="absolute w-3 h-3 bg-gradient-to-br from-emerald-600 to-sky-500 rounded-full" 
                                         />
                                     ))}
                                 </div>
@@ -268,11 +225,10 @@ const Register = () => {
                                 <AnimatePresence>
                                     {error && (
                                         <motion.div 
-                                            role="alert"
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
-                                            className="bg-rose-50 border border-rose-200 text-rose-700 p-3 mb-4 rounded-lg text-[13px] font-medium"
+                                            className="bg-rose-50 border border-rose-200 text-rose-700 p-3 mb-4 rounded-lg text-xs font-medium"
                                         >
                                             {error}
                                         </motion.div>
@@ -281,51 +237,43 @@ const Register = () => {
 
                                 <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
                                     <div>
-                                        <label htmlFor="register-name" className={labelClass}>
-                                            <User size={14} className={labelIconClass} />
-                                            Nom *
-                                        </label>
-                                        <input
-                                            id="register-name"
-                                            type="text"
-                                            required
-                                            autoComplete="name"
-                                            className={fieldClass}
-                                            placeholder="Votre nom"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="register-email" className={labelClass}>
-                                            <Mail size={14} className={labelIconClass} />
-                                            Adresse email *
-                                        </label>
-                                        <input
-                                            id="register-email"
-                                            type="email"
-                                            required
-                                            autoComplete="email"
-                                            className={fieldClass}
-                                            placeholder="nom@exemple.com"
-                                            value={formData.email}
-                                            onChange={(e) => setFormData({...formData, email: e.target.value.toLowerCase()})}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="register-password" className={labelClass}>
-                                            <Lock size={14} className={labelIconClass} />
-                                            Mot de passe *
-                                        </label>
+                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Nom *</label>
                                         <div className="relative">
+                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                                             <input
-                                                id="register-password"
+                                                type="text"
+                                                required
+                                                className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
+                                                placeholder="Votre nom"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Adresse email *</label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                                            <input
+                                                type="email"
+                                                required
+                                                className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
+                                                placeholder="nom@exemple.com"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({...formData, email: e.target.value.toLowerCase()})}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Mot de passe *</label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                                            <input
                                                 type={showPassword ? "text" : "password"}
                                                 required
-                                                autoComplete="new-password"
-                                                className={`${fieldClass} pr-11`}
+                                                className="w-full h-10 px-3 pl-10 pr-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
                                                 placeholder="••••••••"
                                                 value={formData.password}
                                                 onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -333,22 +281,17 @@ const Register = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                                                aria-pressed={showPassword}
-                                                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ${focusRing}`}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                                             >
                                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                             </button>
                                         </div>
-                                        <p className="text-xs text-slate-500 mt-1.5">
-                                            Utilisez un mot de passe robuste et sécurisé.
-                                        </p>
                                     </div>
 
                                     <div className="pt-2">
                                         <button
                                             type="submit"
-                                            className={`w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer ${focusRing}`}
+                                            className="w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
                                         >
                                             <UserPlus size={16} />
                                             <span>S'inscrire</span>
@@ -360,11 +303,11 @@ const Register = () => {
                     </AnimatePresence>
 
                     <div className="mt-5 text-center relative z-10 border-t border-slate-200 pt-4">
-                        <p className="text-slate-600 text-[13px]">
+                        <p className="text-slate-600 text-xs font-medium">
                             Déjà un compte ?{' '}
                             <Link 
                                 to="/login" 
-                                className={`text-emerald-700 font-semibold hover:underline rounded ${focusRing}`}
+                                className="text-emerald-700 font-semibold hover:underline"
                             >
                                 Se connecter
                             </Link>

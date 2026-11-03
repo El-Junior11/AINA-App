@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Mail, Lock, CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck, X, Users, Network, GraduationCap, BarChart3 } from 'lucide-react';
+import { LogIn, Mail, Lock, CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast'; 
 import api from '../api/axios'; 
@@ -15,17 +15,9 @@ const labelIconClass = 'text-slate-500 shrink-0';
 const focusRing =
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1';
 
-// Contenu du panneau d'information (côté gauche)
-const features = [
-    { icon: Users, title: 'Membres', text: 'Enregistrez les membres, leurs ménages et leurs chefs de ménage.' },
-    { icon: Users, title: 'Groupes solidaires', text: 'Administrez les groupes, leurs ménages rattachés et leur localisation.' },
-    { icon: Network, title: 'Réseaux communautaires', text: 'Suivez la structuration des réseaux jusqu\'à leur autonomie.' },
-    { icon: ShieldCheck, title: 'Responsables du bureau', text: 'Attribuez les postes de président, trésorier, secrétaire et conseiller.' },
-    { icon: GraduationCap, title: 'Suivi des formations', text: 'Consultez les modules suivis par chaque membre.' },
-    { icon: BarChart3, title: 'Statistiques', text: 'Analysez la répartition hommes / femmes et exportez vos listes en PDF ou Excel.' }
-];
-
+// Informations de connexion affichées dans le panneau d'information (côté gauche)
 const securityPoints = [
+    'Connectez-vous avec votre adresse email et votre mot de passe.',
     'Vos identifiants sont strictement personnels.',
     'Mot de passe oublié : récupération par code OTP envoyé à votre adresse email.',
     'Les nouvelles inscriptions sont approuvées par un administrateur.'
@@ -139,7 +131,7 @@ const Login = () => {
 
             <Toaster />
 
-            {/* Panneau gauche : présentation de l'ONG et de la plateforme */}
+            {/* Panneau gauche : informations de connexion uniquement */}
             <aside className="hidden lg:flex lg:w-1/2 bg-emerald-900 text-white flex-col justify-between gap-10 px-12 py-10 relative overflow-y-auto border-r border-emerald-800 z-10">
                 <div className="flex items-center gap-3.5">
                     <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm shrink-0">
@@ -157,28 +149,11 @@ const Login = () => {
                             <ShieldCheck size={14} /> Plateforme Sécurisée
                         </div>
                         <h1 className="text-3xl font-display font-bold leading-tight tracking-tight">
-                            Gestion centralisée et suivi des activités.
+                            Accédez à votre espace de travail.
                         </h1>
                         <p className="text-emerald-100/90 text-sm leading-relaxed font-medium">
-                            Accédez à votre espace de travail pour administrer les membres, suivre les rapports et gérer les enregistrements en toute sécurité au sein de l'ONG.
+                            Connectez-vous avec votre compte pour accéder à la plateforme de l'ONG en toute sécurité.
                         </p>
-                    </div>
-
-                    <div>
-                        <h2 className="text-sm font-display font-semibold text-white mb-3">Ce que vous pouvez faire</h2>
-                        <ul className="space-y-3">
-                            {features.map(({ icon: Icon, title, text }) => (
-                                <li key={title} className="flex items-start gap-3">
-                                    <span className="h-8 w-8 rounded-lg bg-white/10 ring-1 ring-white/15 flex items-center justify-center shrink-0">
-                                        <Icon size={16} className="text-emerald-200" />
-                                    </span>
-                                    <div className="min-w-0">
-                                        <span className="block text-sm font-semibold text-white leading-tight">{title}</span>
-                                        <span className="block text-[13px] text-emerald-100/80 leading-snug mt-0.5">{text}</span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
                     </div>
 
                     <div className="rounded-lg bg-emerald-950/40 ring-1 ring-white/10 px-4 py-3.5">
