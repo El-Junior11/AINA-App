@@ -19,7 +19,6 @@ const Toast=Swal.mixin({
   }
 });
 
-// Classes partagées pour garder des champs de formulaire cohérents (mêmes que MembresList)
 const fieldClass =
   'w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
 const labelClass = 'block text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5';
@@ -47,9 +46,10 @@ const GroupePage=()=>{
 
   useEffect(()=>{fetchData()},[]);
 
+  // Recherche toute colonne (recherche globale sur tous les champs de l'objet)
   useEffect(()=>{
     const results=groupes.filter(g=>{
-      const searchTarget=`${g.nomgs} ${g.nummenage} ${g.commune} ${g.fokontany} ${g.village}`.toLowerCase();
+      const searchTarget=Object.values(g).join(' ').toLowerCase();
       return searchTarget.includes(searchTerm.toLowerCase());
     });
     setFilteredGroupes(results);
@@ -147,17 +147,35 @@ const GroupePage=()=>{
     }
   };
 
+  // Gestion de la saisie des ménages pour accepter uniquement des chiffres séparés par des virgules (ex: 1, 2, 12 sans zéros superflus au début)
+  const handleMenageChange = (e) => {
+    const rawValue = e.target.value;
+    // Autoriser uniquement les chiffres et les virgules
+    const filtered = rawValue.replace(/[^0-9,]/g, '');
+    
+    // Nettoyer chaque nombre pour enlever les zéros initiaux (ex: "01" -> "1")
+    const cleaned = filtered
+      .split(',')
+      .map(item => {
+        const trimmed = item.trim();
+        return trimmed === '' ? '' : String(Number(trimmed));
+      })
+      .join(', ');
+
+    setFormData({...formData, nummenage: cleaned});
+  };
+
   const handleSubmit=async(e)=>{
     e.preventDefault();
 
-    const inputMenages=formData.nummenage.split(',').map(m=>m.trim().toUpperCase()).filter(m=>m!=='');
+    const inputMenages=formData.nummenage.split(',').map(m=>m.trim()).filter(m=>m!=='');
     const existingMenages=new Set();
 
     groupes.forEach(g=>{
       if(editingId&&g.codegs===editingId)return;
       if(g.nummenage){
         g.nummenage.split(',').forEach(m=>{
-          const cleaned=m.trim().toUpperCase();
+          const cleaned=m.trim();
           if(cleaned)existingMenages.add(cleaned);
         });
       }
@@ -260,8 +278,8 @@ const GroupePage=()=>{
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" size={17}/>
           <input
             type="text"
-            placeholder="Rechercher un groupe, un ménage ou un lieu..."
-            aria-label="Rechercher un groupe, un ménage ou un lieu"
+            placeholder="Recherche globale sur toutes les colonnes..."
+            aria-label="Recherche globale sur toutes les colonnes"
             className="w-full h-10 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
             value={searchTerm}
             onChange={e=>setSearchTerm(e.target.value)}
@@ -338,8 +356,9 @@ const GroupePage=()=>{
                 <tr>
                   <th className="px-5 py-3 w-16 font-semibold">N°</th>
                   <th className="px-5 py-3 min-w-[200px] font-semibold">Nom du groupe</th>
-                  <th className="px-5 py-3 min-w-[220px] font-semibold">Ménages rattachés</th>
-                  <th className="px-5 py-3 min-w-[260px] font-semibold">Localisation</th>
+                  <th className="px-5 py-3 min-w-[160px] font-semibold">Date de création</th>
+                  <th className="px-5 py-3 min-w-[200px] font-semibold">Ménages rattachés</th>
+                  <th className="px-5 py-3 min-w-[240px] font-semibold">Localisation</th>
                   <th className="px-5 py-3 text-right w-24 sticky right-0 bg-slate-50 dark:bg-slate-800 font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -347,7 +366,7 @@ const GroupePage=()=>{
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loading?(
                   <tr>
-                    <td colSpan={5} className="p-12 text-center">
+                    <td colSpan={6} className="p-12 text-center">
                       <Loader2 size={26} className="animate-spin inline text-emerald-600" aria-label="Chargement"/>
                     </td>
                   </tr>
@@ -362,14 +381,20 @@ const GroupePage=()=>{
                         </span>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-900 dark:text-white capitalize truncate">{g.nomgs}</p>
-                          {g.date_creation&&(
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1 tabular-nums">
-                              <Calendar size={11}/>
-                              {new Date(g.date_creation).toLocaleDateString()}
-                            </p>
-                          )}
                         </div>
                       </div>
+                    </td>
+
+                    {/* Colonne Date de création séparée */}
+                    <td className="px-5 py-3">
+                      {g.date_creation?(
+                        <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1.5 tabular-nums">
+                          <Calendar size={14} className="text-slate-400"/>
+                          {new Date(g.date_creation).toLocaleDateString()}
+                        </span>
+                      ):(
+                        <span className="text-sm text-slate-400">-</span>
+                      )}
                     </td>
 
                     <td className="px-5 py-3">
@@ -412,7 +437,7 @@ const GroupePage=()=>{
 
                 {!loading&&filteredGroupes.length===0&&(
                   <tr>
-                    <td colSpan={5} className="p-12 text-center text-slate-500 dark:text-slate-400 text-sm">Aucun groupe trouvé</td>
+                    <td colSpan={6} className="p-12 text-center text-slate-500 dark:text-slate-400 text-sm">Aucun groupe trouvé</td>
                   </tr>
                 )}
               </tbody>
@@ -540,8 +565,16 @@ const GroupePage=()=>{
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label htmlFor="g-menages" className={labelClass}>Ménages rattachés *</label>
-                  <input id="g-menages" type="text" required placeholder="Ex: M001, M002, M003" className={`${fieldClass} font-medium tabular-nums`} value={formData.nummenage} onChange={e=>setFormData({...formData,nummenage:e.target.value})}/>
+                  <label htmlFor="g-menages" className={labelClass}>Ménages rattachés * (Chiffres uniquement, séparés par des virgules)</label>
+                  <input 
+                    id="g-menages" 
+                    type="text" 
+                    required 
+                    placeholder="Ex: 1, 2, 3" 
+                    className={`${fieldClass} font-medium tabular-nums`} 
+                    value={formData.nummenage} 
+                    onChange={handleMenageChange}
+                  />
                 </div>
               </div>
 

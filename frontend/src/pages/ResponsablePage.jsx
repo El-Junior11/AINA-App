@@ -45,7 +45,8 @@ const ResponsablePage=()=>{
   const [showExportMenu,setShowExportMenu]=useState(false);
   const [formData,setFormData]=useState({NumMembre:'',Poste:'',CodeRp:null,nom_complet:'',nomgs:''});
 
-  const postesDisponibles=['President','Tresorier','Secretaire','Conseiller','Membres'];
+  // "Aucune poste" no apetraka voalohany eto amin'ny lisitra ahafahana misafidy malalaka
+  const postesDisponibles=['Aucun poste','President','Tresorier','Secretaire','Conseiller','Membres'];
 
   useEffect(()=>{fetchData()},[]);
 
@@ -80,7 +81,8 @@ const ResponsablePage=()=>{
           ...m,
           nom_complet:`${m.nom_membre||''} ${m.prenom_membre||''}`.trim(),
           nomgs:matchingGroup?(matchingGroup.nomgs||'Groupe sans nom'):'Aucun groupe',
-          Poste:matchingRespo?matchingRespo.Poste:'Membres',
+          // Raha tsy misy post voasoratra dia "Aucun poste" no miseho ho azy
+          Poste:matchingRespo&&matchingRespo.Poste?matchingRespo.Poste:'Aucun poste',
           CodeRp:matchingRespo?(matchingRespo.CodeRp||matchingRespo.coderp):null,
           sexe:m.sexe||m.Sexe||'M'
         };
@@ -340,15 +342,15 @@ const ResponsablePage=()=>{
                       )}
                     </td>
                     <td className="px-5 py-2.5">
-                      {r.Poste==='Membres'?(
-                        <span className="text-sm text-slate-500 dark:text-slate-400">{r.Poste}</span>
+                      {r.Poste==='Aucun poste'?(
+                        <span className="text-sm text-slate-400 dark:text-slate-500 italic">{r.Poste}</span>
                       ):(
                         <span className="px-2.5 py-1 rounded-md text-xs font-medium inline-flex bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900">{r.Poste}</span>
                       )}
                     </td>
                     <td className="px-5 py-2.5 text-center w-24 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
                       <button
-                        onClick={()=>{setFormData({NumMembre:r.nummembre||r.NumMembre||r.id||'',Poste:r.Poste||'',CodeRp:r.CodeRp||null,nom_complet:r.nom_complet||'',nomgs:r.nomgs||''});setShowModal(true)}}
+                        onClick={()=>{setFormData({NumMembre:r.nummembre||r.NumMembre||r.id||'',Poste:r.Poste==='Aucun poste'?'Membres':(r.Poste||''),CodeRp:r.CodeRp||null,nom_complet:r.nom_complet||'',nomgs:r.nomgs||''});setShowModal(true)}}
                         title="Modifier"
                         aria-label="Modifier le poste de ce membre"
                         className={`p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
