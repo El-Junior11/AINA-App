@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 // Palette sobre, alignée sur le reste de l'application
-const COLORS = ['#0284c7', '#047857', '#d97706', '#64748b', '#e11d48'];
+const COLORS = ['#0284c7', '#16a34a', '#f59e0b', '#6366f1', '#e11d48'];
 
 // Couleurs des graphiques selon le thème clair / sombre
 const getChartTheme = (isDark) => isDark
@@ -405,8 +405,9 @@ const Dashboard = () => {
                   cy="50%"
                   innerRadius={45}
                   outerRadius={75}
-                  paddingAngle={3}
-                  stroke="none"
+                  paddingAngle={2}
+                  stroke={isDark ? "#0f172a" : "#ffffff"}
+                  strokeWidth={2}
                   label={{ fill: theme.tick, fontSize: 12 }}
                 >
                   {stats.resumeData?.map((entry, index) => (
@@ -431,7 +432,7 @@ const Dashboard = () => {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={axisTick} />
                 <YAxis axisLine={false} tickLine={false} tick={axisTick} />
                 <Tooltip cursor={{ fill: theme.cursor }} contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Bar dataKey="valeur" fill="#047857" radius={[4, 4, 0, 0]} barSize={28} />
+                <Bar dataKey="valeur" fill="#16a34a" fillOpacity={1} radius={[5, 5, 0, 0]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -450,7 +451,7 @@ const Dashboard = () => {
                 <XAxis type="number" axisLine={false} tickLine={false} tick={axisTick} unit="%" />
                 <YAxis dataKey="year" type="category" axisLine={false} tickLine={false} tick={axisTick} />
                 <Tooltip cursor={{ fill: theme.cursor }} formatter={(value) => [`${value}%`, 'Répartition']} contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Bar dataKey="pourcentage" fill="#0284c7" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="pourcentage" fill="#0284c7" fillOpacity={1} radius={[0, 5, 5, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -463,16 +464,10 @@ const Dashboard = () => {
           >
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.ageData}>
-                <defs>
-                  <linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#0284c7" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={axisTick} />
                 <YAxis axisLine={false} tickLine={false} tick={axisTick} />
                 <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Area type="monotone" dataKey="value" stroke="#0284c7" strokeWidth={2} fillOpacity={1} fill="url(#colorAge)" />
+                <Area type="monotone" dataKey="value" stroke="#0369a1" strokeWidth={2} fillOpacity={1} fill="#0284c7" />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -518,7 +513,7 @@ const Dashboard = () => {
           >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={stats.respData} innerRadius={0} outerRadius={75} paddingAngle={2} dataKey="valeur" stroke="none" label={{ fill: theme.tick, fontSize: 12 }}>
+                <Pie data={stats.respData} innerRadius={0} outerRadius={75} paddingAngle={2} dataKey="valeur" stroke={isDark ? "#0f172a" : "#ffffff"} strokeWidth={2} label={{ fill: theme.tick, fontSize: 12 }}>
                   {stats.respData?.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
