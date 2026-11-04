@@ -2,8 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import axios from '../api/axios';
 import { UserPlus, User, Mail, Lock, CheckCircle2, ShieldCheck, X, Eye, EyeOff } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import logo from '../assets/logo.png';
+
+// Classes partagées pour garder des champs de formulaire cohérents avec le reste de l'application
+const fieldClass =
+    'w-full h-11 px-3.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-colors hover:border-slate-400 dark:hover:border-slate-600 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
+const labelClass = 'flex items-center gap-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5';
+const labelIconClass = 'text-slate-500 dark:text-slate-400 shrink-0';
+const focusRing =
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-950';
 
 const Register = () => {
     const [searchParams] = useSearchParams();
@@ -21,6 +29,7 @@ const Register = () => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
+    const prefersReducedMotion = useReducedMotion();
 
     useEffect(() => {
         setFormData(prev => ({
@@ -66,7 +75,7 @@ const Register = () => {
     const isAdmin = formData.role === 'admin';
 
     return (
-        <div className="h-screen w-full flex bg-slate-50 font-body text-slate-900 overflow-hidden relative">
+        <div className="h-screen w-full flex bg-white dark:bg-slate-950 font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
                 .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
@@ -74,11 +83,15 @@ const Register = () => {
             `}</style>
 
             {/* Fizarana Ankavia : Nohafohezina ho fohy sy milamina tsara */}
-            <div className="hidden lg:flex lg:w-1/2 bg-emerald-900 text-white flex-col justify-between p-12 relative overflow-hidden border-r border-emerald-800 z-10">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 opacity-95" />
-                
-                <div className="relative z-10 flex items-center gap-3.5">
-                    <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm">
+            <aside
+                className="hidden lg:flex lg:w-[46%] xl:w-1/2 bg-emerald-900 text-white flex-col justify-between gap-10 px-12 xl:px-16 py-10 relative overflow-y-auto z-10"
+                style={{
+                    backgroundImage: 'radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px'
+                }}
+            >
+                <div className="flex items-center gap-3.5">
+                    <div className="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/30 overflow-hidden p-0.5 shadow-sm shrink-0">
                         <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
@@ -87,64 +100,66 @@ const Register = () => {
                     </div>
                 </div>
 
-                <div className="relative z-10 max-w-md space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/80 text-emerald-200 text-xs font-semibold ring-1 ring-emerald-600/50">
-                        <ShieldCheck size={14} /> Plateforme Sécurisée
+                <div className="max-w-lg space-y-9">
+                    <div className="space-y-4">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-100 text-xs font-medium ring-1 ring-white/15">
+                            <ShieldCheck size={14} /> Plateforme Sécurisée
+                        </div>
+                        <h1 className="text-4xl font-display font-bold leading-[1.15] tracking-tight">
+                            Rejoignez notre réseau de collaboration.
+                        </h1>
+                        <p className="text-emerald-100/90 text-[15px] leading-relaxed">
+                            Créez votre compte pour participer à la gestion centralisée des membres et des activités de l'ONG Tsinjo Aina.
+                        </p>
                     </div>
-                    <h1 className="text-3xl font-display font-bold leading-tight tracking-tight">
-                        Rejoignez notre réseau de collaboration.
-                    </h1>
-                    <p className="text-emerald-100/90 text-sm leading-relaxed font-medium">
-                        Créez votre compte pour participer à la gestion centralisée des membres et des activités de l'ONG Tsinjo Aina.
-                    </p>
 
                     {/* Toromarika 2 fohy */}
-                    <div className="pt-2 space-y-2">
-                        <div className="flex items-center gap-2.5 text-xs font-medium text-emerald-100">
-                            <span className="w-5 h-5 rounded-full bg-emerald-700 text-white font-bold flex items-center justify-center shrink-0">1</span>
+                    <ol className="divide-y divide-white/10 border-y border-white/15">
+                        <li className="flex items-center gap-3 py-3.5 text-sm text-emerald-100/90">
+                            <span className="h-6 w-6 rounded-full bg-white/10 ring-1 ring-white/20 text-xs font-semibold text-white flex items-center justify-center shrink-0 tabular-nums">1</span>
                             <span>Remplissez le formulaire d'inscription.</span>
-                        </div>
-                        <div className="flex items-center gap-2.5 text-xs font-medium text-emerald-100">
-                            <span className="w-5 h-5 rounded-full bg-emerald-700 text-white font-bold flex items-center justify-center shrink-0">2</span>
+                        </li>
+                        <li className="flex items-center gap-3 py-3.5 text-sm text-emerald-100/90">
+                            <span className="h-6 w-6 rounded-full bg-white/10 ring-1 ring-white/20 text-xs font-semibold text-white flex items-center justify-center shrink-0 tabular-nums">2</span>
                             <span>Validation par l'administrateur et connexion.</span>
-                        </div>
-                    </div>
+                        </li>
+                    </ol>
                 </div>
 
-                <div className="relative z-10 text-xs text-emerald-200/70">
+                <div className="text-xs text-emerald-200/70">
                     © {new Date().getFullYear()} ONG Tsinjo Aina. Tous droits réservés.
                 </div>
-            </div>
+            </aside>
 
             {/* Fizarana Ankavanana : Formulaire d'Inscription madio tsara */}
-            <div className="flex-1 flex items-center justify-center p-6 relative z-10 overflow-y-auto bg-slate-50">
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                    className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 relative overflow-hidden border border-slate-200"
+            <div className="flex-1 flex items-center justify-center px-6 py-10 sm:px-10 relative z-10 overflow-y-auto bg-white dark:bg-slate-950">
+                <Link 
+                    to="/" 
+                    aria-label="Fermer et retourner à l'accueil"
+                    className={`absolute top-5 right-5 z-20 p-2 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
                 >
-                    <Link 
-                        to="/" 
-                        aria-label="Fermer et retourner à l'accueil"
-                        className="absolute top-4 right-4 z-20 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                        <X size={18} />
-                    </Link>
+                    <X size={18} />
+                </Link>
 
+                <motion.div 
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 110, damping: 18 }}
+                    className="w-full max-w-[400px] relative"
+                >
                     {/* Header Logo & Title */}
-                    <div className="text-center mb-6 relative z-10">
+                    <div className="mb-8 relative z-10">
                         {/* Logo boribory tsara amin'ny mobile */}
-                        <div className="w-14 h-14 rounded-full p-0.5 mx-auto mb-3 bg-emerald-50 ring-1 ring-emerald-100 overflow-hidden lg:hidden shadow-sm flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-full p-0.5 mb-5 bg-emerald-50 dark:bg-emerald-950/50 ring-1 ring-emerald-100 dark:ring-emerald-900/60 overflow-hidden lg:hidden shadow-sm flex items-center justify-center">
                             <img src={logo} alt="Logo" className="w-full h-full object-cover rounded-full" />
                         </div>
 
-                        <h2 className="text-xl font-display font-semibold text-slate-900 tracking-tight">Créer un compte</h2>
+                        <h2 className="text-2xl font-display font-semibold text-slate-900 dark:text-white tracking-tight">Créer un compte</h2>
                         
-                        <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded-md text-xs font-semibold ${
+                        <div className={`inline-flex items-center gap-1.5 mt-3 px-2.5 py-0.5 rounded-md text-xs font-semibold ${
                             isAdmin 
-                                ? 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200' 
-                                : 'bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200'
+                                ? 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:ring-sky-900' 
+                                : 'bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900'
                         }`}>
                             {isAdmin ? (
                                 <>
@@ -176,11 +191,11 @@ const Register = () => {
                                             custom={i} 
                                             variants={dotVariants} 
                                             animate="animate" 
-                                            className="absolute w-3 h-3 bg-gradient-to-br from-emerald-600 to-sky-500 rounded-full" 
+                                            className="absolute w-3 h-3 bg-emerald-600 rounded-full" 
                                         />
                                     ))}
                                 </div>
-                                <p className="text-sm text-slate-600 font-medium mt-2">Création de votre compte...</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mt-2">Création de votre compte...</p>
                             </motion.div>
                         ) : isSuccess ? (
                             <motion.div 
@@ -194,12 +209,12 @@ const Register = () => {
                                     initial={{ rotate: -45, opacity: 0 }}
                                     animate={{ rotate: 0, opacity: 1 }}
                                     transition={{ type: "spring", duration: 0.8 }}
-                                    className="inline-flex items-center justify-center w-14 h-14 bg-emerald-50 text-emerald-700 rounded-full mb-3 ring-1 ring-emerald-100"
+                                    className="inline-flex items-center justify-center w-14 h-14 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 rounded-full mb-3 ring-1 ring-emerald-100 dark:ring-emerald-900/60"
                                 >
                                     <CheckCircle2 size={28} />
                                 </motion.div>
-                                <h3 className="text-base font-display font-semibold text-slate-900">Compte créé avec succès !</h3>
-                                <p className="text-sm text-slate-500 mt-1">
+                                <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">Compte créé avec succès !</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                                     Redirection vers l'espace de connexion...
                                 </p>
                             </motion.div>
@@ -208,55 +223,64 @@ const Register = () => {
                                 <AnimatePresence>
                                     {error && (
                                         <motion.div 
+                                            role="alert"
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
-                                            className="bg-rose-50 border border-rose-200 text-rose-700 p-3 mb-4 rounded-lg text-xs font-medium"
+                                            className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 px-3.5 py-3 mb-5 rounded-lg text-[13px] font-medium"
                                         >
                                             {error}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
 
-                                <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+                                <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
                                     <div>
-                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Nom *</label>
-                                        <div className="relative">
-                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                                            <input
-                                                type="text"
-                                                required
-                                                className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
-                                                placeholder="Votre nom"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                            />
-                                        </div>
+                                        <label htmlFor="register-name" className={labelClass}>
+                                            <User size={14} className={labelIconClass} />
+                                            Nom *
+                                        </label>
+                                        <input
+                                            id="register-name"
+                                            type="text"
+                                            required
+                                            autoComplete="name"
+                                            className={fieldClass}
+                                            placeholder="Votre nom"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        />
                                     </div>
 
                                     <div>
-                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Adresse email *</label>
-                                        <div className="relative">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                                            <input
-                                                type="email"
-                                                required
-                                                className="w-full h-10 px-3 pl-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
-                                                placeholder="nom@exemple.com"
-                                                value={formData.email}
-                                                onChange={(e) => setFormData({...formData, email: e.target.value.toLowerCase()})}
-                                            />
-                                        </div>
+                                        <label htmlFor="register-email" className={labelClass}>
+                                            <Mail size={14} className={labelIconClass} />
+                                            Adresse email *
+                                        </label>
+                                        <input
+                                            id="register-email"
+                                            type="email"
+                                            required
+                                            autoComplete="email"
+                                            className={fieldClass}
+                                            placeholder="nom@exemple.com"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({...formData, email: e.target.value.toLowerCase()})}
+                                        />
                                     </div>
 
                                     <div>
-                                        <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Mot de passe *</label>
+                                        <label htmlFor="register-password" className={labelClass}>
+                                            <Lock size={14} className={labelIconClass} />
+                                            Mot de passe *
+                                        </label>
                                         <div className="relative">
-                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                                             <input
+                                                id="register-password"
                                                 type={showPassword ? "text" : "password"}
                                                 required
-                                                className="w-full h-10 px-3 pl-10 pr-10 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
+                                                autoComplete="new-password"
+                                                className={`${fieldClass} pr-11`}
                                                 placeholder="••••••••"
                                                 value={formData.password}
                                                 onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -264,17 +288,19 @@ const Register = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                                                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                                                aria-pressed={showPassword}
+                                                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ${focusRing}`}
                                             >
                                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="pt-2">
+                                    <div className="pt-1">
                                         <button
                                             type="submit"
-                                            className="w-full h-10 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer"
+                                            className={`w-full h-11 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer ${focusRing}`}
                                         >
                                             <UserPlus size={16} />
                                             <span>S'inscrire</span>
@@ -285,12 +311,12 @@ const Register = () => {
                         )}
                     </AnimatePresence>
 
-                    <div className="mt-5 text-center relative z-10 border-t border-slate-200 pt-4">
-                        <p className="text-slate-600 text-xs font-medium">
+                    <div className="mt-8 text-center relative z-10 border-t border-slate-200 dark:border-slate-800 pt-5">
+                        <p className="text-slate-600 dark:text-slate-400 text-[13px]">
                             Déjà un compte ?{' '}
                             <Link 
                                 to="/login" 
-                                className="text-emerald-700 font-semibold hover:underline"
+                                className={`text-emerald-700 dark:text-emerald-400 font-semibold hover:underline rounded ${focusRing}`}
                             >
                                 Se connecter
                             </Link>
