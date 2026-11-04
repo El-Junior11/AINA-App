@@ -9,7 +9,7 @@ import bgImage from '../assets/inter.png';
 // Titres animés : première ligne en bleu, seconde ligne en vert
 const titles = [
   { first: 'Agir pour un avenir', second: 'durable' },
-  { first: 'ONG Tsinjo Aina', second: 'Fianarantsoa' },
+  { first: 'ONG TSINJO AINA', second: 'Fianarantsoa' },
   { first: 'Haute Matsiatra,', second: 'Madagascar' },
 ];
 
