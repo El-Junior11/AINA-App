@@ -95,7 +95,7 @@ const Register = () => {
                         <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
-                        <span className="font-display font-bold text-base tracking-tight block">ONG Tsinjo Aina</span>
+                        <span className="font-display font-bold text-base tracking-tight block">ONG TSINJO AINA</span>
                         <span className="text-xs text-emerald-200 font-medium">Fianarantsoa, Madagascar</span>
                     </div>
                 </div>
@@ -127,7 +127,7 @@ const Register = () => {
                 </div>
 
                 <div className="text-xs text-emerald-200/70">
-                    © {new Date().getFullYear()} ONG Tsinjo Aina. Tous droits réservés.
+                    © {new Date().getFullYear()} ONG TSINJO AINA. Tous droits réservés.
                 </div>
             </aside>
 

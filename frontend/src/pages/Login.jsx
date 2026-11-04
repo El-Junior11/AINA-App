@@ -7,7 +7,6 @@ import toast, { Toaster } from 'react-hot-toast';
 import api from '../api/axios'; 
 import logo from '../assets/logo.png';
 
-// Classes partagées pour garder des champs de formulaire cohérents avec le reste de l'application
 const fieldClass =
     'w-full h-11 px-3.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-colors hover:border-slate-400 dark:hover:border-slate-600 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
 const labelClass = 'flex items-center gap-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5';
@@ -17,7 +16,6 @@ const focusRing =
 const primaryButton =
     'w-full h-11 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors cursor-pointer';
 
-// Informations de connexion affichées dans le panneau d'information (côté gauche)
 const securityPoints = [
     'Connectez-vous avec votre adresse email et votre mot de passe.',
     'Vos identifiants sont strictement personnels.',
@@ -147,7 +145,7 @@ const Login = () => {
                         <img src={logo} alt="Logo" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
-                        <span className="font-display font-bold text-base tracking-tight block">ONG Tsinjo Aina</span>
+                        <span className="font-display font-bold text-base tracking-tight block">ONG TSINJO AINA</span>
                         <span className="text-xs text-emerald-200 font-medium">Fianarantsoa, Madagascar</span>
                     </div>
                 </div>
@@ -181,7 +179,7 @@ const Login = () => {
                 </div>
 
                 <div className="text-xs text-emerald-200/70">
-                    © {new Date().getFullYear()} ONG Tsinjo Aina. Tous droits réservés.
+                    © {new Date().getFullYear()} ONG TSINJO AINA. Tous droits réservés.
                 </div>
             </aside>
 
