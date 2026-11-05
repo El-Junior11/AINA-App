@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from '../api/axios';
 import domtoimage from 'dom-to-image-more';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, AreaChart, Area
+  AreaChart, Area
 } from 'recharts';
 import {
   Users, Building2, Network, ShieldCheck, GraduationCap,
@@ -11,8 +11,14 @@ import {
   AlertTriangle, RefreshCw, Inbox
 } from 'lucide-react';
 
-// Palette sobre, alignée sur le reste de l'application
-const COLORS = ['#0284c7', '#16a34a', '#f59e0b', '#6366f1', '#e11d48'];
+// Couleurs des camemberts solides : haut du dégradé, bas du dégradé, couleur de la tranche
+const SOLID_COLORS = [
+  { top1: '#38bdf8', top2: '#0284c7', side: '#075985' }, // bleu
+  { top1: '#34d399', top2: '#047857', side: '#064e3b' }, // vert
+  { top1: '#fbbf24', top2: '#d97706', side: '#92400e' }, // ambre
+  { top1: '#94a3b8', top2: '#475569', side: '#1e293b' }, // ardoise
+  { top1: '#fb7185', top2: '#e11d48', side: '#9f1239' }  // rose
+];
 
 // Couleurs des graphiques selon le thème clair / sombre
 const getChartTheme = (isDark) => isDark
@@ -97,6 +103,7 @@ const ChartCard = ({ id, filename, title, icon: Icon, downloading, onDownload, i
 );
 
 // Camembert en perspective (3D) : pourcentages dans les parts, tranche visible sur le bord avant
+// (utilisé pour « Maturité des réseaux »)
 const Pie3D = ({ slices }) => {
   const cx = 130;
   const cy = 78;
@@ -213,6 +220,250 @@ const Pie3D = ({ slices }) => {
   );
 };
 
+// Camembert / anneau solide en perspective, avec infobulle au survol et légende à droite
+// (innerRatio = 0 : camembert plein ; 0.55 : anneau)
+const SolidPie = ({ data, nameKey, valueKey, innerRatio = 0, idPrefix, tooltipStyle }) => {
+  const cx = 130;
+  const cy = 78;
+  const rx = 108;
+  const ry = 64;
+  const depth = 24;
+  const k = innerRatio;
+
+  const wrapRef = useRef(null);
+  const [hovered, setHovered] = useState(null);
+  const [tip, setTip] = useState(null);
+
+  const items = (data || []).map((d, i) => ({
+    index: i,
+    label: String(d?.[nameKey] ?? ''),
+    value: Number(d?.[valueKey]) || 0,
+    ...SOLID_COLORS[i % SOLID_COLORS.length]
+  }));
+  const total = items.reduce((sum, it) => sum + it.value, 0);
+  const safeTotal = total || 1;
+  const withPct = items.map((it) => ({ ...it, pct: Math.round((it.value / safeTotal) * 100) }));
+  const visible = withPct.filter((it) => it.value > 0);
+
+  // Point sur l'ellipse (angle en radians, 0 = droite, sens horaire à l'écran)
+  const point = (angle, dy = 0, m = 1) => [
+    cx + rx * m * Math.cos(angle),
+    cy + ry * m * Math.sin(angle) + dy
+  ];
+
+  let angle = -Math.PI / 2; // départ à midi
+  let arcs = visible.map((it) => {
+    const sweep = (it.value / safeTotal) * Math.PI * 2;
+    const arc = { ...it, a1: angle, a2: angle + sweep };
+    angle += sweep;
+    return arc;
+  });
+
+  // Une seule part à 100 % : on la coupe en deux demi-parts pour éviter un arc dégénéré
+  const isFull = arcs.length === 1;
+  if (isFull) {
+    const only = arcs[0];
+    arcs = [
+      { ...only, a1: -Math.PI / 2, a2: Math.PI / 2, part: 0 },
+      { ...only, a1: Math.PI / 2, a2: Math.PI * 1.5, part: 1 }
+    ];
+  }
+
+  const labelRadius = k > 0 ? (1 + k) / 2 : 0.62;
+
+  const handleMove = (e, it) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setHovered(it.index);
+    setTip({ x: e.clientX - rect.left, y: e.clientY - rect.top, text: `${it.label} : ${it.value}` });
+  };
+  const handleLeave = () => {
+    setHovered(null);
+    setTip(null);
+  };
+  const sliceStyle = (it) => ({
+    opacity: hovered !== null && hovered !== it.index ? 0.8 : 1,
+    transition: 'opacity 150ms ease',
+    cursor: 'default'
+  });
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 h-full">
+      <div ref={wrapRef} className="relative w-full max-w-[300px]">
+        <svg
+          viewBox="0 0 260 180"
+          className="w-full h-auto"
+          role="img"
+          aria-label={withPct.map((it) => `${it.label} : ${it.value}`).join(', ')}
+        >
+          <defs>
+            {withPct.map((it) => (
+              <linearGradient key={it.index} id={`${idPrefix}-grad-${it.index}`} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor={it.top1} />
+                <stop offset="1" stopColor={it.top2} />
+              </linearGradient>
+            ))}
+          </defs>
+
+          {/* Ombre portée */}
+          <ellipse cx={cx} cy={cy + depth + 8} rx={rx * 0.92} ry={ry * 0.42} fill="#0f172a" opacity="0.1" />
+
+          {/* Paroi intérieure de l'anneau (partie arrière, visible à travers le trou) */}
+          {k > 0 && arcs.map((it) => {
+            const intervals = [
+              [Math.max(it.a1, -Math.PI / 2), Math.min(it.a2, 0)],
+              [Math.max(it.a1, Math.PI), Math.min(it.a2, Math.PI * 1.5)]
+            ];
+            return intervals.map(([s, e], n) => {
+              if (s >= e) return null;
+              const [xs, ys] = point(s, 0, k);
+              const [xe, ye] = point(e, 0, k);
+              return (
+                <path
+                  key={`inner-${it.index}-${it.part ?? 0}-${n}`}
+                  d={`M ${xs} ${ys} A ${rx * k} ${ry * k} 0 0 1 ${xe} ${ye} L ${xe} ${ye + depth} A ${rx * k} ${ry * k} 0 0 0 ${xs} ${ys + depth} Z`}
+                  fill={it.side}
+                  style={sliceStyle(it)}
+                />
+              );
+            });
+          })}
+
+          {/* Tranche extérieure (bord avant) */}
+          {arcs.map((it) => {
+            const start = Math.max(it.a1, 0);
+            const end = Math.min(it.a2, Math.PI);
+            if (start >= end) return null;
+            const [xs, ys] = point(start);
+            const [xe, ye] = point(end);
+            return (
+              <path
+                key={`wall-${it.index}-${it.part ?? 0}`}
+                d={`M ${xs} ${ys} L ${xs} ${ys + depth} A ${rx} ${ry} 0 0 1 ${xe} ${ye + depth} L ${xe} ${ye} A ${rx} ${ry} 0 0 0 ${xs} ${ys} Z`}
+                fill={it.side}
+                style={sliceStyle(it)}
+                onMouseMove={(e) => handleMove(e, it)}
+                onMouseLeave={handleLeave}
+              />
+            );
+          })}
+
+          {/* Dessus */}
+          {arcs.map((it) => {
+            const [x1, y1] = point(it.a1);
+            const [x2, y2] = point(it.a2);
+            const large = it.a2 - it.a1 > Math.PI ? 1 : 0;
+            const d = k > 0
+              ? (() => {
+                  const [xi1, yi1] = point(it.a1, 0, k);
+                  const [xi2, yi2] = point(it.a2, 0, k);
+                  return `M ${x1} ${y1} A ${rx} ${ry} 0 ${large} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${rx * k} ${ry * k} 0 ${large} 0 ${xi1} ${yi1} Z`;
+                })()
+              : `M ${cx} ${cy} L ${x1} ${y1} A ${rx} ${ry} 0 ${large} 1 ${x2} ${y2} Z`;
+            return (
+              <path
+                key={`top-${it.index}-${it.part ?? 0}`}
+                d={d}
+                fill={`url(#${idPrefix}-grad-${it.index})`}
+                stroke={isFull ? 'none' : '#ffffff'}
+                strokeOpacity="0.55"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+                style={{
+                  ...sliceStyle(it),
+                  filter: hovered === it.index ? 'brightness(1.08)' : undefined
+                }}
+                onMouseMove={(e) => handleMove(e, it)}
+                onMouseLeave={handleLeave}
+              />
+            );
+          })}
+
+          {/* Pourcentages */}
+          {arcs.map((it) => {
+            if (isFull && it.part !== 0) return null;
+            if (it.pct < 5) return null;
+            const [lx, ly] = isFull
+              ? point(Math.PI / 2, 0, labelRadius)
+              : point((it.a1 + it.a2) / 2, 0, labelRadius);
+            return (
+              <text
+                key={`label-${it.index}`}
+                x={lx}
+                y={ly}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={k > 0 ? 14 : 16}
+                fontWeight="700"
+                fill="#ffffff"
+                stroke="rgba(15,23,42,0.35)"
+                strokeWidth="3"
+                paintOrder="stroke"
+                pointerEvents="none"
+              >
+                {it.pct}%
+              </text>
+            );
+          })}
+        </svg>
+
+        {tip && (
+          <div
+            style={{
+              ...tooltipStyle,
+              position: 'absolute',
+              left: tip.x,
+              top: tip.y,
+              transform: 'translate(-50%, -130%)',
+              padding: '6px 10px',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              zIndex: 30
+            }}
+          >
+            {tip.text}
+          </div>
+        )}
+      </div>
+
+      <ul className="flex sm:flex-col flex-wrap justify-center gap-x-5 gap-y-2.5 shrink-0 max-h-[200px] overflow-y-auto">
+        {withPct.map((it) => (
+          <li key={it.index} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <span
+              className="h-3 w-3 rounded-sm shrink-0"
+              style={{ background: `linear-gradient(135deg, ${it.top1}, ${it.top2})` }}
+              aria-hidden="true"
+            />
+            <span className="font-medium">{it.label}</span>
+            <span className="text-slate-400 dark:text-slate-500 tabular-nums">{it.value}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+// Barre solide : face avant, dessus et côté droit (fonctionne pour les barres verticales et horizontales)
+const Bar3D = ({ x, y, width, height, gradient, top, side }) => {
+  if (x == null || y == null) return null;
+  let xx = x;
+  let yy = y;
+  let w = width;
+  let h = height;
+  if (h < 0) { yy = y + h; h = -h; }
+  if (w < 0) { xx = x + w; w = -w; }
+  if (!w || !h) return null;
+  const dx = 8;
+  const dy = 5;
+  return (
+    <g>
+      <path d={`M ${xx + w} ${yy} L ${xx + w + dx} ${yy - dy} L ${xx + w + dx} ${yy + h - dy} L ${xx + w} ${yy + h} Z`} fill={side} />
+      <path d={`M ${xx} ${yy} L ${xx + dx} ${yy - dy} L ${xx + w + dx} ${yy - dy} L ${xx + w} ${yy} Z`} fill={top} />
+      <rect x={xx} y={yy} width={w} height={h} fill={gradient} />
+    </g>
+  );
+};
+
 // --- Main component ----------------------------------------------------
 
 const Dashboard = () => {
@@ -321,7 +572,6 @@ const Dashboard = () => {
   const theme = getChartTheme(isDark);
   const tooltipStyle = getTooltipStyle(theme);
   const axisTick = { fontSize: 11, fill: theme.tick };
-  const legendFormatter = (value) => <span style={{ color: theme.legend }}>{value}</span>;
 
   const reseauxTotal = stats.kpis.reseaux || 0;
   const reseauxAutonomes = stats.kpis.reseauxAutonomes || 0;
@@ -343,6 +593,7 @@ const Dashboard = () => {
         .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
         .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
         .recharts-wrapper text, .recharts-legend-wrapper{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+        .solid-area .recharts-area-area{filter:drop-shadow(6px 5px 0 #075985)}
         @media (prefers-reduced-motion: reduce){.animate-in{animation:none!important}}
       `}</style>
 
@@ -389,87 +640,100 @@ const Dashboard = () => {
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* 1. Équilibre du programme */}
+          {/* 1. Équilibre du programme : anneau solide */}
           <ChartCard
             id="chart-equilibre" filename="equilibre-programme" title="Équilibre du programme"
             icon={PieIcon} downloading={downloading} onDownload={downloadChart}
             isEmpty={!stats.resumeData?.length}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={stats.resumeData}
-                  dataKey="A"
-                  nameKey="subject"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={45}
-                  outerRadius={75}
-                  paddingAngle={2}
-                  stroke={isDark ? "#0f172a" : "#ffffff"}
-                  strokeWidth={2}
-                  label={{ fill: theme.tick, fontSize: 12 }}
-                >
-                  {stats.resumeData?.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Legend iconType="circle" formatter={legendFormatter} wrapperStyle={{ fontSize: '11px', fontWeight: '500' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <SolidPie
+              data={stats.resumeData}
+              nameKey="subject"
+              valueKey="A"
+              innerRatio={0.55}
+              idPrefix="equilibre"
+              tooltipStyle={tooltipStyle}
+            />
           </ChartCard>
 
-          {/* 2. Taux de maîtrise par module */}
+          {/* 2. Taux de maîtrise par module : barres solides */}
           <ChartCard
             id="chart-modules" filename="taux-maitrise-modules" title="Taux de maîtrise par module"
             icon={Activity} downloading={downloading} onDownload={downloadChart}
             isEmpty={!stats.moduleStats?.length}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.moduleStats}>
+              <BarChart data={stats.moduleStats} margin={{ top: 14, right: 18, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="bar3d-modules" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stopColor="#10b981" />
+                    <stop offset="1" stopColor="#047857" />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.grid} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={axisTick} />
                 <YAxis axisLine={false} tickLine={false} tick={axisTick} />
                 <Tooltip cursor={{ fill: theme.cursor }} contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Bar dataKey="valeur" fill="#16a34a" fillOpacity={1} radius={[5, 5, 0, 0]} barSize={28} />
+                <Bar
+                  dataKey="valeur"
+                  barSize={28}
+                  shape={(props) => <Bar3D {...props} gradient="url(#bar3d-modules)" top="#6ee7b7" side="#064e3b" />}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* 3. Croissance des groupes */}
+          {/* 3. Croissance des groupes : barres horizontales solides */}
           <ChartCard
             id="chart-croissance" filename="croissance-groupes" title="Croissance des groupes (% par année)"
             icon={CalendarDays} downloading={downloading} onDownload={downloadChart}
             isEmpty={!stats.evolutionGS?.length}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart layout="vertical" data={stats.evolutionGS}>
+              <BarChart layout="vertical" data={stats.evolutionGS} margin={{ top: 10, right: 22, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="bar3d-groupes" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#38bdf8" />
+                    <stop offset="1" stopColor="#0284c7" />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.grid} />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={axisTick} unit="%" />
                 <YAxis dataKey="year" type="category" axisLine={false} tickLine={false} tick={axisTick} />
                 <Tooltip cursor={{ fill: theme.cursor }} formatter={(value) => [`${value}%`, 'Répartition']} contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Bar dataKey="pourcentage" fill="#0284c7" fillOpacity={1} radius={[0, 5, 5, 0]} barSize={20} />
+                <Bar
+                  dataKey="pourcentage"
+                  barSize={20}
+                  shape={(props) => <Bar3D {...props} gradient="url(#bar3d-groupes)" top="#7dd3fc" side="#075985" />}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          {/* 4. Pyramide des âges */}
+          {/* 4. Pyramide des âges : aire solide avec épaisseur */}
           <ChartCard
             id="chart-ages" filename="pyramide-ages" title="Pyramide des âges"
             icon={Users} downloading={downloading} onDownload={downloadChart}
             isEmpty={!stats.ageData?.length}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.ageData}>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={axisTick} />
-                <YAxis axisLine={false} tickLine={false} tick={axisTick} />
-                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Area type="monotone" dataKey="value" stroke="#0369a1" strokeWidth={2} fillOpacity={1} fill="#0284c7" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="solid-area h-full w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats.ageData} margin={{ top: 10, right: 14, left: 0, bottom: 6 }}>
+                  <defs>
+                    <linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#0369a1" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={axisTick} />
+                  <YAxis axisLine={false} tickLine={false} tick={axisTick} />
+                  <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
+                  <Area type="monotone" dataKey="value" stroke="#0369a1" strokeWidth={2} fillOpacity={1} fill="url(#colorAge)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </ChartCard>
         </div>
 
@@ -505,23 +769,20 @@ const Dashboard = () => {
             </div>
           </ChartCard>
 
-          {/* 6. Répartition des postes */}
+          {/* 6. Répartition des postes : camembert solide */}
           <ChartCard
             id="chart-postes" filename="repartition-postes" title="Répartition des postes"
             icon={ShieldCheck} downloading={downloading} onDownload={downloadChart}
             isEmpty={!stats.respData?.length}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={stats.respData} innerRadius={0} outerRadius={75} paddingAngle={2} dataKey="valeur" stroke={isDark ? "#0f172a" : "#ffffff"} strokeWidth={2} label={{ fill: theme.tick, fontSize: 12 }}>
-                  {stats.respData?.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Legend iconType="circle" formatter={legendFormatter} wrapperStyle={{ fontSize: '11px', fontWeight: '500' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <SolidPie
+              data={stats.respData}
+              nameKey="name"
+              valueKey="valeur"
+              innerRatio={0}
+              idPrefix="postes"
+              tooltipStyle={tooltipStyle}
+            />
           </ChartCard>
         </div>
       </div>
