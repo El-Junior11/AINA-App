@@ -1,4 +1,4 @@
-import React,{useState,useEffect} from 'react';
+import React,{useState,useEffect,useMemo,useCallback} from 'react';
 import axios from '../api/axios';
 import Swal from 'sweetalert2';
 import {Search,Save,X,Loader2,FileText,Download,RefreshCw,Sheet,Pencil,GraduationCap,Eye,ClipboardCheck} from 'lucide-react';
@@ -23,7 +23,6 @@ const outlineBtn=
 
 const FormationPage=()=>{
   const [data,setData]=useState([]);
-  const [filteredData,setFilteredData]=useState([]);
   const [searchTerm,setSearchTerm]=useState('');
   const navigate=useNavigate();
   const [loading,setLoading]=useState(true);
@@ -31,6 +30,10 @@ const FormationPage=()=>{
   const [showModal,setShowModal]=useState(false);
   const [showExportMenu,setShowExportMenu]=useState(false);
   const [selectedMembre,setSelectedMembre]=useState(null);
+  const [communeId,setCommuneId]=useState('');
+  const [communes,setCommunes]=useState([]);
+  const [isAdmin,setIsAdmin]=useState(false);
+  const [loadError,setLoadError]=useState('');
 
   const modules=[
     {id:'gestionsimplifiee',label:'Gestion'},
@@ -49,36 +52,46 @@ const FormationPage=()=>{
     {id:'autonomie',label:'Autonomie',isAuto:true}
   ];
 
-  const initialForm={nummembre:'',autre:'',...modules.reduce((acc,m)=>({...acc,[m.id]:false}),{})};
+  const initialForm={nummembre:'',autre:'',...modules.reduce((acc,m)=>({...acc,[m.id]:m.id==='autonomie'?0:false}),{})};
   const [formData,setFormData]=useState(initialForm);
   const getNomComplet=(membre)=>`${membre?.nom_membre||''} ${membre?.prenom_membre||''}`.trim();
-  useEffect(()=>{fetchData()},[]);
-  useEffect(()=>{
-    const search=searchTerm.toLowerCase().trim();
-    const results=data.filter(m=>{
-      const nomComplet=getNomComplet(m).toLowerCase();
-      const prenom=(m.prenom_membre||'').toLowerCase();
-      const nom=(m.nom_membre||'').toLowerCase();
-      const numero=(m.nummembre||'').toString().toLowerCase();
-      return `${prenom} ${nom} ${numero}`.includes(search)||nomComplet.includes(search)||nom.includes(search)||prenom.includes(search)||numero.includes(search);
-    });
-    setFilteredData(results);
-  },[searchTerm,data]);
-
-  const fetchData=async()=>{
+  const getStoredUser=()=>{try{return JSON.parse(localStorage.getItem('user')||'{}')}catch{return {}}};
+  useEffect(()=>{setIsAdmin(getStoredUser().role==='admin')},[]);
+  const fetchData=useCallback(async()=>{
     try{
-      setLoading(true);
-      const token=localStorage.getItem('token');
-      const config={headers:{'Authorization':`Bearer ${token}`}};
-      const res=await axios.get('/formations',config);
-      setData(res.data);
+      setLoading(true);setLoadError('');
+      const params=communeId?{commune_id:communeId}:{};
+      const res=await axios.get('/formations',{params});
+      setData(Array.isArray(res.data)?res.data:[]);
     }catch(err){
-      console.error(err);
+      console.error(err);setData([]);
+      setLoadError(err.response?.data?.message||'Erreur lors du chargement des formations');
       Toast.fire({icon:'error',title:'Erreur lors du chargement des données'});
-    }finally{
-      setLoading(false);
-    }
-  };
+    }finally{setLoading(false)}
+  },[communeId]);
+  useEffect(()=>{fetchData()},[fetchData]);
+  useEffect(()=>{
+    if(!isAdmin)return;
+    axios.get('/communes').then(res=>{
+      const list=Array.isArray(res.data)?res.data:res.data?.communes||res.data?.data||[];
+      if(Array.isArray(list))setCommunes(list);
+    }).catch(()=>{});
+  },[isAdmin]);
+  const communeOptions=useMemo(()=>{
+    const map=new Map();
+    communes.forEach(c=>{const key=c.id_commune??c.commune_id??c.id;if(key!=null)map.set(String(key),c.nom_commune||c.nom||`Commune ${key}`)});
+    data.forEach(m=>{const key=m.commune_id;if(key!=null&&!map.has(String(key)))map.set(String(key),m.commune?.nom_commune||m.Commune?.nom_commune||`Commune ${key}`)});
+    return [...map].map(([id,name])=>({id,name})).sort((x,y)=>x.name.localeCompare(y.name));
+  },[communes,data]);
+  const filteredData=useMemo(()=>{
+    const search=searchTerm.toLowerCase().trim();
+    return data.filter(m=>{
+      const name=`${m.nom_membre||''} ${m.prenom_membre||''} ${m.nummembre||''}`.toLowerCase();
+      const reverse=`${m.prenom_membre||''} ${m.nom_membre||''}`.toLowerCase();
+      return name.includes(search)||reverse.includes(search);
+    });
+  },[data,searchTerm]);
+  const currentCommune=communeOptions.find(c=>c.id===communeId)?.name||'Toutes les communes';
 
   const exportToPDF=async()=>{
     try{
@@ -112,9 +125,9 @@ const FormationPage=()=>{
       doc.text('Suivi des formations - ONG Tsinjo Aina',pageWidth/2,30,{align:'center'});
       doc.setFontSize(10);
       doc.setFont('helvetica','normal');
-      doc.text(`Date d'édition : ${today}`,pageWidth/2,36,{align:'center'});
+      doc.text(`Date d'édition : ${today} | ${isAdmin?currentCommune:'Ma commune'}`,pageWidth/2,36,{align:'center'});
       const tableColumn=['N°','Membre','Gestion','Agro-éco','Nutrition','Conservation','Transformation','Genre','Epracc','Autonomie'];
-      const tableRows=filteredData.map((m,i)=>[i+1,getNomComplet(m),m.formation?.gestionsimplifiee?'Oui':'Non',m.formation?.agroeco?'Oui':'Non',m.formation?.nutrition?'Oui':'Non',m.formation?.conservationproduit?'Oui':'Non',m.formation?.transformationproduit?'Oui':'Non',m.formation?.genre?'Oui':'Non',m.formation?.epracc?'Oui':'Non',m.formation?.autonomie?'Oui':'Non']);
+      const tableRows=filteredData.map((m,i)=>[i+1,getNomComplet(m),m.formation?.gestionsimplifiee?'Oui':'Non',m.formation?.agroeco?'Oui':'Non',m.formation?.nutrition?'Oui':'Non',m.formation?.conservationproduit?'Oui':'Non',m.formation?.transformationproduit?'Oui':'Non',m.formation?.genre?'Oui':'Non',m.formation?.epracc?'Oui':'Non',Number(m.formation?.autonomie)>0?'Oui':'Non']);
       autoTable(doc,{head:[tableColumn],body:tableRows,startY:40,styles:{fontSize:8}});
       doc.save('suivi_formations_filtre.pdf');
       setShowExportMenu(false);
@@ -129,8 +142,8 @@ const FormationPage=()=>{
     try{
       const excelData=filteredData.map((m,i)=>{
         const row={'N°':i+1,'Prénom':m.prenom_membre||'','Nom':m.nom_membre||'','Membre':getNomComplet(m),'ID':m.nummembre};
-        modules.forEach(mod=>{row[mod.label]=m.formation?.[mod.id]?'Oui':'Non'});
-        row.Autre=m.formation?.autre||'';
+        modules.forEach(mod=>{row[mod.label]=mod.id==='autonomie'?(Number(m.formation?.autonomie)>0?'Oui':'Non'):(m.formation?.[mod.id]?'Oui':'Non')});
+        row.Autre=m.formation?.autre||'';row.Commune=isAdmin?(communeOptions.find(c=>c.id===String(m.commune_id))?.name||`Commune ${m.commune_id}`):'Ma commune';
         return row;
       });
       const ws=XLSX.utils.json_to_sheet(excelData);
@@ -150,13 +163,13 @@ const FormationPage=()=>{
     newFormData.agroeco=newFormData.agroeau&&newFormData.agrosol&&newFormData.agrovegetaux;
     newFormData.nutrition=newFormData.nutritioneau&&newFormData.nutritionalimentaire;
     const manualModules=modules.filter(m=>!m.isAuto&&m.id!=='autonomie');
-    newFormData.autonomie=manualModules.every(m=>newFormData[m.id]===true);
+    newFormData.autonomie=manualModules.every(m=>newFormData[m.id]===true)?1:0;
     setFormData(newFormData);
   };
 
   const openEditModal=(m)=>{
     setSelectedMembre(m);
-    setFormData({...initialForm,...(m.formation||{}),nummembre:m.nummembre});
+    setFormData({...initialForm,...(m.formation||{}),autonomie:Number(m.formation?.autonomie)||0,nummembre:m.nummembre});
     setShowModal(true);
   };
 
@@ -165,10 +178,8 @@ const FormationPage=()=>{
     try{
       setSaving(true);
       const token=localStorage.getItem('token');
-      const storedUser=JSON.parse(localStorage.getItem('user'));
-      const userId=storedUser?.user_id||storedUser?.id;
       const config={headers:{'Authorization':`Bearer ${token}`}};
-      const dataToSave={...formData,user_id:userId,autonomie:formData.autonomie?1:0};
+      const {codeformation,user_id,deleted_at,...dataToSave}={...formData,autonomie:Number(formData.autonomie)?1:0};
       const res=await axios.post('/formations/save',dataToSave,config);
       if(res.status===200||res.status===201){
         setShowModal(false);
@@ -188,7 +199,7 @@ const FormationPage=()=>{
   const formatText=(text)=>text?text.charAt(0).toUpperCase()+text.slice(1).toLowerCase():'';
   const totalMembres=filteredData.length;
   const totalFormations=filteredData.reduce((total,m)=>total+modules.filter(mod=>!mod.isAuto&&m.formation?.[mod.id]).length,0);
-  const membresAutonomes=filteredData.filter(m=>m.formation?.autonomie).length;
+  const membresAutonomes=filteredData.filter(m=>Number(m.formation?.autonomie)>0).length;
   const membresNutrition=filteredData.filter(m=>m.formation?.nutrition).length;
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
@@ -237,12 +248,16 @@ const FormationPage=()=>{
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {isAdmin&&<select aria-label="Filtrer par commune" value={communeId} onChange={e=>setCommuneId(e.target.value)} className={`${outlineBtn} max-w-[220px]`}>
+            <option value="">Toutes les communes</option>
+            {communeOptions.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>}
           <button type="button" onClick={fetchData} disabled={loading} className={`${outlineBtn} shrink-0 disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}>
             <RefreshCw size={16} className={`text-slate-500 dark:text-slate-400 ${loading?'animate-spin':''}`}/>
             <span className="hidden sm:block">Actualiser</span>
           </button>
 
-          <button type="button" onClick={()=>navigate('/formation-stats')} className={`${outlineBtn} shrink-0 ${focusRing}`}>
+          <button type="button" onClick={()=>navigate(`/formation-stats${isAdmin&&communeId?`?commune_id=${encodeURIComponent(communeId)}`:''}`)} className={`${outlineBtn} shrink-0 ${focusRing}`}>
             <Eye size={16} className="text-slate-500 dark:text-slate-400"/>
             <span className="hidden sm:block">Voir plus</span>
           </button>
@@ -275,6 +290,7 @@ const FormationPage=()=>{
         </div>
       </div>
 
+      {loadError&&<p role="alert" className="px-6 pb-3 text-sm text-red-600">{loadError}</p>}
       {/* Tableau */}
       <div className="flex-1 overflow-hidden px-4 md:px-6 pb-5">
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
@@ -283,7 +299,7 @@ const FormationPage=()=>{
               <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800 text-[13px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-5 py-3 w-16 min-w-[4rem] max-w-[4rem] sticky left-0 z-20 bg-slate-50 dark:bg-slate-800 font-semibold">N°</th>
-                  <th className="px-5 py-3 min-w-[220px] sticky left-16 z-20 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 font-semibold">Membre</th>
+                  <th className="px-5 py-3 min-w-[220px] sticky left-16 z-20 bg-slate-50 dark:bg-slate-800 border-rborder-slate-200 dark:border-slate-700 font-semibold">Membre</th>
                   {modules.map(mod=><th key={mod.id} className="px-3 py-3 text-center min-w-[100px] font-semibold">{formatText(mod.label)}</th>)}
                   <th className="px-5 py-3 min-w-[150px] font-semibold">Autre</th>
                   <th className="px-5 py-3 text-right w-24 sticky right-0 bg-slate-50 dark:bg-slate-800 font-semibold">Actions</th>
@@ -309,7 +325,7 @@ const FormationPage=()=>{
                     </td>
                     {modules.map(mod=>(
                       <td key={mod.id} className="px-3 py-2.5 text-center">
-                        {m.formation?.[mod.id]?(
+                        {(mod.id==='autonomie'?Number(m.formation?.autonomie)>0:m.formation?.[mod.id])?(
                           <span className="px-2 py-0.5 rounded-md text-xs font-medium inline-flex bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900">Oui</span>
                         ):(
                           <span className="text-xs text-slate-400 dark:text-slate-500">Non</span>
@@ -345,7 +361,7 @@ const FormationPage=()=>{
 
       {/* Fenêtre de la fiche individuelle */}
       {showModal&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]animate-in fade-in duration-150">
           <div
             role="dialog"
             aria-modal="true"

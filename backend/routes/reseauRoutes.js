@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const reseauController = require('../controllers/reseauController');
-const verifyToken = require('../middleware/authMiddleware'); // <--- Ampidiro ity
+const controller = require('../controllers/reseauController');
+const verifyToken = require('../middleware/authMiddleware');
 
-// Ampio verifyToken daholo ny route rehetra
-router.post('/', verifyToken, reseauController.createReseau);
-router.get('/', verifyToken, reseauController.getAllReseaux);
-router.put('/:id', verifyToken, reseauController.updateReseau);
-router.delete('/:id', verifyToken, reseauController.deleteReseau);
+router.get('/',verifyToken,controller.getAllReseaux);
+router.get('/:id',verifyToken,controller.getReseauById);
+router.post('/',verifyToken,controller.createReseau);
+router.put('/:id',verifyToken,controller.updateReseau);
+router.delete('/:id',verifyToken,controller.deleteReseau);
 
 module.exports = router;

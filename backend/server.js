@@ -18,6 +18,9 @@ const responsableRoutes = require('./routes/responsableRoutes');
 const formationRoutes = require('./routes/formationRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const auditRoutes = require('./routes/auditRoutes');
+const communeRoutes = require('./routes/communeRoutes');
+const adminUserRoutes = require('./routes/adminUserRoutes');
+const rapportRoutes = require('./routes/rapportRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -65,6 +68,10 @@ app.use('/api/responsables', responsableRoutes);
 app.use('/api/formations', formationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/communes', communeRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/rapports', rapportRoutes);
+
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
@@ -80,20 +87,37 @@ const connectWithRetry = async () => {
 
     for (let i = 1; i <= MAX_RETRIES; i++) {
         try {
-            await sequelize.sync();
+            // Vérifier uniquement la connexion PostgreSQL
+            // Ne pas modifier automatiquement le schéma de la base
+            await sequelize.authenticate();
+
             console.log("Connexion à PostgreSQL réussie.");
 
             const PORT = process.env.PORT || 5000;
+
             server.listen(PORT, () => {
                 console.log(`Serveur démarré sur : http://localhost:${PORT}`);
             });
+
             return;
+
         } catch (err) {
-            console.log(`Tentative ${i}/${MAX_RETRIES} échouée. Nouvel essai dans 3s...`);
-            await new Promise(res => setTimeout(res, DELAY));
+            console.error(
+                `Tentative ${i}/${MAX_RETRIES} échouée :`,
+                err.message
+            );
+
+            if (i < MAX_RETRIES) {
+                console.log("Nouvel essai dans 3 secondes...");
+                await new Promise(resolve => setTimeout(resolve, DELAY));
+            }
         }
     }
-    console.error("Impossible de se connecter après plusieurs tentatives.");
+
+    console.error(
+        "Impossible de se connecter à PostgreSQL après plusieurs tentatives."
+    );
+
     process.exit(1);
 };
 

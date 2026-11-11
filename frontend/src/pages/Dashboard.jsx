@@ -1,441 +1,188 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from '../api/axios';
 import domtoimage from 'dom-to-image-more';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area
-} from 'recharts';
-import {
-  Users, Building2, Network, ShieldCheck, GraduationCap,
-  PieChart as PieIcon, Activity, Loader2, CalendarDays, Download,
-  AlertTriangle, RefreshCw, Inbox
-} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Users, Building2, Network, ShieldCheck, GraduationCap, PieChart as PieIcon, Activity, Loader2, CalendarDays, Download, AlertTriangle, RefreshCw, Inbox, MapPin } from 'lucide-react';
 
-// Couleurs des camemberts solides : haut du dégradé, bas du dégradé, couleur de la tranche
-const SOLID_COLORS = [
-  { top1: '#38bdf8', top2: '#0284c7', side: '#075985' }, // bleu
-  { top1: '#34d399', top2: '#047857', side: '#064e3b' }, // vert
-  { top1: '#fbbf24', top2: '#d97706', side: '#92400e' }, // ambre
-  { top1: '#94a3b8', top2: '#475569', side: '#1e293b' }, // ardoise
-  { top1: '#fb7185', top2: '#e11d48', side: '#9f1239' }  // rose
+const COLORS = [
+  { top1: '#38bdf8', top2: '#0284c7', side: '#075985' },
+  { top1: '#34d399', top2: '#047857', side: '#064e3b' },
+  { top1: '#fbbf24', top2: '#d97706', side: '#92400e' },
+  { top1: '#94a3b8', top2: '#475569', side: '#1e293b' },
+  { top1: '#fb7185', top2: '#e11d48', side: '#9f1239' }
 ];
-
-// Couleurs des graphiques selon le thème clair / sombre
-const getChartTheme = (isDark) => isDark
-  ? { grid: '#334155', tick: '#94a3b8', legend: '#cbd5e1', tooltipBg: '#0f172a', tooltipBorder: '#334155', tooltipText: '#f1f5f9', cursor: 'rgba(255,255,255,0.05)' }
-  : { grid: '#e2e8f0', tick: '#64748b', legend: '#475569', tooltipBg: '#ffffff', tooltipBorder: '#cbd5e1', tooltipText: '#0f172a', cursor: 'rgba(0,0,0,0.03)' };
-
-const getTooltipStyle = (theme) => ({
-  borderRadius: '8px',
-  border: `1px solid ${theme.tooltipBorder}`,
-  fontSize: '12px',
-  background: theme.tooltipBg,
-  color: theme.tooltipText,
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-});
 
 const KPI_CONFIG = [
   { key: 'membres', label: 'Membres', icon: Users },
   { key: 'groupes', label: 'Groupes GS', icon: Building2 },
   { key: 'reseaux', label: 'Réseaux', icon: Network },
   { key: 'responsables', label: 'Responsables', icon: ShieldCheck },
-  { key: 'formations', label: 'Formations', icon: GraduationCap }
+  { key: 'formations', label: 'Formations', icon: GraduationCap },
+  { key: 'menages', label: 'Ménages', icon: Building2 }
 ];
 
-const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
-
-// Suit le thème sombre de l'application (classe "dark" sur <html>)
 const useIsDark = () => {
-  const read = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
-  const [isDark, setIsDark] = useState(read);
-
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   useEffect(() => {
-    const observer = new MutationObserver(() => setIsDark(read()));
+    const observer = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
-
-  return isDark;
+  return dark;
 };
 
-// --- Reusable pieces -------------------------------------------------
-
-const DownloadButton = ({ id, filename, downloading, onDownload }) => (
-  <button
-    type="button"
-    data-download-button
-    onClick={() => onDownload(id, filename)}
-    disabled={downloading === id}
-    aria-label={`Télécharger le graphique "${filename}" en image`}
-    className={`absolute top-3.5 right-3.5 z-20 h-8 w-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${focusRing}`}
-    title="Télécharger en image"
-  >
-    {downloading === id
-      ? <Loader2 size={15} className="animate-spin" aria-hidden="true" />
-      : <Download size={15} aria-hidden="true" />}
-  </button>
-);
-
-const ChartCard = ({ id, filename, title, icon: Icon, downloading, onDownload, isEmpty, children }) => (
-  <div
-    id={id}
-    className="relative bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[350px]"
-  >
-    {!isEmpty && <DownloadButton id={id} filename={filename} downloading={downloading} onDownload={onDownload} />}
-
-    <h3 className="font-display font-semibold text-slate-900 dark:text-white text-sm mb-4 pr-10 flex items-center gap-2.5">
-      <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60 shrink-0">
-        <Icon size={16} strokeWidth={2} aria-hidden="true" />
-      </div>
+const ChartCard = ({ id, title, icon: Icon, empty, downloading, onDownload, children }) => (
+  <div id={id} className="relative bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[350px]">
+    {!empty && (
+      <button type="button" data-download-button onClick={() => onDownload(id)} disabled={!!downloading}
+        className="absolute top-3.5 right-3.5 z-20 h-8 w-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:text-emerald-600 flex items-center justify-center disabled:opacity-50"
+        title="Télécharger en PNG">
+        {downloading === id ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+      </button>
+    )}
+    <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-4 pr-10 flex items-center gap-2.5">
+      <span className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+        <Icon size={16} />
+      </span>
       <span className="truncate">{title}</span>
     </h3>
-
-    {isEmpty ? (
-      <div className="flex-1 w-full flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-500">
-        <Inbox size={24} aria-hidden="true" />
-        <p className="text-xs font-medium">Pas encore de données</p>
+    {empty ? (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-slate-400">
+        <Inbox size={24} /><p className="text-xs">Pas encore de données</p>
       </div>
-    ) : (
-      <div className="flex-1 w-full min-h-0">{children}</div>
-    )}
+    ) : <div className="flex-1 min-h-0 w-full">{children}</div>}
   </div>
 );
 
-// Camembert en perspective (3D) : pourcentages dans les parts, tranche visible sur le bord avant
-// (utilisé pour « Maturité des réseaux »)
 const Pie3D = ({ slices }) => {
-  const cx = 130;
-  const cy = 78;
-  const rx = 108;
-  const ry = 64;
-  const depth = 24;
-
-  const total = slices.reduce((sum, s) => sum + s.value, 0) || 1;
-  const visible = slices.filter((s) => s.value > 0);
-
-  // Point sur l'ellipse (angle en radians, 0 = droite, sens horaire à l'écran)
-  const point = (angle, dy = 0, k = 1) => [
-    cx + rx * k * Math.cos(angle),
-    cy + ry * k * Math.sin(angle) + dy
-  ];
-
-  let angle = -Math.PI / 2; // départ à midi
-  const arcs = visible.map((s) => {
-    const sweep = (s.value / total) * Math.PI * 2;
-    const arc = { ...s, a1: angle, a2: angle + sweep };
+  const cx = 130, cy = 78, rx = 108, ry = 64, depth = 24;
+  const total = slices.reduce((n, s) => n + s.value, 0) || 1;
+  const point = (a, dy = 0, k = 1) => [cx + rx * k * Math.cos(a), cy + ry * k * Math.sin(a) + dy];
+  let angle = -Math.PI / 2;
+  const arcs = slices.filter(s => s.value > 0).map(s => {
+    const sweep = s.value / total * Math.PI * 2;
+    const item = { ...s, a1: angle, a2: angle + sweep };
     angle += sweep;
-    return arc;
+    return item;
   });
-
-  const isFull = arcs.length === 1;
-
+  const full = arcs.length === 1;
   return (
-    <svg
-      viewBox="0 0 260 180"
-      className="w-full max-w-[300px] h-auto"
-      role="img"
-      aria-label={slices.map((s) => `${s.label} : ${s.pct}%`).join(', ')}
-    >
-      <defs>
-        {slices.map((s, i) => (
-          <linearGradient key={s.label} id={`pie3d-grad-${i}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor={s.top1} />
-            <stop offset="1" stopColor={s.top2} />
-          </linearGradient>
-        ))}
-      </defs>
-
-      {/* Ombre portée */}
-      <ellipse cx={cx} cy={cy + depth + 8} rx={rx * 0.92} ry={ry * 0.42} fill="#0f172a" opacity="0.1" />
-
-      {/* Tranche (bord avant) */}
-      {isFull ? (
-        <path
-          d={`M ${cx - rx} ${cy} L ${cx - rx} ${cy + depth} A ${rx} ${ry} 0 0 0 ${cx + rx} ${cy + depth} L ${cx + rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx - rx} ${cy} Z`}
-          fill={arcs[0].side}
-        />
-      ) : (
-        arcs.map((s) => {
-          const start = Math.max(s.a1, 0);
-          const end = Math.min(s.a2, Math.PI);
-          if (start >= end) return null;
-          const [xs, ys] = point(start);
-          const [xe, ye] = point(end);
-          return (
-            <path
-              key={`wall-${s.label}`}
-              d={`M ${xs} ${ys} L ${xs} ${ys + depth} A ${rx} ${ry} 0 0 1 ${xe} ${ye + depth} L ${xe} ${ye} A ${rx} ${ry} 0 0 0 ${xs} ${ys} Z`}
-              fill={s.side}
-            />
-          );
-        })
-      )}
-
-      {/* Dessus du camembert */}
-      {arcs.map((s) => {
-        const index = slices.findIndex((x) => x.label === s.label);
-        if (isFull) {
-          return <ellipse key={`top-${s.label}`} cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#pie3d-grad-${index})`} />;
-        }
-        const [x1, y1] = point(s.a1);
-        const [x2, y2] = point(s.a2);
-        const large = s.a2 - s.a1 > Math.PI ? 1 : 0;
-        return (
-          <path
-            key={`top-${s.label}`}
-            d={`M ${cx} ${cy} L ${x1} ${y1} A ${rx} ${ry} 0 ${large} 1 ${x2} ${y2} Z`}
-            fill={`url(#pie3d-grad-${index})`}
-            stroke="#ffffff"
-            strokeOpacity="0.55"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-        );
+    <svg viewBox="0 0 260 180" className="w-full max-w-[300px] h-auto" role="img" aria-label={slices.map(s => `${s.label}: ${s.pct}%`).join(', ')}>
+      <defs>{slices.map((s, i) => (
+        <linearGradient key={s.label} id={`maturite-grad-${i}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={s.top1} /><stop offset="1" stopColor={s.top2} />
+        </linearGradient>
+      ))}</defs>
+      <ellipse cx={cx} cy={cy + depth + 8} rx={rx * .92} ry={ry * .42} fill="#0f172a" opacity=".1" />
+      {full ? (
+        <path d={`M ${cx-rx} ${cy} L ${cx-rx} ${cy+depth} A ${rx} ${ry} 0 0 0 ${cx+rx} ${cy+depth} L ${cx+rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx-rx} ${cy} Z`} fill={arcs[0].side} />
+      ) : arcs.map(s => {
+        const a = Math.max(s.a1, 0), b = Math.min(s.a2, Math.PI);
+        if (a >= b) return null;
+        const [x1,y1] = point(a), [x2,y2] = point(b);
+        return <path key={`wall-${s.label}`} d={`M ${x1} ${y1} L ${x1} ${y1+depth} A ${rx} ${ry} 0 0 1 ${x2} ${y2+depth} L ${x2} ${y2} A ${rx} ${ry} 0 0 0 ${x1} ${y1} Z`} fill={s.side} />;
       })}
-
-      {/* Pourcentages */}
-      {arcs.map((s) => {
+      {arcs.map(s => {
+        const i = slices.findIndex(x => x.label === s.label);
+        if (full) return <ellipse key={s.label} cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#maturite-grad-${i})`} />;
+        const [x1,y1] = point(s.a1), [x2,y2] = point(s.a2);
+        return <path key={s.label} d={`M ${cx} ${cy} L ${x1} ${y1} A ${rx} ${ry} 0 ${s.a2-s.a1>Math.PI?1:0} 1 ${x2} ${y2} Z`}
+          fill={`url(#maturite-grad-${i})`} stroke="#fff" strokeOpacity=".55" strokeWidth="1.5" />;
+      })}
+      {arcs.map(s => {
         if (s.pct < 3) return null;
-        const [lx, ly] = isFull ? [cx, cy] : point((s.a1 + s.a2) / 2, 0, 0.6);
-        return (
-          <text
-            key={`label-${s.label}`}
-            x={lx}
-            y={ly}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize="16"
-            fontWeight="700"
-            fill="#ffffff"
-            stroke="rgba(15,23,42,0.35)"
-            strokeWidth="3"
-            paintOrder="stroke"
-          >
-            {s.pct}%
-          </text>
-        );
+        const [x,y] = full ? [cx,cy] : point((s.a1+s.a2)/2,0,.6);
+        return <text key={s.label} x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize="16" fontWeight="700"
+          fill="#fff" stroke="rgba(15,23,42,.35)" strokeWidth="3" paintOrder="stroke">{s.pct}%</text>;
       })}
     </svg>
   );
 };
 
-// Camembert / anneau solide en perspective, avec infobulle au survol et légende à droite
-// (innerRatio = 0 : camembert plein ; 0.55 : anneau)
-const SolidPie = ({ data, nameKey, valueKey, innerRatio = 0, idPrefix, tooltipStyle }) => {
-  const cx = 130;
-  const cy = 78;
-  const rx = 108;
-  const ry = 64;
-  const depth = 24;
-  const k = innerRatio;
-
-  const wrapRef = useRef(null);
-  const [hovered, setHovered] = useState(null);
+const SolidPie = ({ data = [], nameKey, valueKey, innerRatio = 0, idPrefix, tooltipStyle }) => {
+  const ref = useRef(null);
   const [tip, setTip] = useState(null);
-
-  const items = (data || []).map((d, i) => ({
-    index: i,
-    label: String(d?.[nameKey] ?? ''),
-    value: Number(d?.[valueKey]) || 0,
-    ...SOLID_COLORS[i % SOLID_COLORS.length]
+  const [hovered, setHovered] = useState(null);
+  const cx = 130, cy = 78, rx = 108, ry = 64, depth = 24, k = innerRatio;
+  const items = data.map((d, i) => ({
+    index: i, label: String(d?.[nameKey] ?? ''), value: Number(d?.[valueKey]) || 0,
+    ...COLORS[i % COLORS.length]
   }));
-  const total = items.reduce((sum, it) => sum + it.value, 0);
-  const safeTotal = total || 1;
-  const withPct = items.map((it) => ({ ...it, pct: Math.round((it.value / safeTotal) * 100) }));
-  const visible = withPct.filter((it) => it.value > 0);
-
-  // Point sur l'ellipse (angle en radians, 0 = droite, sens horaire à l'écran)
-  const point = (angle, dy = 0, m = 1) => [
-    cx + rx * m * Math.cos(angle),
-    cy + ry * m * Math.sin(angle) + dy
-  ];
-
-  let angle = -Math.PI / 2; // départ à midi
-  let arcs = visible.map((it) => {
-    const sweep = (it.value / safeTotal) * Math.PI * 2;
-    const arc = { ...it, a1: angle, a2: angle + sweep };
+  const total = items.reduce((n, s) => n + s.value, 0) || 1;
+  const all = items.map(s => ({ ...s, pct: Math.round(s.value / total * 100) }));
+  const point = (a, dy = 0, m = 1) => [cx + rx*m*Math.cos(a), cy + ry*m*Math.sin(a)+dy];
+  let angle = -Math.PI/2;
+  let arcs = all.filter(s => s.value > 0).map(s => {
+    const sweep = s.value/total*Math.PI*2;
+    const item = { ...s, a1: angle, a2: angle+sweep };
     angle += sweep;
-    return arc;
+    return item;
   });
-
-  // Une seule part à 100 % : on la coupe en deux demi-parts pour éviter un arc dégénéré
-  const isFull = arcs.length === 1;
-  if (isFull) {
-    const only = arcs[0];
-    arcs = [
-      { ...only, a1: -Math.PI / 2, a2: Math.PI / 2, part: 0 },
-      { ...only, a1: Math.PI / 2, a2: Math.PI * 1.5, part: 1 }
-    ];
+  const full = arcs.length === 1;
+  if (full) {
+    const s = arcs[0];
+    arcs = [{ ...s, a1:-Math.PI/2, a2:Math.PI/2, part:0 }, { ...s, a1:Math.PI/2, a2:Math.PI*1.5, part:1 }];
   }
-
-  const labelRadius = k > 0 ? (1 + k) / 2 : 0.62;
-
-  const handleMove = (e, it) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setHovered(it.index);
-    setTip({ x: e.clientX - rect.left, y: e.clientY - rect.top, text: `${it.label} : ${it.value}` });
+  const move = (e, s) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    setHovered(s.index);
+    setTip({ x:e.clientX-r.left, y:e.clientY-r.top, text:`${s.label} : ${s.value}` });
   };
-  const handleLeave = () => {
-    setHovered(null);
-    setTip(null);
-  };
-  const sliceStyle = (it) => ({
-    opacity: hovered !== null && hovered !== it.index ? 0.8 : 1,
-    transition: 'opacity 150ms ease',
-    cursor: 'default'
-  });
+  const leave = () => { setHovered(null); setTip(null); };
+  const style = s => ({ opacity:hovered !== null && hovered !== s.index ? .8 : 1, transition:'opacity 150ms' });
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 h-full">
-      <div ref={wrapRef} className="relative w-full max-w-[300px]">
-        <svg
-          viewBox="0 0 260 180"
-          className="w-full h-auto"
-          role="img"
-          aria-label={withPct.map((it) => `${it.label} : ${it.value}`).join(', ')}
-        >
-          <defs>
-            {withPct.map((it) => (
-              <linearGradient key={it.index} id={`${idPrefix}-grad-${it.index}`} x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor={it.top1} />
-                <stop offset="1" stopColor={it.top2} />
-              </linearGradient>
-            ))}
-          </defs>
-
-          {/* Ombre portée */}
-          <ellipse cx={cx} cy={cy + depth + 8} rx={rx * 0.92} ry={ry * 0.42} fill="#0f172a" opacity="0.1" />
-
-          {/* Paroi intérieure de l'anneau (partie arrière, visible à travers le trou) */}
-          {k > 0 && arcs.map((it) => {
-            const intervals = [
-              [Math.max(it.a1, -Math.PI / 2), Math.min(it.a2, 0)],
-              [Math.max(it.a1, Math.PI), Math.min(it.a2, Math.PI * 1.5)]
-            ];
-            return intervals.map(([s, e], n) => {
-              if (s >= e) return null;
-              const [xs, ys] = point(s, 0, k);
-              const [xe, ye] = point(e, 0, k);
-              return (
-                <path
-                  key={`inner-${it.index}-${it.part ?? 0}-${n}`}
-                  d={`M ${xs} ${ys} A ${rx * k} ${ry * k} 0 0 1 ${xe} ${ye} L ${xe} ${ye + depth} A ${rx * k} ${ry * k} 0 0 0 ${xs} ${ys + depth} Z`}
-                  fill={it.side}
-                  style={sliceStyle(it)}
-                />
-              );
-            });
+      <div ref={ref} className="relative w-full max-w-[300px]">
+        <svg viewBox="0 0 260 180" className="w-full h-auto" role="img" aria-label={all.map(s => `${s.label}: ${s.value}`).join(', ')}>
+          <defs>{all.map(s => (
+            <linearGradient key={s.index} id={`${idPrefix}-grad-${s.index}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor={s.top1} /><stop offset="1" stopColor={s.top2} />
+            </linearGradient>
+          ))}</defs>
+          <ellipse cx={cx} cy={cy+depth+8} rx={rx*.92} ry={ry*.42} fill="#0f172a" opacity=".1" />
+          {k > 0 && arcs.flatMap(s => [
+            [Math.max(s.a1,-Math.PI/2),Math.min(s.a2,0)],
+            [Math.max(s.a1,Math.PI),Math.min(s.a2,Math.PI*1.5)]
+          ].map(([a,b],i) => {
+            if (a >= b) return null;
+            const [x1,y1] = point(a,0,k), [x2,y2] = point(b,0,k);
+            return <path key={`inner-${s.index}-${s.part??0}-${i}`} d={`M ${x1} ${y1} A ${rx*k} ${ry*k} 0 0 1 ${x2} ${y2} L ${x2} ${y2+depth} A ${rx*k} ${ry*k} 0 0 0 ${x1} ${y1+depth} Z`} fill={s.side} style={style(s)} />;
+          }))}
+          {arcs.map(s => {
+            const a = Math.max(s.a1,0), b = Math.min(s.a2,Math.PI);
+            if (a >= b) return null;
+            const [x1,y1] = point(a), [x2,y2] = point(b);
+            return <path key={`wall-${s.index}-${s.part??0}`} d={`M ${x1} ${y1} L ${x1} ${y1+depth} A ${rx} ${ry} 0 0 1 ${x2} ${y2+depth} L ${x2} ${y2} A ${rx} ${ry} 0 0 0 ${x1} ${y1} Z`}
+              fill={s.side} style={style(s)} onMouseMove={e=>move(e,s)} onMouseLeave={leave} />;
           })}
-
-          {/* Tranche extérieure (bord avant) */}
-          {arcs.map((it) => {
-            const start = Math.max(it.a1, 0);
-            const end = Math.min(it.a2, Math.PI);
-            if (start >= end) return null;
-            const [xs, ys] = point(start);
-            const [xe, ye] = point(end);
-            return (
-              <path
-                key={`wall-${it.index}-${it.part ?? 0}`}
-                d={`M ${xs} ${ys} L ${xs} ${ys + depth} A ${rx} ${ry} 0 0 1 ${xe} ${ye + depth} L ${xe} ${ye} A ${rx} ${ry} 0 0 0 ${xs} ${ys} Z`}
-                fill={it.side}
-                style={sliceStyle(it)}
-                onMouseMove={(e) => handleMove(e, it)}
-                onMouseLeave={handleLeave}
-              />
-            );
+          {arcs.map(s => {
+            const [x1,y1] = point(s.a1), [x2,y2] = point(s.a2), large = s.a2-s.a1>Math.PI?1:0;
+            const d = k ? (() => {
+              const [i1,j1] = point(s.a1,0,k), [i2,j2] = point(s.a2,0,k);
+              return `M ${x1} ${y1} A ${rx} ${ry} 0 ${large} 1 ${x2} ${y2} L ${i2} ${j2} A ${rx*k} ${ry*k} 0 ${large} 0 ${i1} ${j1} Z`;
+            })() : `M ${cx} ${cy} L ${x1} ${y1} A ${rx} ${ry} 0 ${large} 1 ${x2} ${y2} Z`;
+            return <path key={`top-${s.index}-${s.part??0}`} d={d} fill={`url(#${idPrefix}-grad-${s.index})`}
+              stroke={full?'none':'#fff'} strokeOpacity=".55" strokeWidth="1.5" style={style(s)}
+              onMouseMove={e=>move(e,s)} onMouseLeave={leave} />;
           })}
-
-          {/* Dessus */}
-          {arcs.map((it) => {
-            const [x1, y1] = point(it.a1);
-            const [x2, y2] = point(it.a2);
-            const large = it.a2 - it.a1 > Math.PI ? 1 : 0;
-            const d = k > 0
-              ? (() => {
-                  const [xi1, yi1] = point(it.a1, 0, k);
-                  const [xi2, yi2] = point(it.a2, 0, k);
-                  return `M ${x1} ${y1} A ${rx} ${ry} 0 ${large} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${rx * k} ${ry * k} 0 ${large} 0 ${xi1} ${yi1} Z`;
-                })()
-              : `M ${cx} ${cy} L ${x1} ${y1} A ${rx} ${ry} 0 ${large} 1 ${x2} ${y2} Z`;
-            return (
-              <path
-                key={`top-${it.index}-${it.part ?? 0}`}
-                d={d}
-                fill={`url(#${idPrefix}-grad-${it.index})`}
-                stroke={isFull ? 'none' : '#ffffff'}
-                strokeOpacity="0.55"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-                style={{
-                  ...sliceStyle(it),
-                  filter: hovered === it.index ? 'brightness(1.08)' : undefined
-                }}
-                onMouseMove={(e) => handleMove(e, it)}
-                onMouseLeave={handleLeave}
-              />
-            );
-          })}
-
-          {/* Pourcentages */}
-          {arcs.map((it) => {
-            if (isFull && it.part !== 0) return null;
-            if (it.pct < 5) return null;
-            const [lx, ly] = isFull
-              ? point(Math.PI / 2, 0, labelRadius)
-              : point((it.a1 + it.a2) / 2, 0, labelRadius);
-            return (
-              <text
-                key={`label-${it.index}`}
-                x={lx}
-                y={ly}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={k > 0 ? 14 : 16}
-                fontWeight="700"
-                fill="#ffffff"
-                stroke="rgba(15,23,42,0.35)"
-                strokeWidth="3"
-                paintOrder="stroke"
-                pointerEvents="none"
-              >
-                {it.pct}%
-              </text>
-            );
+          {arcs.map(s => {
+            if ((full && s.part !== 0) || s.pct < 5) return null;
+            const [x,y] = full ? point(Math.PI/2,0,k?(1+k)/2:.62) : point((s.a1+s.a2)/2,0,k?(1+k)/2:.62);
+            return <text key={`label-${s.index}`} x={x} y={y} textAnchor="middle" dominantBaseline="central"
+              fontSize={k?14:16} fontWeight="700" fill="#fff" stroke="rgba(15,23,42,.35)" strokeWidth="3" paintOrder="stroke" pointerEvents="none">{s.pct}%</text>;
           })}
         </svg>
-
-        {tip && (
-          <div
-            style={{
-              ...tooltipStyle,
-              position: 'absolute',
-              left: tip.x,
-              top: tip.y,
-              transform: 'translate(-50%, -130%)',
-              padding: '6px 10px',
-              whiteSpace: 'nowrap',
-              pointerEvents: 'none',
-              zIndex: 30
-            }}
-          >
-            {tip.text}
-          </div>
-        )}
+        {tip && <div style={{ ...tooltipStyle, position:'absolute', left:tip.x, top:tip.y, transform:'translate(-50%,-130%)',
+          padding:'6px 10px', whiteSpace:'nowrap', pointerEvents:'none', zIndex:30 }}>{tip.text}</div>}
       </div>
-
       <ul className="flex sm:flex-col flex-wrap justify-center gap-x-5 gap-y-2.5 shrink-0 max-h-[200px] overflow-y-auto">
-        {withPct.map((it) => (
-          <li key={it.index} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-            <span
-              className="h-3 w-3 rounded-sm shrink-0"
-              style={{ background: `linear-gradient(135deg, ${it.top1}, ${it.top2})` }}
-              aria-hidden="true"
-            />
-            <span className="font-medium">{it.label}</span>
-            <span className="text-slate-400 dark:text-slate-500 tabular-nums">{it.value}</span>
+        {all.map(s => (
+          <li key={s.index} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <span className="h-3 w-3 rounded-sm shrink-0" style={{ background:`linear-gradient(135deg,${s.top1},${s.top2})` }} />
+            <span className="font-medium">{s.label}</span>
+            <span className="text-slate-400 tabular-nums">{s.value}</span>
           </li>
         ))}
       </ul>
@@ -443,294 +190,193 @@ const SolidPie = ({ data, nameKey, valueKey, innerRatio = 0, idPrefix, tooltipSt
   );
 };
 
-// Barre solide : face avant, dessus et côté droit (fonctionne pour les barres verticales et horizontales)
 const Bar3D = ({ x, y, width, height, gradient, top, side }) => {
   if (x == null || y == null) return null;
-  let xx = x;
-  let yy = y;
-  let w = width;
-  let h = height;
-  if (h < 0) { yy = y + h; h = -h; }
-  if (w < 0) { xx = x + w; w = -w; }
+  let xx=x, yy=y, w=width, h=height;
+  if (h<0) { yy+=h; h=-h; }
+  if (w<0) { xx+=w; w=-w; }
   if (!w || !h) return null;
-  const dx = 8;
-  const dy = 5;
-  return (
-    <g>
-      <path d={`M ${xx + w} ${yy} L ${xx + w + dx} ${yy - dy} L ${xx + w + dx} ${yy + h - dy} L ${xx + w} ${yy + h} Z`} fill={side} />
-      <path d={`M ${xx} ${yy} L ${xx + dx} ${yy - dy} L ${xx + w + dx} ${yy - dy} L ${xx + w} ${yy} Z`} fill={top} />
-      <rect x={xx} y={yy} width={w} height={h} fill={gradient} />
-    </g>
-  );
+  return <g>
+    <path d={`M ${xx+w} ${yy} L ${xx+w+8} ${yy-5} L ${xx+w+8} ${yy+h-5} L ${xx+w} ${yy+h} Z`} fill={side}/>
+    <path d={`M ${xx} ${yy} L ${xx+8} ${yy-5} L ${xx+w+8} ${yy-5} L ${xx+w} ${yy} Z`} fill={top}/>
+    <rect x={xx} y={yy} width={w} height={h} fill={gradient}/>
+  </g>;
 };
 
-// --- Main component ----------------------------------------------------
-
-const Dashboard = () => {
+export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [communeId, setCommuneId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(null);
   const isDark = useIsDark();
 
-  const fetchDashboardData = useCallback(async (signal) => {
+  const fetchData = useCallback(async signal => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const response = await axios.get('/dashboard/stats', { signal });
-
-      if (response.data && response.data.success) {
-        setStats(response.data);
-      } else {
-        setError("Les données reçues sont incomplètes.");
-      }
+      setLoading(true); setError('');
+      const { data } = await axios.get('/dashboard/stats', {
+        signal, params: communeId ? { commune_id:communeId } : {}
+      });
+      if (!data?.success) throw new Error('Réponse invalide');
+      if (!signal?.aborted) setStats(data);
     } catch (err) {
-      if (axios.isCancel?.(err) || err.name === 'CanceledError') return;
-      console.error('Erreur chargement Dashboard:', err);
-      setError("Impossible de charger le tableau de bord. Vérifiez votre connexion et réessayez.");
+      if (signal?.aborted || axios.isCancel?.(err) || err.name === 'CanceledError') return;
+      console.error('Dashboard:', err);
+      setError('Impossible de charger le tableau de bord. Vérifiez votre connexion.');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, []);
+  }, [communeId]);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchDashboardData(controller.signal);
+    fetchData(controller.signal);
     return () => controller.abort();
-  }, [fetchDashboardData]);
+  }, [fetchData]);
 
-  const downloadChart = async (id, filename) => {
-    const element = document.getElementById(id);
-    if (!element || downloading) return;
-
-    const button = element.querySelector('[data-download-button]');
-
+  const downloadChart = async id => {
+    const el = document.getElementById(id);
+    if (!el || downloading) return;
+    const button = el.querySelector('[data-download-button]');
     try {
       setDownloading(id);
       if (button) button.style.visibility = 'hidden';
-
-      const dataUrl = await domtoimage.toPng(element, {
-        quality: 1,
-        bgcolor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff',
-        width: element.offsetWidth * 2,
-        height: element.offsetHeight * 2,
-        style: {
-          transform: 'scale(2)',
-          transformOrigin: 'top left',
-          width: `${element.offsetWidth}px`,
-          height: `${element.offsetHeight}px`
-        }
+      const url = await domtoimage.toPng(el, {
+        quality:1, bgcolor:isDark?'#0f172a':'#fff',
+        width:el.offsetWidth*2, height:el.offsetHeight*2,
+        style:{ transform:'scale(2)', transformOrigin:'top left', width:`${el.offsetWidth}px`, height:`${el.offsetHeight}px` }
       });
-
-      const link = document.createElement('a');
-      link.download = `${filename}.png`;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href=url; a.download=`${id}${communeId?`-commune-${communeId}`:''}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
     } catch (err) {
-      console.error('Erreur téléchargement:', err);
+      console.error('Export PNG:', err);
     } finally {
       if (button) button.style.visibility = 'visible';
       setDownloading(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Loader2 size={32} className="animate-spin text-emerald-600 mb-3" aria-hidden="true" />
-        <p className="font-semibold text-slate-500 dark:text-slate-400 text-sm">
-          Chargement des données...
-        </p>
-      </div>
-    );
-  }
+  if (loading) return <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+    <Loader2 size={32} className="animate-spin text-emerald-600 mb-3"/>
+    <p className="text-sm text-slate-500">Chargement des données...</p>
+  </div>;
 
-  if (error) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 gap-4 px-6 text-center">
-        <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-          <AlertTriangle size={20} aria-hidden="true" />
-        </div>
-        <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm max-w-sm">{error}</p>
-        <button
-          type="button"
-          onClick={() => fetchDashboardData()}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium transition-colors ${focusRing}`}
-        >
-          <RefreshCw size={15} aria-hidden="true" />
-          Réessayer
-        </button>
-      </div>
-    );
-  }
+  if (error) return <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-slate-950 px-6 text-center">
+    <AlertTriangle size={28} className="text-rose-600"/>
+    <p className="text-sm text-slate-600 dark:text-slate-300">{error}</p>
+    <button onClick={()=>fetchData()} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm">
+      <RefreshCw size={15}/> Réessayer
+    </button>
+  </div>;
 
   if (!stats) return null;
 
-  const theme = getChartTheme(isDark);
-  const tooltipStyle = getTooltipStyle(theme);
-  const axisTick = { fontSize: 11, fill: theme.tick };
+  const theme = isDark
+    ? { grid:'#334155', tick:'#94a3b8', bg:'#0f172a', border:'#334155', text:'#f1f5f9', cursor:'rgba(255,255,255,.05)' }
+    : { grid:'#e2e8f0', tick:'#64748b', bg:'#fff', border:'#cbd5e1', text:'#0f172a', cursor:'rgba(0,0,0,.03)' };
 
-  const reseauxTotal = stats.kpis.reseaux || 0;
-  const reseauxAutonomes = stats.kpis.reseauxAutonomes || 0;
-  const reseauxEnStructuration = Math.max(reseauxTotal - reseauxAutonomes, 0);
-  const reseauxAutonomesPct = reseauxTotal > 0
-    ? Math.round((reseauxAutonomes / reseauxTotal) * 100)
-    : 0;
-
-  // Parts du camembert « Maturité des réseaux » (haut du dégradé, bas du dégradé, couleur de la tranche)
-  const maturiteSlices = [
-    { label: 'Autonomes', value: reseauxAutonomes, pct: reseauxAutonomesPct, top1: '#22c55e', top2: '#16a34a', side: '#166534' },
-    { label: 'En structuration', value: reseauxEnStructuration, pct: reseauxTotal > 0 ? 100 - reseauxAutonomesPct : 0, top1: '#fbbf24', top2: '#d97706', side: '#92400e' }
+  const tooltipStyle = { borderRadius:8, border:`1px solid ${theme.border}`, fontSize:12, background:theme.bg, color:theme.text };
+  const tick = { fontSize:11, fill:theme.tick };
+  const kpis = stats.kpis || {};
+  const total = Number(kpis.reseaux) || 0;
+  const autonomes = Number(kpis.reseauxAutonomes) || 0;
+  const pct = total ? Math.round(autonomes/total*100) : 0;
+  const slices = [
+    { label:'Autonomes', value:autonomes, pct, top1:'#22c55e', top2:'#16a34a', side:'#166534' },
+    { label:'En structuration', value:Math.max(total-autonomes,0), pct:total?100-pct:0, top1:'#fbbf24', top2:'#d97706', side:'#92400e' }
   ];
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden antialiased">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
-        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
-        .recharts-wrapper text, .recharts-legend-wrapper{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+        .font-body,.font-display{font-family:'Public Sans',system-ui,sans-serif}
+        .recharts-wrapper text{font-family:'Public Sans',system-ui,sans-serif}
         .solid-area .recharts-area-area{filter:drop-shadow(6px 5px 0 #075985)}
-        @media (prefers-reduced-motion: reduce){.animate-in{animation:none!important}}
       `}</style>
 
-      {/* En-tête de page */}
       <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3.5">
-          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
-            <Activity size={20} strokeWidth={2} aria-hidden="true" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3.5">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+              <Activity size={20}/>
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Tableau de bord & Statistiques</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Vue d'ensemble des performances et indicateurs clés de la plateforme.</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">
-              Tableau de bord & Statistiques
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Vue d'ensemble des performances et indicateurs clés de la plateforme.
-            </p>
-          </div>
+          {stats.isAdmin && (
+            <div className="w-full sm:w-auto sm:ml-auto">
+              <label htmlFor="dashboard-commune" className="flex items-center gap-1.5 text-xs font-medium mb-1 text-slate-600 dark:text-slate-300">
+                <MapPin size={13}/> Commune
+              </label>
+              <select id="dashboard-commune" value={communeId} onChange={e=>setCommuneId(e.target.value)}
+                className="w-full sm:min-w-[210px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">Toutes les communes</option>
+                {(stats.communes || []).map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
+              </select>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Contenu principal défilable */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {KPI_CONFIG.map((item) => (
-            <div
-              key={item.key}
-              className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3.5"
-            >
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
-                <item.icon size={18} strokeWidth={2} aria-hidden="true" />
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 font-body">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {KPI_CONFIG.map(({key,label,icon:Icon})=>(
+            <div key={key} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3.5">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                <Icon size={18}/>
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
-                  {item.label}
-                </p>
-                <p className="text-xl font-display font-semibold text-slate-900 dark:text-white tabular-nums mt-0.5">
-                  {stats.kpis[item.key] ?? 0}
-                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{label}</p>
+                <p className="text-xl font-semibold tabular-nums mt-0.5">{kpis[key] ?? 0}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* 1. Équilibre du programme : anneau solide */}
-          <ChartCard
-            id="chart-equilibre" filename="equilibre-programme" title="Équilibre du programme"
-            icon={PieIcon} downloading={downloading} onDownload={downloadChart}
-            isEmpty={!stats.resumeData?.length}
-          >
-            <SolidPie
-              data={stats.resumeData}
-              nameKey="subject"
-              valueKey="A"
-              innerRatio={0.55}
-              idPrefix="equilibre"
-              tooltipStyle={tooltipStyle}
-            />
+          <ChartCard id="chart-equilibre" title="Équilibre du programme" icon={PieIcon} empty={!stats.resumeData?.some(x=>Number(x.A)>0)} downloading={downloading} onDownload={downloadChart}>
+            <SolidPie data={stats.resumeData} nameKey="subject" valueKey="A" innerRatio={.55} idPrefix="equilibre" tooltipStyle={tooltipStyle}/>
           </ChartCard>
-
-          {/* 2. Taux de maîtrise par module : barres solides */}
-          <ChartCard
-            id="chart-modules" filename="taux-maitrise-modules" title="Taux de maîtrise par module"
-            icon={Activity} downloading={downloading} onDownload={downloadChart}
-            isEmpty={!stats.moduleStats?.length}
-          >
+          <ChartCard id="chart-modules" title="Taux de maîtrise par module" icon={Activity} empty={!stats.moduleStats?.some(x=>Number(x.valeur)>0)} downloading={downloading} onDownload={downloadChart}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.moduleStats} margin={{ top: 14, right: 18, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="bar3d-modules" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stopColor="#10b981" />
-                    <stop offset="1" stopColor="#047857" />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.grid} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={axisTick} />
-                <YAxis axisLine={false} tickLine={false} tick={axisTick} />
-                <Tooltip cursor={{ fill: theme.cursor }} contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Bar
-                  dataKey="valeur"
-                  barSize={28}
-                  shape={(props) => <Bar3D {...props} gradient="url(#bar3d-modules)" top="#6ee7b7" side="#064e3b" />}
-                />
+              <BarChart data={stats.moduleStats} margin={{top:14,right:18,left:0,bottom:0}}>
+                <defs><linearGradient id="bar3d-modules" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#10b981"/><stop offset="1" stopColor="#047857"/></linearGradient></defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.grid}/>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={tick}/>
+                <YAxis axisLine={false} tickLine={false} tick={tick}/>
+                <Tooltip cursor={{fill:theme.cursor}} contentStyle={tooltipStyle} itemStyle={{color:theme.text}} labelStyle={{color:theme.text}}/>
+                <Bar dataKey="valeur" barSize={28} shape={p=><Bar3D {...p} gradient="url(#bar3d-modules)" top="#6ee7b7" side="#064e3b"/>}/>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* 3. Croissance des groupes : barres horizontales solides */}
-          <ChartCard
-            id="chart-croissance" filename="croissance-groupes" title="Croissance des groupes (% par année)"
-            icon={CalendarDays} downloading={downloading} onDownload={downloadChart}
-            isEmpty={!stats.evolutionGS?.length}
-          >
+          <ChartCard id="chart-croissance" title="Croissance des groupes (% par année)" icon={CalendarDays} empty={!stats.evolutionGS?.length} downloading={downloading} onDownload={downloadChart}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart layout="vertical" data={stats.evolutionGS} margin={{ top: 10, right: 22, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="bar3d-groupes" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="#38bdf8" />
-                    <stop offset="1" stopColor="#0284c7" />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.grid} />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={axisTick} unit="%" />
-                <YAxis dataKey="year" type="category" axisLine={false} tickLine={false} tick={axisTick} />
-                <Tooltip cursor={{ fill: theme.cursor }} formatter={(value) => [`${value}%`, 'Répartition']} contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                <Bar
-                  dataKey="pourcentage"
-                  barSize={20}
-                  shape={(props) => <Bar3D {...props} gradient="url(#bar3d-groupes)" top="#7dd3fc" side="#075985" />}
-                />
+              <BarChart layout="vertical" data={stats.evolutionGS} margin={{top:10,right:22,left:0,bottom:0}}>
+                <defs><linearGradient id="bar3d-groupes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#38bdf8"/><stop offset="1" stopColor="#0284c7"/></linearGradient></defs>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.grid}/>
+                <XAxis type="number" axisLine={false} tickLine={false} tick={tick} unit="%"/>
+                <YAxis dataKey="year" type="category" axisLine={false} tickLine={false} tick={tick}/>
+                <Tooltip cursor={{fill:theme.cursor}} formatter={v=>[`${v}%`,'Répartition']} contentStyle={tooltipStyle} itemStyle={{color:theme.text}} labelStyle={{color:theme.text}}/>
+                <Bar dataKey="pourcentage" barSize={20} shape={p=><Bar3D {...p} gradient="url(#bar3d-groupes)" top="#7dd3fc" side="#075985"/>}/>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
-
-          {/* 4. Pyramide des âges : aire solide avec épaisseur */}
-          <ChartCard
-            id="chart-ages" filename="pyramide-ages" title="Pyramide des âges"
-            icon={Users} downloading={downloading} onDownload={downloadChart}
-            isEmpty={!stats.ageData?.length}
-          >
+          <ChartCard id="chart-ages" title="Pyramide des âges" icon={Users} empty={!stats.ageData?.some(x=>Number(x.value)>0)} downloading={downloading} onDownload={downloadChart}>
             <div className="solid-area h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.ageData} margin={{ top: 10, right: 14, left: 0, bottom: 6 }}>
-                  <defs>
-                    <linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#0369a1" stopOpacity={1} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={axisTick} />
-                  <YAxis axisLine={false} tickLine={false} tick={axisTick} />
-                  <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: theme.tooltipText }} labelStyle={{ color: theme.tooltipText }} />
-                  <Area type="monotone" dataKey="value" stroke="#0369a1" strokeWidth={2} fillOpacity={1} fill="url(#colorAge)" />
+                <AreaChart data={stats.ageData} margin={{top:10,right:14,left:0,bottom:6}}>
+                  <defs><linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#38bdf8"/><stop offset="100%" stopColor="#0369a1"/></linearGradient></defs>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={tick}/>
+                  <YAxis axisLine={false} tickLine={false} tick={tick}/>
+                  <Tooltip contentStyle={tooltipStyle} itemStyle={{color:theme.text}} labelStyle={{color:theme.text}}/>
+                  <Area type="monotone" dataKey="value" stroke="#0369a1" strokeWidth={2} fillOpacity={1} fill="url(#colorAge)"/>
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -738,56 +384,27 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-2">
-          {/* 5. Maturité des réseaux : camembert 3D avec légende à droite */}
-          <ChartCard
-            id="chart-reseaux" filename="maturite-reseaux" title="Maturité des réseaux"
-            icon={Network} downloading={downloading} onDownload={downloadChart}
-            isEmpty={!stats.kpis.reseaux}
-          >
+          <ChartCard id="chart-reseaux" title="Maturité des réseaux" icon={Network} empty={!total} downloading={downloading} onDownload={downloadChart}>
             <div className="flex flex-col h-full">
               <div className="flex-1 min-h-0 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
-                <Pie3D slices={maturiteSlices} />
-
+                <Pie3D slices={slices}/>
                 <ul className="flex sm:flex-col flex-wrap justify-center gap-x-5 gap-y-2.5 shrink-0">
-                  {maturiteSlices.map((s) => (
-                    <li key={s.label} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                      <span
-                        className="h-3 w-3 rounded-sm shrink-0"
-                        style={{ background: `linear-gradient(135deg, ${s.top1}, ${s.top2})` }}
-                        aria-hidden="true"
-                      />
-                      <span className="font-medium">{s.label}</span>
-                      <span className="text-slate-400 dark:text-slate-500 tabular-nums">{s.value}</span>
-                    </li>
-                  ))}
+                  {slices.map(s=><li key={s.label} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <span className="h-3 w-3 rounded-sm shrink-0" style={{background:`linear-gradient(135deg,${s.top1},${s.top2})`}}/>
+                    <span className="font-medium">{s.label}</span><span className="text-slate-400 tabular-nums">{s.value}</span>
+                  </li>)}
                 </ul>
               </div>
-
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center mt-2 tabular-nums">
-                {reseauxAutonomes} sur {reseauxTotal} réseaux autonomes
+                {autonomes} sur {total} réseaux autonomes
               </p>
             </div>
           </ChartCard>
-
-          {/* 6. Répartition des postes : camembert solide */}
-          <ChartCard
-            id="chart-postes" filename="repartition-postes" title="Répartition des postes"
-            icon={ShieldCheck} downloading={downloading} onDownload={downloadChart}
-            isEmpty={!stats.respData?.length}
-          >
-            <SolidPie
-              data={stats.respData}
-              nameKey="name"
-              valueKey="valeur"
-              innerRatio={0}
-              idPrefix="postes"
-              tooltipStyle={tooltipStyle}
-            />
+          <ChartCard id="chart-postes" title="Répartition des postes" icon={ShieldCheck} empty={!stats.respData?.some(x=>Number(x.valeur)>0)} downloading={downloading} onDownload={downloadChart}>
+            <SolidPie data={stats.respData} nameKey="name" valueKey="valeur" idPrefix="postes" tooltipStyle={tooltipStyle}/>
           </ChartCard>
         </div>
-      </div>
+      </main>
     </div>
   );
-};
-
-export default Dashboard;
+}

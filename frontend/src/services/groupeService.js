@@ -1,31 +1,23 @@
 import axios from '../api/axios';
 
+const auth = () => ({
+  headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}
+});
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    };
-};
+export const getGroupes = (communeId = null) => axios.get('/groupes',{
+  ...auth(),
+  ...(communeId ? {params:{commune_id:communeId}} : {})
+});
 
-export const getGroupes = () => {
-    return axios.get('/groupes',getAuthHeaders());
-};
+export const getMenagesList = (communeId = null) => axios.get('/groupes/menages-list',{
+  ...auth(),
+  ...(communeId ? {params:{commune_id:communeId}} : {})
+});
 
-export const getMenagesList = () => {
-    return axios.get('/groupes/menages-list',getAuthHeaders());
-};
+export const getGroupeById = id => axios.get(`/groupes/${id}`,auth());
 
-export const createGroupe = (data) => {
-    return axios.post('/groupes', data, getAuthHeaders());
-};
+export const createGroupe = data => axios.post('/groupes',data,auth());
 
-export const updateGroupe = (id, data) => {
-    return axios.put(`/groupes/${id}`, data, getAuthHeaders());
-};
+export const updateGroupe = (id,data) => axios.put(`/groupes/${id}`,data,auth());
 
-export const deleteGroupe = (id) => {
-    return axios.delete(`/groupes/${id}`, getAuthHeaders());
-};
+export const deleteGroupe = id => axios.delete(`/groupes/${id}`,auth());

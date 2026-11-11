@@ -1,7 +1,10 @@
-import React,{useState,useEffect} from 'react';
-import {getGroupes,createGroupe,deleteGroupe,updateGroupe} from '../services/groupeService';
+import React,{useState,useEffect,useContext} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {AuthContext} from '../context/AuthContext';
+import axios from '../api/axios';
+import {getGroupes,getMenagesList,createGroupe,deleteGroupe,updateGroupe} from '../services/groupeService';
 import Swal from 'sweetalert2';
-import {Trash2,Edit2,Users,X,Loader2,Save,Eye,MapPin,Search,FileText,Download,Printer,Plus,Calendar,ShieldCheck} from 'lucide-react';
+import {Trash2,Edit2,Users,X,Loader2,Save,Eye,MapPin,Search,FileText,Download,Printer,Plus,Calendar} from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -26,25 +29,47 @@ const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
 
 const GroupePage=()=>{
+  const {user,isAdmin}=useContext(AuthContext);
+  const navigate=useNavigate();
+  const [communes,setCommunes]=useState([]);
+  const [communeFilter,setCommuneFilter]=useState('');
+  const [menagesDisponibles,setMenagesDisponibles]=useState([]);
   const [groupes,setGroupes]=useState([]);
   const [filteredGroupes,setFilteredGroupes]=useState([]);
   const [searchTerm,setSearchTerm]=useState('');
   const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
   const [showModal,setShowModal]=useState(false);
-  const [showVoirPlusModal,setShowVoirPlusModal]=useState(false);
   const [showExportMenu,setShowExportMenu]=useState(false);
   const [editingId,setEditingId]=useState(null);
 
   const [formData,setFormData]=useState({
     nomgs:'',
     nummenage:'',
-    commune:'',
+    commune_id:'',
     fokontany:'',
     village:'',
     date_creation:''
   });
 
-  useEffect(()=>{fetchData()},[]);
+  useEffect(()=>{fetchData()},[communeFilter,isAdmin]);
+  useEffect(()=>{
+    if(!isAdmin) return;
+    axios.get('/communes',{headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}})
+      .then(res=>setCommunes(Array.isArray(res.data)?res.data:res.data.communes||[]))
+      .catch(()=>Toast.fire({icon:'error',title:'Impossible de charger les communes'}));
+  },[isAdmin]);
+  useEffect(()=>{
+    if(!showModal) return;
+    const communeId=isAdmin?formData.commune_id:user?.commune_id;
+    if(!communeId){setMenagesDisponibles([]);return;}
+    let active=true;
+    setMenagesDisponibles([]);
+    getMenagesList(communeId).then(res=>{
+      if(active) setMenagesDisponibles(Array.isArray(res.data)?res.data:res.data.menages||[]);
+    }).catch(()=>{if(active) setMenagesDisponibles([]);});
+    return ()=>{active=false;};
+  },[showModal,formData.commune_id,isAdmin,user?.commune_id]);
 
   // Recherche toute colonne (recherche globale sur tous les champs de l'objet)
   useEffect(()=>{
@@ -58,9 +83,8 @@ const GroupePage=()=>{
   const fetchData=async()=>{
     try{
       setLoading(true);
-      const resGroupes=await getGroupes();
-      setGroupes(resGroupes.data);
-      setFilteredGroupes(resGroupes.data);
+      const resGroupes=await getGroupes(isAdmin?communeFilter:null);
+      setGroupes(Array.isArray(resGroupes.data)?resGroupes.data:[]);
     }catch(error){
       console.error(error);
       Toast.fire({icon:'error',title:'Connexion au serveur impossible'});
@@ -168,20 +192,28 @@ const GroupePage=()=>{
   const handleSubmit=async(e)=>{
     e.preventDefault();
 
-    const inputMenages=formData.nummenage.split(',').map(m=>m.trim()).filter(m=>m!=='');
+    const inputMenages=formData.nummenage.split(',').map(m=>m.trim()).filter(Boolean);
+    if(inputMenages.some(n=>!/^\d+$/.test(n)||Number(n)<1)||new Set(inputMenages.map(Number)).size!==inputMenages.length){
+      Toast.fire({icon:'error',title:'Numéros de ménage invalides ou répétés'});return;
+    }
     const existingMenages=new Set();
+    const selectedCommune=isAdmin?formData.commune_id:user?.commune_id;
+    if(!selectedCommune){Toast.fire({icon:'error',title:'Sélectionnez une commune'});return;}
+    const allowed=new Set(menagesDisponibles.map(n=>Number(n)));
+    if(!inputMenages.length||inputMenages.some(n=>!allowed.has(Number(n)))){Toast.fire({icon:'error',title:'Sélectionnez des ménages existants dans cette commune'});return;}
 
     groupes.forEach(g=>{
-      if(editingId&&g.codegs===editingId)return;
+      if(editingId&&Number(g.codegs)===Number(editingId))return;
+      if(Number(g.commune_id)!==Number(selectedCommune))return;
       if(g.nummenage){
         g.nummenage.split(',').forEach(m=>{
           const cleaned=m.trim();
-          if(cleaned)existingMenages.add(cleaned);
+          if(cleaned)existingMenages.add(Number(cleaned));
         });
       }
     });
 
-    const duplicates=inputMenages.filter(m=>existingMenages.has(m));
+    const duplicates=inputMenages.filter(m=>existingMenages.has(Number(m)));
 
     if(duplicates.length>0){
       Toast.fire({icon:'error',title:`Ménage(s) déjà attribué(s) : ${duplicates.join(', ')}`});
@@ -189,23 +221,23 @@ const GroupePage=()=>{
     }
 
     try{
-      setLoading(true);
+      setSaving(true);
 
       if(editingId){
-        await updateGroupe(editingId,formData);
+        await updateGroupe(editingId,{nomgs:formData.nomgs,nummenage:formData.nummenage,commune_id:selectedCommune,fokontany:formData.fokontany,village:formData.village,date_creation:formData.date_creation});
       }else{
-        await createGroupe(formData);
+        await createGroupe({nomgs:formData.nomgs,nummenage:formData.nummenage,commune_id:selectedCommune,fokontany:formData.fokontany,village:formData.village,date_creation:formData.date_creation});
       }
 
       setShowModal(false);
       resetForm();
-      fetchData();
+      await fetchData();
       Toast.fire({icon:'success',title:'Enregistrement réussi'});
     }catch(error){
       console.error(error);
       Toast.fire({icon:'error',title:error.response?.data?.message||"Erreur lors de l'enregistrement"});
     }finally{
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -226,11 +258,11 @@ const GroupePage=()=>{
         try{
           setLoading(true);
           await deleteGroupe(id);
-          fetchData();
+          await fetchData();
           Toast.fire({icon:'success',title:'Suppression réussie'});
         }catch(error){
           console.error(error);
-          Toast.fire({icon:'error',title:'Impossible de supprimer le groupe'});
+          Toast.fire({icon:'error',title:error.response?.data?.message||'Impossible de supprimer le groupe'});
         }finally{
           setLoading(false);
         }
@@ -240,14 +272,14 @@ const GroupePage=()=>{
 
   const openEditModal=g=>{
     setEditingId(g.codegs);
-    const formattedDate=g.date_creation?new Date(g.date_creation).toISOString().split('T')[0]:'';
-    setFormData({...g,nummenage:g.nummenage||'',date_creation:formattedDate});
+    const formattedDate=g.date_creation?String(g.date_creation).slice(0,10):'';
+    setFormData({nomgs:g.nomgs||'',commune_id:g.commune_id||'',nummenage:g.nummenage||'',fokontany:g.fokontany||'',village:g.village||'',date_creation:formattedDate});
     setShowModal(true);
   };
 
   const resetForm=()=>{
     setEditingId(null);
-    setFormData({nomgs:'',nummenage:'',commune:'',fokontany:'',village:'',date_creation:''});
+    setFormData({nomgs:'',nummenage:'',commune_id:isAdmin?(communeFilter||''):(user?.commune_id||''),fokontany:'',village:'',date_creation:''});
   };
 
   return(
@@ -296,6 +328,10 @@ const GroupePage=()=>{
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+         {isAdmin&&<select aria-label="Filtrer par commune" className={fieldClass} value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)}>
+           <option value="">Toutes les communes</option>
+           {communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
+         </select>}
           <button
             onClick={()=>{resetForm();setShowModal(true)}}
             className={`h-10 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm transition-colors shrink-0 ${focusRing}`}
@@ -305,7 +341,7 @@ const GroupePage=()=>{
           </button>
 
           <button
-            onClick={()=>setShowVoirPlusModal(true)}
+            onClick={()=>navigate('/groupes/details')}
             className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shrink-0 ${focusRing}`}
           >
             <Eye size={16} className="text-slate-500 dark:text-slate-400"/>
@@ -446,74 +482,6 @@ const GroupePage=()=>{
         </div>
       </div>
 
-      {/* Fenêtre de vue d'ensemble */}
-      {showVoirPlusModal&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="groupes-stats-title"
-            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150 overflow-hidden"
-          >
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
-              <div>
-                <h2 id="groupes-stats-title" className="text-base font-display font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Eye size={18} className="text-emerald-700 dark:text-emerald-400"/>
-                  Vue d'ensemble des groupes
-                </h2>
-                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Résumé global des groupes solidaires</p>
-              </div>
-              <button
-                onClick={()=>setShowVoirPlusModal(false)}
-                aria-label="Fermer"
-                className={`text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 -mr-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
-              >
-                <X size={18}/>
-              </button>
-            </div>
-
-            <div className="px-5 py-2 divide-y divide-slate-100 dark:divide-slate-800">
-              <div className="py-4 flex items-center gap-3.5">
-                <div className="h-10 w-10 shrink-0 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 flex items-center justify-center">
-                  <Users size={19}/>
-                </div>
-                <span className="flex-1 text-sm text-slate-600 dark:text-slate-300">Total groupes</span>
-                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums">{filteredGroupes.length}</p>
-              </div>
-
-              <div className="py-4 flex items-center gap-3.5">
-                <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-                  <ShieldCheck size={19}/>
-                </div>
-                <span className="flex-1 text-sm text-slate-600 dark:text-slate-300">Ménages rattachés</span>
-                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums">
-                  {[...new Set(filteredGroupes.flatMap(g=>g.nummenage?.split(',')||[]))].length}
-                </p>
-              </div>
-
-              <div className="py-4 flex items-center gap-3.5">
-                <div className="h-10 w-10 shrink-0 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 flex items-center justify-center">
-                  <MapPin size={19}/>
-                </div>
-                <span className="flex-1 text-sm text-slate-600 dark:text-slate-300">Communes couvertes</span>
-                <p className="text-2xl font-display font-semibold text-slate-900 dark:text-white tabular-nums">
-                  {[...new Set(filteredGroupes.map(g=>g.commune))].length}
-                </p>
-              </div>
-            </div>
-
-            <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <button
-                onClick={()=>setShowVoirPlusModal(false)}
-                className={`h-9 px-4 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-100 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors ${focusRing}`}
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Fenêtre d'ajout / modification */}
       {showModal&&(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
@@ -550,8 +518,11 @@ const GroupePage=()=>{
                 </div>
 
                 <div>
-                  <label htmlFor="g-commune" className={labelClass}>Commune</label>
-                  <input id="g-commune" type="text" className={`${fieldClass} capitalize`} value={formData.commune} onChange={e=>setFormData({...formData,commune:e.target.value})}/>
+                  <label htmlFor="g-commune" className={labelClass}>Commune *</label>
+                  {isAdmin?<select id="g-commune" required disabled={Boolean(editingId)} className={fieldClass} value={formData.commune_id} onChange={e=>setFormData({...formData,commune_id:e.target.value,nummenage:''})}>
+                    <option value="">Choisir une commune</option>
+                    {communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
+                  </select>:<input id="g-commune" className={fieldClass} disabled value={user?.commune?.nom_commune||groupes.find(g=>Number(g.commune_id)===Number(user?.commune_id))?.commune||`Commune ${user?.commune_id||''}`}/>}
                 </div>
 
                 <div>
@@ -574,7 +545,10 @@ const GroupePage=()=>{
                     className={`${fieldClass} font-medium tabular-nums`} 
                     value={formData.nummenage} 
                     onChange={handleMenageChange}
+                    list="g-menages-options"
                   />
+                  <datalist id="g-menages-options">{menagesDisponibles.map(n=><option key={n} value={n}/>)}</datalist>
+                  <p className="mt-1 text-xs text-slate-500">Ménages existants : {menagesDisponibles.join(', ')||'Aucun'}</p>
                 </div>
               </div>
 
@@ -584,7 +558,7 @@ const GroupePage=()=>{
                   className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors ${focusRing}`}
                 >
                   <Save size={16}/>
-                  {editingId?'Mettre à jour':'Enregistrer'}
+                  {saving?'Enregistrement...':editingId?'Mettre à jour':'Enregistrer'}
                 </button>
               </div>
             </form>

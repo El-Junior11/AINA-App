@@ -3,24 +3,132 @@ const Formation = require('./formationModel');
 const AuditLog = require('./AuditLog');
 const User = require('./userModel');
 
-// --- Ny anao efa misy ---
-Membre.hasOne(Formation, { 
-    foreignKey: 'nummembre', 
-    as: 'formation' 
+const Commune = require('./communeModel');
+const Menage = require('./menageModel');
+const Groupe = require('./Groupe');
+
+// ========================================
+// COMMUNE - UTILISATEURS
+// ========================================
+
+Commune.hasMany(User, {
+  foreignKey: 'commune_id',
+  as: 'utilisateurs'
 });
 
-Formation.belongsTo(Membre, { 
-    foreignKey: 'nummembre',
-    as: 'membre'
+User.belongsTo(Commune, {
+  foreignKey: 'commune_id',
+  as: 'commune'
 });
 
-// --- Ampio ity mba tsy hisy error intsony ---
-User.hasMany(AuditLog, { 
-    foreignKey: 'user_id' 
+// ========================================
+// COMMUNE - GROUPES
+// ========================================
+
+Commune.hasMany(Groupe, {
+  foreignKey: 'commune_id',
+  as: 'groupes'
 });
 
-AuditLog.belongsTo(User, { 
-    foreignKey: 'user_id' 
+Groupe.belongsTo(Commune, {
+  foreignKey: 'commune_id',
+  as: 'communeAssociee'
 });
 
-module.exports = { Membre, Formation, AuditLog, User };
+// ========================================
+// COMMUNE - MENAGES
+// ========================================
+
+Commune.hasMany(Menage, {
+  foreignKey: 'commune_id',
+  as: 'menages'
+});
+
+Menage.belongsTo(Commune, {
+  foreignKey: 'commune_id',
+  as: 'commune'
+});
+
+// ========================================
+// COMMUNE - MEMBRES
+// ========================================
+
+Commune.hasMany(Membre, {
+  foreignKey: 'commune_id',
+  as: 'membres'
+});
+
+Membre.belongsTo(Commune, {
+  foreignKey: 'commune_id',
+  as: 'commune'
+});
+
+// ========================================
+// MENAGE - MEMBRES
+// ========================================
+
+Menage.hasMany(Membre, {
+  foreignKey: 'id_menage',
+  as: 'membres'
+});
+
+Membre.belongsTo(Menage, {
+  foreignKey: 'id_menage',
+  as: 'menage'
+});
+
+// ========================================
+// UTILISATEUR - MEMBRES
+// ========================================
+
+User.hasMany(Membre, {
+  foreignKey: 'user_id',
+  as: 'membres'
+});
+
+Membre.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'utilisateur'
+});
+
+// ========================================
+// MEMBRE - FORMATION
+// Associations existantes
+// ========================================
+
+Membre.hasOne(Formation, {
+  foreignKey: 'nummembre',
+  as: 'formation'
+});
+
+Formation.belongsTo(Membre, {
+  foreignKey: 'nummembre',
+  as: 'membre'
+});
+
+// ========================================
+// UTILISATEUR - AUDIT LOGS
+// Associations existantes
+// ========================================
+
+User.hasMany(AuditLog, {
+  foreignKey: 'user_id'
+});
+
+AuditLog.belongsTo(User, {
+  foreignKey: 'user_id'
+});
+
+// ========================================
+// EXPORT DES MODELS
+// ========================================
+
+module.exports = {
+  Commune,
+  Menage,
+  Groupe,
+  Membre,
+  Formation,
+  AuditLog,
+  User
+};

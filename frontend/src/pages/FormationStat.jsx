@@ -1,7 +1,7 @@
 import React,{useState,useEffect} from 'react';
 import axios from '../api/axios';
 import {Activity,GraduationCap,ShieldCheck,Heart,Leaf,Users,BarChart3,PieChart,ArrowLeft} from 'lucide-react';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate,useSearchParams} from 'react-router-dom';
 
 // Deux couleurs seulement pour toute la page : bleu = hommes, rose = femmes
 const COLOR_H='#0284c7';
@@ -207,18 +207,25 @@ const FormationStats=()=>{
   const [stats,setStats]=useState(null);
   const [loading,setLoading]=useState(true);
   const navigate=useNavigate();
+  const [searchParams,setSearchParams]=useSearchParams();
+  const communeId=searchParams.get('commune_id')||'';
+  const [isAdmin,setIsAdmin]=useState(false);
+  const [communes,setCommunes]=useState([]);
+  const [error,setError]=useState('');
+  useEffect(()=>{try{setIsAdmin(JSON.parse(localStorage.getItem('user')||'{}').role==='admin')}catch{}},[]);
+  useEffect(()=>{if(!isAdmin)return;axios.get('/communes').then(res=>{const list=Array.isArray(res.data)?res.data:res.data?.communes||res.data?.data||[];if(Array.isArray(list))setCommunes(list)}).catch(()=>{})},[isAdmin]);
   useEffect(()=>{
     const fetchStats=async()=>{
       try{
         setLoading(true);
         const token=localStorage.getItem('token');
         const config={headers:{Authorization:`Bearer ${token}`}};
-        const res=await axios.get('/formations/stats-details',config);
+        const res=await axios.get('/formations/stats-details',{...config,params:communeId?{commune_id:communeId}:{}});
         setStats(res.data);
-      }catch(err){console.error('Erreur stats détaillée:',err)}finally{setLoading(false)}
+      }catch(err){console.error('Erreur stats détaillée:',err);setError(err.response?.data?.message||'Impossible de charger les statistiques');setStats(null)}finally{setLoading(false)}
     };
-    fetchStats();
-  },[]);
+    setError('');fetchStats();
+  },[communeId]);
 
   const items=[
     {title:'Genre & Social',h:stats?.genre_h,f:stats?.genre_f,icon:Users,chart:'donut'},
@@ -258,6 +265,11 @@ const FormationStats=()=>{
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Répartition par genre des formations.</p>
           </div>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+        {isAdmin&&<select aria-label="Filtrer les statistiques par commune" value={communeId} onChange={e=>setSearchParams(e.target.value?{commune_id:e.target.value}:{})} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+          <option value="">Toutes les communes</option>
+          {communes.map(c=>{const id=c.id_commune??c.commune_id??c.id;return <option key={id} value={id}>{c.nom_commune||c.nom||`Commune ${id}`}</option>})}
+        </select>}
         <button
           type="button"
           onClick={()=>navigate(-1)}
@@ -266,17 +278,18 @@ const FormationStats=()=>{
           <ArrowLeft size={16} className="text-slate-500 dark:text-slate-400"/>
           Retour
         </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-5">
         <div className="max-w-7xl mx-auto space-y-5">
-          <OverviewChart items={items}/>
+          {error?<p role="alert" className="text-red-600 text-sm">{error}</p>:<OverviewChart items={items}/>}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {!error&&<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {items.map(it=>(
               <StatCard key={it.title} title={it.title} h={it.h} f={it.f} icon={it.icon} chart={it.chart}/>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
     </div>
