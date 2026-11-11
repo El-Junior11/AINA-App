@@ -1,123 +1,97 @@
 const sequelize = require('../config/db');
+const { QueryTypes } = require('sequelize');
 
-const getDashboardStats = async (req, res) => {
+const validId = v => /^\d+$/.test(String(v ?? '')) && Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
+
+exports.getDashboardStats = async (req, res) => {
   try {
-    const currentYear = new Date().getFullYear();
-    const userId = req.user.user_id;
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user?.role === 'admin';
+    const selected = req.query.commune_id;
+    const communeId = isAdmin ? (selected === undefined || selected === '' ? null : validId(selected)) : validId(req.user?.commune_id);
 
-    const whereClause = isAdmin ? '' : 'WHERE user_id = ?';
-    const queryParams = isAdmin ? [] : [userId];
-    const queryOptions = isAdmin 
-      ? { type: sequelize.QueryTypes.SELECT } 
-      : { replacements: queryParams, type: sequelize.QueryTypes.SELECT };
+    if (isAdmin && selected !== undefined && selected !== '' && !communeId)
+      return res.status(400).json({ success: false, message: 'Commune invalide.' });
+    if (!isAdmin && !communeId)
+      return res.status(403).json({ success: false, message: 'Commune non attribuée.' });
 
-    const [resM, resG, resR, resP, resF] = await Promise.all([
-      sequelize.query(`SELECT * FROM membres ${whereClause}`, queryOptions),
-      sequelize.query(`SELECT * FROM groupes ${whereClause}`, queryOptions),
-      sequelize.query(`SELECT * FROM reseaux ${whereClause}`, queryOptions),
-      sequelize.query(`SELECT * FROM responsables ${whereClause}`, queryOptions),
-      sequelize.query(`SELECT * FROM formations ${whereClause}`, queryOptions)
+    const where = communeId ? ' WHERE commune_id = :communeId' : '';
+    const options = { type: QueryTypes.SELECT, replacements: { communeId } };
+
+    const [membres, groupes, reseaux, responsables, formations, menages, communes] = await Promise.all([
+      sequelize.query(`SELECT nummembre, annee_naissance, sexe FROM membres${where}`, options),
+      sequelize.query(`SELECT codegs, date_creation FROM groupes${where}`, options),
+      sequelize.query(`SELECT "Autonomie" FROM reseaux${where}`, options),
+      sequelize.query(`SELECT "Poste" FROM responsables${where}`, options),
+      sequelize.query(`SELECT f.gestionsimplifiee, f.agroeco, f.nutrition, f.genre, f.autonomie
+        FROM formations f JOIN membres m ON m.nummembre = f.nummembre
+        WHERE f.deleted_at IS NULL${communeId ? ' AND m.commune_id = :communeId' : ''}`, options),
+      sequelize.query(`SELECT id_menage FROM menages${where}`, options),
+      isAdmin ? sequelize.query('SELECT id_commune, nom_commune FROM communes ORDER BY nom_commune', { type: QueryTypes.SELECT }) : Promise.resolve([])
     ]);
 
-    const totalMembres = resM.length;
-    const totalGroupes = resG.length;
-    const totalReseaux = resR.length;
-    const totalResponsables = resP.length;
-    const totalFormations = resF.length;
-    const reseauxAutonomes = resR.filter(r => (r.Autonomie || r.autonomie) === 'Oui').length;
+    const total = {
+      membres: membres.length,
+      groupes: groupes.length,
+      reseaux: reseaux.length,
+      responsables: responsables.length,
+      formations: formations.length,
+      menages: menages.length,
+      reseauxAutonomes: reseaux.filter(r => String(r.Autonomie ?? '').trim().toLowerCase() === 'oui').length
+    };
 
     const resumeData = [
-      { subject: 'Membres', A: totalMembres },
-      { subject: 'Groupes GS', A: totalGroupes },
-      { subject: 'Formations', A: totalFormations },
-      { subject: 'Réseaux', A: totalReseaux },
-      { subject: 'Responsables', A: totalResponsables }
+      ['Membres', total.membres], ['Groupes GS', total.groupes],
+      ['Formations', total.formations], ['Réseaux', total.reseaux],
+      ['Responsables', total.responsables]
+    ].map(([subject, A]) => ({ subject, A }));
+
+    const year = new Date().getFullYear();
+    const ages = membres.map(m => Number(m.annee_naissance))
+      .filter(y => Number.isInteger(y) && y >= 1900 && y <= year)
+      .map(y => year - y);
+
+    const ageData = [
+      { name: 'Jeunes (<25)', value: ages.filter(a => a < 25).length },
+      { name: 'Adultes (25-45)', value: ages.filter(a => a >= 25 && a <= 45).length },
+      { name: 'Aînés (>45)', value: ages.filter(a => a > 45).length }
     ];
 
-const ageData = [
-      { 
-        name: 'Jeunes (<25)', 
-        value: resM.filter(m => (currentYear - (parseInt(m.annee_naissance) || 2000)) < 25).length 
-      },
-      { 
-        name: 'Adultes (25-45)', 
-        value: resM.filter(m => {
-          const a = currentYear - (parseInt(m.annee_naissance) || 2000); 
-          return a >= 25 && a <= 45;
-        }).length 
-      },
-      { 
-        name: 'Aînés (>45)', 
-        value: resM.filter(m => (currentYear - (parseInt(m.annee_naissance) || 2000)) > 45).length 
-      }
-    ];
-
-    const distributionGS = resG.reduce((acc, g) => {
-      const year = g.date_creation ? new Date(g.date_creation).getFullYear() : 'Inconnu';
-      acc[year] = (acc[year] || 0) + 1;
+    const years = groupes.reduce((acc, g) => {
+      const date = g.date_creation ? new Date(g.date_creation) : null;
+      const y = date && !Number.isNaN(date.getTime()) ? String(date.getFullYear()) : 'Inconnu';
+      acc[y] = (acc[y] || 0) + 1;
       return acc;
     }, {});
 
-    const evolutionGS = Object.keys(distributionGS).map(year => ({
-      year,
-      count: distributionGS[year],
-      pourcentage: totalGroupes > 0 ? parseFloat(((distributionGS[year] / totalGroupes) * 100).toFixed(1)) : 0
-    })).sort((a, b) => a.year - b.year);
+    const evolutionGS = Object.entries(years).map(([year, count]) => ({
+      year, count, pourcentage: total.groupes ? Number((count * 100 / total.groupes).toFixed(1)) : 0
+    })).sort((a, b) => a.year === 'Inconnu' ? 1 : b.year === 'Inconnu' ? -1 : Number(a.year) - Number(b.year));
 
     const modules = [
-      { id: 'gestionsimplifiee', label: 'Gestion' },
-      { id: 'agroeco', label: 'Agro-Éco' },
-      { id: 'nutrition', label: 'Nutrition' },
-      { id: 'genre', label: 'Genre' },
-      { id: 'autonomie', label: 'Autonome' }
+      ['gestionsimplifiee', 'Gestion'], ['agroeco', 'Agro-Éco'],
+      ['nutrition', 'Nutrition'], ['genre', 'Genre'], ['autonomie', 'Autonome']
     ];
 
-const moduleStats = modules.map(mod => ({
-      name: mod.label,
-      valeur: resF.filter(f => {
-        // Tsy mila "item = f.formation" intsony ianao
-        // Jereo mivantana ny column ao amin'ny object f
-        const val = f[mod.id]; 
-        
-        // Raha 'autonomie' ilay izy, integer izy fa tsy boolean
-        if (mod.id === 'autonomie') {
-            return val === 1 || val === true; 
-        }
-        
-        // Raha boolean ny hafa (agroeco, etc)
-        return val === true || val === 1 || val === 'true';
-      }).length
+    const moduleStats = modules.map(([id, name]) => ({
+      name, valeur: formations.filter(f => id === 'autonomie' ? Number(f.autonomie) === 1 : f[id] === true).length
     }));
 
-    const normalizePoste = (txt) => txt ? txt.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
-    const respData = [
-      { name: 'Président(e)', valeur: resP.filter(r => normalizePoste(r.Poste || r.poste).includes("presid")).length },
-      { name: 'Secrétaire', valeur: resP.filter(r => normalizePoste(r.Poste || r.poste).includes("secr")).length },
-      { name: 'Trésorier(e)', valeur: resP.filter(r => normalizePoste(r.Poste || r.poste).includes("treso")).length },
-      { name: 'Conseiller(e)', valeur: resP.filter(r => normalizePoste(r.Poste || r.poste).includes("conseil")).length },
-      { name: 'Membres', valeur: resP.filter(r => normalizePoste(r.Poste || r.poste).includes("membre")).length }
+    const normalize = v => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const postes = [
+      ['Président(e)', 'presid'], ['Secrétaire', 'secr'],
+      ['Trésorier(e)', 'treso'], ['Conseiller(e)', 'conseil'], ['Membres', 'membre']
     ];
 
-    res.json({
-      success: true,
-      kpis: {
-        membres: totalMembres,
-        groupes: totalGroupes,
-        reseaux: totalReseaux,
-        responsables: totalResponsables,
-        formations: totalFormations,
-        reseauxAutonomes
-      },
-      resumeData,
-      ageData,
-      moduleStats,
-      respData,
-      evolutionGS
+    const respData = postes.map(([name, keyword]) => ({
+      name, valeur: responsables.filter(r => normalize(r.Poste).includes(keyword)).length
+    }));
+
+    return res.json({
+      success: true, isAdmin, commune_id: communeId, communes,
+      kpis: total, resumeData, ageData, moduleStats, respData, evolutionGS
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Dashboard:', error);
+    return res.status(500).json({ success: false, message: 'Erreur de chargement des statistiques.' });
   }
 };
-
-module.exports = { getDashboardStats };

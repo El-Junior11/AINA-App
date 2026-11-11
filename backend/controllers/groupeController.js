@@ -1,412 +1,212 @@
-
+const { Op, QueryTypes } = require('sequelize');
+const sequelize = require('../config/db');
 const Groupe = require('../models/Groupe');
-const Membre = require('../models/membreModel');
+const Menage = require('../models/menageModel');
+const Commune = require('../models/communeModel');
 const Reseau = require('../models/reseauModel');
-const { Sequelize } = require('sequelize');
 
-exports.getDistinctMenages = async (req, res) => {
-    try {
-        const filter = req.user.role === 'admin'
-            ? {}
-            : { user_id: req.user.user_id };
+const admin = req => req.user?.role === 'admin';
+const id = value => /^\d+$/.test(String(value ?? '')) && Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
+const clean = value => typeof value === 'string' ? value.trim() : value;
+const fail = (res, status, message) => res.status(status).json({ message });
+const scope = req => admin(req) ? {} : { commune_id: id(req.user?.commune_id) || -1 };
+const group = (req, transaction) => Groupe.findOne({ where: { codegs: id(req.params.id) || -1, ...scope(req) }, transaction });
 
-        const menages = await Membre.findAll({
-            attributes: [
-                [
-                    Sequelize.fn(
-                        'DISTINCT',
-                        Sequelize.col('num_menage')
-                    ),
-                    'num_menage'
-                ]
-            ],
-            where: {
-                ...filter,
-                num_menage: {
-                    [Sequelize.Op.ne]: null
-                }
-            },
-            order: [
-                [
-                    Sequelize.col('num_menage'),
-                    'ASC'
-                ]
-            ]
-        });
+const parseMenages = value => {
+  const items = Array.isArray(value) ? value : String(value ?? '').split(',');
+  if (!items.length || items.some(v => !/^\d+$/.test(String(v).trim()))) return null;
+  const numbers = items.map(id);
+  return numbers.some(n => !n) || new Set(numbers).size !== numbers.length ? null : numbers;
+};
 
-        res.json(menages);
-    } catch (error) {
-        console.error('Erreur récupération ménages :', error);
+const parseDate = value => {
+  if (value == null || value === '') return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : false;
+};
 
-        res.status(500).json({
-            message:
-                "Erreur lors de la récupération des ménages : " +
-                error.message
-        });
-    }
+const validate = body => {
+  const nomgs = clean(body.nomgs), menages = parseMenages(body.nummenage), date_creation = parseDate(body.date_creation);
+  const fokontany = clean(body.fokontany), village = clean(body.village);
+  if (typeof nomgs !== 'string' || !nomgs || nomgs.length > 255) return { error: 'Nom du groupe obligatoire (255 caractères maximum).' };
+  if (!menages) return { error: 'Numéros de ménage invalides ou répétés.' };
+  if (date_creation === false) return { error: 'Date invalide (AAAA-MM-JJ).' };
+  if ([fokontany, village].some(v => v != null && (typeof v !== 'string' || v.length > 255))) return { error: 'Fokontany ou village invalide.' };
+  return { menages, data: { nomgs, nummenage: menages.join(', '), date_creation, fokontany: fokontany || null, village: village || null } };
+};
+
+const verifyMenages = async (commune_id, numbers, transaction) => {
+  const rows = await Menage.findAll({ where: { commune_id, numero_menage: { [Op.in]: numbers } }, attributes: ['id_menage', 'numero_menage'], transaction });
+  return rows.length === numbers.length ? rows.map(m => m.id_menage) : null;
+};
+
+const syncMenages = async (codegs, ids, transaction) => {
+  await sequelize.query('DELETE FROM groupe_menages WHERE codegs = :codegs', { replacements: { codegs }, transaction });
+  for (const id_menage of ids) {
+    await sequelize.query('INSERT INTO groupe_menages (codegs, id_menage) VALUES (:codegs, :id_menage)', { replacements: { codegs, id_menage }, transaction });
+  }
+};
+
+const hasRemovedResponsibilities = async (codegs, ids, transaction) => {
+  const rows = await sequelize.query(`
+    SELECT 1 FROM responsables r
+    JOIN membres m ON m.nummembre = r."NumMembre"
+    WHERE r.codegs = :codegs AND m.id_menage NOT IN (:ids) LIMIT 1
+  `, { replacements: { codegs, ids }, type: QueryTypes.SELECT, transaction });
+  return rows.length > 0;
+};
+
+const reseauReference = async (nomgs, transaction) => {
+  const rows = await Reseau.findAll({ attributes: ['NomGS'], transaction });
+  return rows.some(r => String(r.NomGS || '').split(',').some(v => v.trim().toLocaleLowerCase() === String(nomgs).trim().toLocaleLowerCase()));
+};
+
+const handle = (res, err, action) => {
+  console.error(`${action} groupe:`, err);
+  return fail(res, 500, `Erreur lors de ${action} du groupe.`);
 };
 
 exports.getAllGroupes = async (req, res) => {
-    try {
-        const filter = req.user.role === 'admin'
-            ? {}
-            : { user_id: req.user.user_id };
-
-        const groupes = await Groupe.findAll({
-            where: filter,
-            order: [['codegs', 'DESC']]
-        });
-
-        res.json(groupes);
-    } catch (error) {
-        console.error('Erreur récupération groupes :', error);
-
-        res.status(500).json({
-            message:
-                "Erreur lors de la récupération des groupes : " +
-                error.message
-        });
-    }
+  try {
+    const where = scope(req);
+    if (req.query.commune_id !== undefined && !id(req.query.commune_id)) return fail(res, 400, 'Commune invalide.');
+    if (admin(req) && req.query.commune_id) where.commune_id = id(req.query.commune_id);
+    return res.json(await Groupe.findAll({ where, order: [['codegs', 'DESC']] }));
+  } catch (err) { return handle(res, err, 'la récupération'); }
 };
 
 exports.getGroupeById = async (req, res) => {
-    try {
-        const filter = req.user.role &&
-            req.user.role.toLowerCase() === 'admin'
-            ? {
-                codegs: req.params.id
-            }
-            : {
-                codegs: req.params.id,
-                user_id: req.user.user_id
-            };
+  try {
+    if (!id(req.params.id)) return fail(res, 400, 'Identifiant invalide.');
+    const result = await group(req);
+    return result ? res.json(result) : fail(res, 404, 'Groupe introuvable ou accès interdit.');
+  } catch (err) { return handle(res, err, 'la récupération'); }
+};
 
-        const groupe = await Groupe.findOne({
-            where: filter
-        });
+exports.getDistinctMenages = async (req, res) => {
+  try {
+    if (req.query.commune_id !== undefined && !id(req.query.commune_id)) return fail(res, 400, 'Commune invalide.');
+    const commune_id = admin(req) ? id(req.query.commune_id) : id(req.user.commune_id);
+    if (!commune_id) return fail(res, 400, 'Sélectionnez une commune.');
+    const rows = await Menage.findAll({ where: { commune_id }, attributes: ['numero_menage'], order: [['numero_menage', 'ASC']] });
+    return res.json(rows.map(m => String(m.numero_menage)));
+  } catch (err) { return handle(res, err, 'la récupération des ménages'); }
+};
 
-        if (!groupe) {
-            return res.status(404).json({
-                message:
-                    "Groupe non trouvé ou accès refusé."
-            });
-        }
+exports.getGroupeMembres = async (req, res) => {
+  try {
+    if (!id(req.params.id)) return fail(res, 400, 'Identifiant invalide.');
+    const g = await group(req);
+    if (!g) return fail(res, 404, 'Groupe introuvable ou accès interdit.');
 
-        res.json(groupe);
-    } catch (error) {
-        console.error('Erreur récupération groupe :', error);
+    const rows = await sequelize.query(`
+      SELECT m.nummembre, m.nom_membre, m.prenom_membre, m.sexe, m.annee_naissance, m.chef,
+             mn.id_menage, mn.numero_menage, g.codegs, g.nomgs, g.commune_id,
+             r."CodeRp", COALESCE(NULLIF(TRIM(r."Poste"), ''), 'Membre') AS "Poste"
+      FROM groupe_menages gm
+      JOIN groupes g ON g.codegs = gm.codegs
+      JOIN menages mn ON mn.id_menage = gm.id_menage AND mn.commune_id = g.commune_id
+      JOIN membres m ON m.id_menage = mn.id_menage AND m.commune_id = g.commune_id
+      LEFT JOIN LATERAL (
+        SELECT "CodeRp", "Poste" FROM responsables
+        WHERE codegs = g.codegs AND "NumMembre" = m.nummembre
+        ORDER BY "CodeRp" DESC LIMIT 1
+      ) r ON TRUE
+      WHERE g.codegs = :codegs
+      ORDER BY mn.numero_menage, m.nom_membre, m.prenom_membre
+    `, { replacements: { codegs: g.codegs }, type: QueryTypes.SELECT });
 
-        res.status(500).json({
-            message:
-                "Erreur serveur : " +
-                error.message
-        });
-    }
+    return res.json(rows);
+  } catch (err) { return handle(res, err, 'la récupération des membres'); }
 };
 
 exports.createGroupe = async (req, res) => {
-    try {
-        const {
-            nummenage,
-            date_creation,
-            ...rest
-        } = req.body;
+  try {
+    const v = validate(req.body || {});
+    if (v.error) return fail(res, 400, v.error);
+    const commune_id = admin(req) ? id(req.body.commune_id) : id(req.user.commune_id);
+    if (!commune_id) return fail(res, 400, 'Commune obligatoire.');
 
-        if (!req.user || !req.user.user_id) {
-            return res.status(401).json({
-                message:
-                    "Utilisateur non authentifié."
-            });
-        }
+    const result = await sequelize.transaction(async transaction => {
+      const commune = await Commune.findByPk(commune_id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!commune) return { status: 404, message: 'Commune introuvable.' };
 
-        const formattedNumMenage = Array.isArray(nummenage)
-            ? nummenage.join(', ')
-            : nummenage;
+      const ids = await verifyMenages(commune_id, v.menages, transaction);
+      if (!ids) return { status: 400, message: 'Ménage introuvable dans cette commune.' };
 
-        const newGroupe = await Groupe.create({
-            ...rest,
-            nummenage: formattedNumMenage,
-            date_creation:
-                date_creation || new Date(),
-            user_id: req.user.user_id
-        });
+      const g = await Groupe.create({ ...v.data, commune_id, commune: commune.nom_commune, user_id: req.user.user_id }, { transaction });
+      await syncMenages(g.codegs, ids, transaction);
+      return { groupe: g };
+    });
 
-        res.locals.createdData =
-            newGroupe.toJSON();
-
-        res.status(201).json({
-            message: "Groupe créé !",
-            data: newGroupe
-        });
-    } catch (error) {
-        console.error('Erreur création groupe :', error);
-
-        res.status(400).json({
-            message: error.message
-        });
-    }
+    if (result.status) return fail(res, result.status, result.message);
+    res.locals.createdData = result.groupe.toJSON();
+    return res.status(201).json(result.groupe);
+  } catch (err) { return handle(res, err, 'la création'); }
 };
 
 exports.updateGroupe = async (req, res) => {
-    const transaction =
-        await Groupe.sequelize.transaction();
+  try {
+    if (!id(req.params.id)) return fail(res, 400, 'Identifiant invalide.');
+    const v = validate(req.body || {});
+    if (v.error) return fail(res, 400, v.error);
 
-    try {
-        const {
-            nummenage,
-            date_creation,
-            ...rest
-        } = req.body;
+    const result = await sequelize.transaction(async transaction => {
+      const current = await group(req, transaction);
+      if (!current) return { status: 404, message: 'Groupe introuvable ou accès interdit.' };
+      if (!current.commune_id) return { status: 409, message: 'Commune du groupe manquante.' };
 
-        const filter = req.user.role === 'admin'
-            ? {
-                codegs: req.params.id
-            }
-            : {
-                codegs: req.params.id,
-                user_id: req.user.user_id
-            };
+      const commune = await Commune.findByPk(current.commune_id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!commune) return { status: 409, message: 'Commune introuvable.' };
 
-        const groupe = await Groupe.findOne({
-            where: filter,
-            transaction
-        });
+      const g = await group(req, transaction);
+      const ids = await verifyMenages(g.commune_id, v.menages, transaction);
+      if (!ids) return { status: 400, message: 'Ménage introuvable dans cette commune.' };
 
-        if (!groupe) {
-            await transaction.rollback();
+      if (await hasRemovedResponsibilities(g.codegs, ids, transaction)) {
+        return { status: 409, message: 'Des membres retirés ont encore un poste dans ce groupe.' };
+      }
 
-            return res.status(404).json({
-                message:
-                    "Groupe non trouvé ou accès refusé."
-            });
-        }
+      if (g.nomgs.toLocaleLowerCase() !== v.data.nomgs.toLocaleLowerCase() && await reseauReference(g.nomgs, transaction)) {
+        return { status: 409, message: 'Nom utilisé par un réseau.' };
+      }
 
-        res.locals.oldData =
-            groupe.toJSON();
+      const oldData = g.toJSON();
+      await g.update(v.data, { transaction });
+      await syncMenages(g.codegs, ids, transaction);
+      return { groupe: g, oldData };
+    });
 
-        const oldNomGS =
-            typeof groupe.nomgs === 'string'
-                ? groupe.nomgs.trim()
-                : groupe.nomgs;
-
-        const newNomGS =
-            typeof rest.nomgs === 'string'
-                ? rest.nomgs.trim()
-                : rest.nomgs;
-
-        const formattedNumMenage =
-            Array.isArray(nummenage)
-                ? nummenage.join(', ')
-                : nummenage;
-
-        if (
-            newNomGS !== undefined &&
-            newNomGS !== null &&
-            newNomGS !== '' &&
-            newNomGS !== oldNomGS
-        ) {
-            const reseaux = await Reseau.findAll({
-                where: Sequelize.where(
-                    Sequelize.fn(
-                        'regexp_replace',
-                        Sequelize.col('NomGS'),
-                        '\\s*,\\s*',
-                        ',',
-                        'g'
-                    ),
-                    {
-                        [Sequelize.Op.ne]: null
-                    }
-                ),
-                transaction
-            });
-
-            for (const reseau of reseaux) {
-                if (!reseau.NomGS) {
-                    continue;
-                }
-
-                const groupesReseau =
-                    reseau.NomGS
-                        .split(',')
-                        .map(item => item.trim())
-                        .filter(Boolean);
-
-                let modified = false;
-
-                const groupesModifies =
-                    groupesReseau.map(nom => {
-                        if (nom === oldNomGS) {
-                            modified = true;
-                            return newNomGS;
-                        }
-
-                        return nom;
-                    });
-
-                if (modified) {
-                    const nouveauNomGS =
-                        [...new Set(groupesModifies)]
-                            .join(', ');
-
-                    await reseau.update(
-                        {
-                            NomGS:
-                                nouveauNomGS || null
-                        },
-                        {
-                            transaction
-                        }
-                    );
-                }
-            }
-        }
-
-        await groupe.update(
-            {
-                ...rest,
-                nummenage: formattedNumMenage,
-                date_creation
-            },
-            {
-                transaction
-            }
-        );
-
-        await transaction.commit();
-
-        res.locals.newData =
-            groupe.toJSON();
-
-        res.json({
-            message:
-                "Groupe mis à jour avec succès !",
-            data: groupe
-        });
-    } catch (error) {
-        await transaction.rollback();
-
-        console.error(
-            'Erreur lors de la mise à jour du groupe :',
-            error
-        );
-
-        res.status(500).json({
-            message:
-                "Erreur lors de la mise à jour : " +
-                error.message
-        });
-    }
+    if (result.status) return fail(res, result.status, result.message);
+    res.locals.oldData = result.oldData;
+    res.locals.newData = result.groupe.toJSON();
+    return res.json(result.groupe);
+  } catch (err) { return handle(res, err, 'la modification'); }
 };
 
 exports.deleteGroupe = async (req, res) => {
-    const transaction =
-        await Groupe.sequelize.transaction();
+  try {
+    if (!id(req.params.id)) return fail(res, 400, 'Identifiant invalide.');
 
-    try {
-        const filter = req.user.role === 'admin'
-            ? {
-                codegs: req.params.id
-            }
-            : {
-                codegs: req.params.id,
-                user_id: req.user.user_id
-            };
+    const result = await sequelize.transaction(async transaction => {
+      const g = await group(req, transaction);
+      if (!g) return { status: 404, message: 'Groupe introuvable ou accès interdit.' };
+      if (await reseauReference(g.nomgs, transaction)) return { status: 409, message: 'Groupe référencé par un réseau.' };
 
-        const groupe = await Groupe.findOne({
-            where: filter,
-            transaction
-        });
+      const assigned = await sequelize.query(
+        'SELECT 1 FROM responsables WHERE codegs = :codegs LIMIT 1',
+        { replacements: { codegs: g.codegs }, type: QueryTypes.SELECT, transaction }
+      );
+      if (assigned.length) return { status: 409, message: 'Groupe avec postes attribués : suppression bloquée.' };
 
-        if (!groupe) {
-            await transaction.rollback();
+      const deletedData = g.toJSON();
+      await g.destroy({ transaction });
+      return { deletedData };
+    });
 
-            return res.status(404).json({
-                message:
-                    "Groupe non trouvé ou accès refusé."
-            });
-        }
-
-        res.locals.deletedData =
-            groupe.toJSON();
-
-        const nomGroupe =
-            typeof groupe.nomgs === 'string'
-                ? groupe.nomgs.trim()
-                : groupe.nomgs;
-
-        const reseaux = await Reseau.findAll({
-            where: Sequelize.where(
-                Sequelize.fn(
-                    'regexp_replace',
-                    Sequelize.col('NomGS'),
-                    '\\s*,\\s*',
-                    ',',
-                    'g'
-                ),
-                {
-                    [Sequelize.Op.ne]: null
-                }
-            ),
-            transaction
-        });
-
-        for (const reseau of reseaux) {
-            if (!reseau.NomGS) {
-                continue;
-            }
-
-            const groupesReseau =
-                reseau.NomGS
-                    .split(',')
-                    .map(item => item.trim())
-                    .filter(Boolean);
-
-            const groupesRestants =
-                groupesReseau.filter(
-                    nom => nom !== nomGroupe
-                );
-
-            if (
-                groupesRestants.length !==
-                groupesReseau.length
-            ) {
-                await reseau.update(
-                    {
-                        NomGS:
-                            groupesRestants.length > 0
-                                ? groupesRestants.join(', ')
-                                : null
-                    },
-                    {
-                        transaction
-                    }
-                );
-            }
-        }
-
-        await groupe.destroy({
-            transaction
-        });
-
-        await transaction.commit();
-
-        res.json({
-            message:
-                "Groupe supprimé avec succès. Les réseaux ont été conservés et le groupe a été retiré de leur liste."
-        });
-    } catch (error) {
-        await transaction.rollback();
-
-        console.error(
-            "Erreur suppression groupe :",
-            error
-        );
-
-        res.status(500).json({
-            message:
-                "Erreur lors de la suppression : " +
-                error.message
-        });
-    }
+    if (result.status) return fail(res, result.status, result.message);
+    res.locals.deletedData = result.deletedData;
+    return res.json({ message: 'Groupe supprimé.' });
+  } catch (err) { return handle(res, err, 'la suppression'); }
 };

@@ -1,83 +1,154 @@
 const Responsable = require('../models/responsableModel');
+const sequelize = require('../config/db');
+const { QueryTypes } = require('sequelize');
 
-// --- LECTURE (READ ALL) ---
+const isAdmin = req => req.user?.role === 'admin';
+const validId = id => /^\d+$/.test(String(id ?? '')) && Number.isSafeInteger(Number(id)) && Number(id) > 0;
+const error = (res, status, message) => res.status(status).json({ error: message });
+
+const handleError = (res, err) => {
+  console.error('ResponsableController:', err);
+  return error(res, 500, 'Erreur interne du serveur');
+};
+
+const checkAccess = (req, res, communeId) => {
+  if (!req.user) return error(res, 401, 'Non authentifié'), false;
+  if (isAdmin(req)) return true;
+  if (!validId(req.user.commune_id)) return error(res, 403, 'Aucune commune attribuée'), false;
+  if (Number(req.user.commune_id) !== Number(communeId)) return error(res, 403, 'Commune non autorisée'), false;
+  return true;
+};
+
+const getMemberInGroup = async (NumMembre, codegs) => {
+  const rows = await sequelize.query(`
+    SELECT m.nummembre, m.commune_id
+    FROM membres m
+    JOIN groupe_menages gm ON gm.id_menage = m.id_menage
+    JOIN groupes g ON g.codegs = gm.codegs
+    WHERE m.nummembre = :NumMembre AND gm.codegs = :codegs
+      AND m.commune_id = g.commune_id
+    LIMIT 1
+  `, { replacements: { NumMembre, codegs }, type: QueryTypes.SELECT });
+
+  return rows[0] || null;
+};
+
+const normalizePoste = poste => {
+  const value = String(poste ?? 'Membre').trim();
+  return !value || ['membre', 'membres', 'aucun poste'].includes(value.toLowerCase()) ? 'Membre' : value;
+};
+
+// GET /responsables?commune_id=1&codegs=29
 exports.getResponsables = async (req, res) => {
-    try {
-        if (!req.user) return res.status(401).json({ error: "Non autorisé" });
+  try {
+    if (!req.user) return error(res, 401, 'Non authentifié');
 
-        // Sivana: Admin mahita ny rehetra, User mahita ny azy ihany
-        const filter = req.user.role === 'admin' 
-            ? {} 
-            : { user_id: req.user.user_id };
+    const { commune_id, codegs } = req.query;
+    if (commune_id !== undefined && !validId(commune_id)) return error(res, 400, 'Commune invalide');
+    if (codegs !== undefined && !validId(codegs)) return error(res, 400, 'Groupe invalide');
+    if (!isAdmin(req) && !validId(req.user.commune_id)) return error(res, 403, 'Aucune commune attribuée');
 
-        const data = await Responsable.findAll({
-            where: filter,
-            order: [['NumMembre', 'ASC']]
-        });
+    const commune = isAdmin(req) ? commune_id : req.user.commune_id;
+    const conditions = [], replacements = {};
 
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    if (commune) {
+      conditions.push('r.commune_id = :commune');
+      replacements.commune = Number(commune);
     }
+
+    if (codegs) {
+      conditions.push('r.codegs = :codegs');
+      replacements.codegs = Number(codegs);
+    }
+
+    const data = await sequelize.query(`
+      SELECT r.*, m.nom_membre, m.prenom_membre, m.sexe, g.nomgs, c.nom_commune
+      FROM responsables r
+      JOIN membres m ON m.nummembre = r."NumMembre"
+      LEFT JOIN groupes g ON g.codegs = r.codegs
+      LEFT JOIN communes c ON c.id_commune = r.commune_id
+      ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
+      ORDER BY r."NumMembre", r."CodeRp"
+    `, { replacements, type: QueryTypes.SELECT });
+
+    return res.json(data);
+  } catch (err) {
+    return handleError(res, err);
+  }
 };
 
-// --- CRÉATION / MISE À JOUR (UPSERT) ---
+// POST /responsables
 exports.addResponsable = async (req, res) => {
-    try {
-        // Alaina avy amin'ny token ny user_id fa tsy avy amin'ny body intsony (fiarovana)
-        const { NumMembre, Poste } = req.body;
-        const currentUserId = req.user.user_id;
+  try {
+    if (!req.user) return error(res, 401, 'Non authentifié');
 
-        if (!NumMembre || !Poste) {
-            return res.status(400).json({ error: "NumMembre et Poste sont requis" });
-        }
+    const { NumMembre, codegs } = req.body;
+    const Poste = normalizePoste(req.body.Poste);
 
-        // Fiarovana: Jereo raha manana alalana amin'io NumMembre io ilay User
-        // Raha User tsotra izy, tsy afaka manendry responsable raha tsy azy ilay Membre
-        let queryOptions = req.user.role === 'admin' 
-            ? { where: { NumMembre } } 
-            : { where: { NumMembre, user_id: currentUserId } };
+    if (!validId(NumMembre) || !validId(codegs)) return error(res, 400, 'NumMembre et codegs requis');
+    if (Poste.length > 100) return error(res, 400, 'Poste trop long');
 
-        let responsable = await Responsable.findOne(queryOptions);
+    const membre = await getMemberInGroup(Number(NumMembre), Number(codegs));
+    if (!membre) return error(res, 400, 'Membre absent du groupe ou commune incohérente');
+    if (!checkAccess(req, res, membre.commune_id)) return;
 
-        if (responsable) {
-            // Raha efa misy dia havaozina ny Poste sy ny user_id nanao ny fanovana
-            responsable.Poste = Poste;
-            responsable.user_id = currentUserId; 
-            await responsable.save();
-            return res.json({ message: "Responsable mis à jour", data: responsable });
-        } else {
-            // Mamorona vaovao
-            const newRespo = await Responsable.create({
-                NumMembre,
-                Poste,
-                user_id: currentUserId
-            });
-            return res.status(201).json({ message: "Responsable ajouté", data: newRespo });
-        }
-    } catch (err) {
-        console.error("Error POST Responsable:", err);
-        res.status(500).json({ error: err.message });
+    const where = { NumMembre: Number(NumMembre), codegs: Number(codegs) };
+    const existing = await Responsable.findOne({ where });
+
+    if (existing) {
+      await existing.update({ Poste, commune_id: membre.commune_id });
+      return res.json({ message: 'Poste mis à jour', data: existing });
     }
+
+    const created = await Responsable.create({
+      ...where, Poste, commune_id: membre.commune_id, user_id: req.user.user_id
+    });
+
+    return res.status(201).json({ message: 'Responsable ajouté', data: created });
+  } catch (err) {
+    return handleError(res, err);
+  }
 };
 
-// --- SUPPRESSION (DELETE) ---
-exports.deleteResponsable = async (req, res) => {
-    try {
-        const { id } = req.params; // id eto dia ny NumMembre
+// PUT /responsables/:id (id = CodeRp)
+exports.updateResponsable = async (req, res) => {
+  try {
+    if (!req.user) return error(res, 401, 'Non authentifié');
+    if (!validId(req.params.id)) return error(res, 400, 'Identifiant invalide');
 
-        const filter = req.user.role === 'admin' 
-            ? { NumMembre: id } 
-            : { NumMembre: id, user_id: req.user.user_id };
+    const responsable = await Responsable.findByPk(Number(req.params.id));
+    if (!responsable) return error(res, 404, 'Responsable introuvable');
+    if (!checkAccess(req, res, responsable.commune_id)) return;
 
-        const deleted = await Responsable.destroy({ where: filter });
+    const Poste = normalizePoste(req.body.Poste);
+    if (Poste.length > 100) return error(res, 400, 'Poste trop long');
+    if (!validId(responsable.codegs)) return error(res, 409, 'Groupe non attribué');
 
-        if (deleted === 0) {
-            return res.status(403).json({ error: "Non trouvé ou accès refusé" });
-        }
-
-        res.json({ message: "Responsable supprimé avec succès" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    const membre = await getMemberInGroup(responsable.NumMembre, responsable.codegs);
+    if (!membre || Number(membre.commune_id) !== Number(responsable.commune_id)) {
+      return error(res, 409, 'Affectation groupe invalide');
     }
+
+    await responsable.update({ Poste });
+    return res.json({ message: 'Poste modifié', data: responsable });
+  } catch (err) {
+    return handleError(res, err);
+  }
+};
+
+// DELETE /responsables/:id (id = CodeRp)
+exports.deleteResponsable = async (req, res) => {
+  try {
+    if (!req.user) return error(res, 401, 'Non authentifié');
+    if (!validId(req.params.id)) return error(res, 400, 'Identifiant invalide');
+
+    const responsable = await Responsable.findByPk(Number(req.params.id));
+    if (!responsable) return error(res, 404, 'Responsable introuvable');
+    if (!checkAccess(req, res, responsable.commune_id)) return;
+
+    await responsable.destroy();
+    return res.json({ message: 'Attribution supprimée, membre conservé' });
+  } catch (err) {
+    return handleError(res, err);
+  }
 };
