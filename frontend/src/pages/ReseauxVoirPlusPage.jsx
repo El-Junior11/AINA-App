@@ -82,12 +82,15 @@ export default function ReseauxVoirPlusPage() {
 
   return (
     <main className="min-h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 md:p-6 space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 md:px-6 py-5">
         <div className="flex items-center gap-3 min-w-0">
-          <button type="button" onClick={() => navigate('/reseaux')} aria-label="Retour aux réseaux" className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 hover:bg-slate-100 dark:hover:bg-slate-800"><ArrowLeft size={19} /></button>
-          <div className="min-w-0"><h1 className="text-xl font-semibold">Vue d'ensemble des réseaux</h1><p className="text-sm text-slate-500 dark:text-slate-400">Statistiques des réseaux communautaires</p></div>
+          <span className="w-10 h-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><Network size={20}/></span>
+          <div className="min-w-0"><h1 className="text-lg font-semibold">Vue d'ensemble des réseaux</h1><p className="text-sm text-slate-500 dark:text-slate-400">Statistiques des réseaux communautaires</p></div>
         </div>
-        {isAdmin && <label className="flex items-center gap-2 text-sm"><MapPin size={16} /><select value={communeFilter} onChange={e => setCommuneFilter(e.target.value)} className="h-10 max-w-[230px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3"><option value="">Toutes les communes</option>{communes.map(c => <option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}</select></label>}
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && <label className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-emerald-700"/><select aria-label="Filtrer par commune" value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)} className="h-10 max-w-[230px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm"><option value="">Toutes les communes</option>{communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}</select></label>}
+          <button type="button" onClick={()=>navigate('/reseaux')} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"><ArrowLeft size={16}/>Retour aux réseaux</button>
+        </div>
       </header>
       {loading ? <div className="flex items-center gap-2 text-slate-500"><Loader2 className="animate-spin" /> Chargement...</div> : error ?
         <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-700">{error}</div> : <>
