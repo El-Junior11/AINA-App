@@ -4,7 +4,7 @@ import {AuthContext} from '../context/AuthContext';
 import axios from '../api/axios';
 import {getGroupes,getMenagesList,createGroupe,deleteGroupe,updateGroupe} from '../services/groupeService';
 import Swal from 'sweetalert2';
-import {Trash2,Edit2,Users,X,Loader2,Save,Eye,MapPin,Search,FileText,Download,Printer,Plus,Calendar} from 'lucide-react';
+import {Trash2,Edit2,Users,X,Loader2,Save,Eye,MapPin,Search,FileText,Download,Plus,Calendar} from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -304,81 +304,26 @@ const GroupePage=()=>{
         </div>
       </header>
 
-      {/* Barre d'outils */}
-      <div className="px-4 md:px-6 pt-5 pb-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" size={17}/>
-          <input
-            type="text"
-            placeholder="Recherche globale sur toutes les colonnes..."
-            aria-label="Recherche globale sur toutes les colonnes"
-            className="w-full h-10 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
-            value={searchTerm}
-            onChange={e=>setSearchTerm(e.target.value)}
-          />
-          {searchTerm&&(
-            <button
-              onClick={()=>setSearchTerm('')}
-              aria-label="Effacer la recherche"
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
-            >
-              <X size={15}/>
-            </button>
-          )}
+      {/* Barre d'outils : une ligne sur grand écran, retour adapté sur mobile */}
+      <div className="px-4 md:px-6 pt-5 pb-4 flex flex-wrap xl:flex-nowrap items-center gap-2.5">
+        <div className="relative flex-1 min-w-[180px] w-full sm:w-auto xl:min-w-0">
+          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+          <input type="text" placeholder="Rechercher un groupe..." aria-label="Rechercher un groupe" className={`${fieldClass} pl-10 pr-9`} value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}/>
+          {searchTerm&&<button type="button" onClick={()=>setSearchTerm('')} aria-label="Effacer la recherche" className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 ${focusRing}`}><X size={15}/></button>}
         </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-         {isAdmin&&<select aria-label="Filtrer par commune" className={fieldClass} value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)}>
-           <option value="">Toutes les communes</option>
-           {communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
-         </select>}
-          <button
-            onClick={()=>{resetForm();setShowModal(true)}}
-            className={`h-10 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm transition-colors shrink-0 ${focusRing}`}
-          >
-            <Plus size={16}/>
-            <span className="hidden sm:block">Ajouter</span>
-          </button>
-
-          <button
-            onClick={()=>navigate('/groupes/details')}
-            className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shrink-0 ${focusRing}`}
-          >
-            <Eye size={16} className="text-slate-500 dark:text-slate-400"/>
-            <span className="hidden sm:block">Voir plus</span>
-          </button>
-
-          <div className="relative shrink-0">
-            <button
-              onClick={()=>setShowExportMenu(!showExportMenu)}
-              aria-haspopup="menu"
-              aria-expanded={showExportMenu}
-              className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
-            >
-              <Printer size={16} className="text-slate-500 dark:text-slate-400"/>
-              <span className="hidden md:block">Exporter</span>
-            </button>
-
-            {showExportMenu&&(
-              <div role="menu" className="absolute right-0 mt-2 w-52 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
-                <button
-                  role="menuitem"
-                  onClick={exportPDF}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors"
-                >
-                  <FileText size={16} className="text-rose-600 dark:text-rose-400"/>
-                  Document PDF
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={exportExcel}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors"
-                >
-                  <Download size={16} className="text-emerald-700 dark:text-emerald-400"/>
-                  Feuille Excel
-                </button>
-              </div>
-            )}
+        {isAdmin&&<select aria-label="Filtrer par commune" className={`${fieldClass} !w-44 shrink-0`} value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)}>
+          <option value="">Toutes les communes</option>
+          {communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
+        </select>}
+        <div className="flex items-center gap-2 shrink-0">
+          <button type="button" onClick={()=>{resetForm();setShowModal(true)}} className={`h-10 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm ${focusRing}`}><Plus size={16}/><span>Ajouter</span></button>
+          <button type="button" onClick={()=>navigate('/groupes/details')} className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${focusRing}`}><Eye size={16}/><span>Voir plus</span></button>
+          <div className="relative">
+            <button type="button" onClick={()=>setShowExportMenu(v=>!v)} aria-haspopup="menu" aria-expanded={showExportMenu} className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${focusRing}`}><Download size={16}/><span>Exporter</span></button>
+            {showExportMenu&&<div role="menu" className="absolute right-0 mt-2 w-52 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
+              <button role="menuitem" onClick={exportPDF} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left"><FileText size={16} className="text-rose-600"/>Document PDF</button>
+              <button role="menuitem" onClick={exportExcel} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left"><Download size={16} className="text-emerald-700"/>Feuille Excel</button>
+            </div>}
           </div>
         </div>
       </div>
