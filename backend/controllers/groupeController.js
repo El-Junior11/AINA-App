@@ -37,29 +37,56 @@ const validate = body => {
 };
 
 const verifyMenages = async (commune_id, numbers, transaction) => {
-  const rows = await Menage.findAll({ where: { commune_id, numero_menage: { [Op.in]: numbers } }, attributes: ['id_menage', 'numero_menage'], transaction });
+  const rows = await Menage.findAll({
+    where: { commune_id, numero_menage: { [Op.in]: numbers } },
+    attributes: ['id_menage', 'numero_menage'],
+    transaction
+  });
   return rows.length === numbers.length ? rows.map(m => m.id_menage) : null;
 };
 
 const syncMenages = async (codegs, ids, transaction) => {
   await sequelize.query('DELETE FROM groupe_menages WHERE codegs = :codegs', { replacements: { codegs }, transaction });
   for (const id_menage of ids) {
-    await sequelize.query('INSERT INTO groupe_menages (codegs, id_menage) VALUES (:codegs, :id_menage)', { replacements: { codegs, id_menage }, transaction });
+    await sequelize.query(
+      'INSERT INTO groupe_menages (codegs, id_menage) VALUES (:codegs, :id_menage)',
+      { replacements: { codegs, id_menage }, transaction }
+    );
   }
+};
+
+// Synchronisation automatique des membres du groupe vers responsables.
+const syncResponsables = async (codegs, transaction) => {
+  await sequelize.query(`
+    INSERT INTO responsables ("NumMembre", "Poste", codegs, commune_id, user_id, created_at, updated_at)
+    SELECT DISTINCT m.nummembre, 'Membre', g.codegs, g.commune_id, g.user_id, NOW(), NOW()
+    FROM groupes g
+    JOIN groupe_menages gm ON gm.codegs = g.codegs
+    JOIN menages mn ON mn.id_menage = gm.id_menage AND mn.commune_id = g.commune_id
+    JOIN membres m ON m.id_menage = mn.id_menage AND m.commune_id = g.commune_id
+    WHERE g.codegs = :codegs
+      AND NOT EXISTS (
+        SELECT 1 FROM responsables r
+        WHERE r."NumMembre" = m.nummembre AND r.codegs = g.codegs
+      )
+  `, { replacements: { codegs }, transaction });
 };
 
 const hasRemovedResponsibilities = async (codegs, ids, transaction) => {
   const rows = await sequelize.query(`
     SELECT 1 FROM responsables r
     JOIN membres m ON m.nummembre = r."NumMembre"
-    WHERE r.codegs = :codegs AND m.id_menage NOT IN (:ids) LIMIT 1
+    WHERE r.codegs = :codegs AND m.id_menage NOT IN (:ids)
+    LIMIT 1
   `, { replacements: { codegs, ids }, type: QueryTypes.SELECT, transaction });
   return rows.length > 0;
 };
 
 const reseauReference = async (nomgs, transaction) => {
   const rows = await Reseau.findAll({ attributes: ['NomGS'], transaction });
-  return rows.some(r => String(r.NomGS || '').split(',').some(v => v.trim().toLocaleLowerCase() === String(nomgs).trim().toLocaleLowerCase()));
+  return rows.some(r => String(r.NomGS || '').split(',').some(v =>
+    v.trim().toLocaleLowerCase() === String(nomgs).trim().toLocaleLowerCase()
+  ));
 };
 
 const handle = (res, err, action) => {
@@ -89,7 +116,11 @@ exports.getDistinctMenages = async (req, res) => {
     if (req.query.commune_id !== undefined && !id(req.query.commune_id)) return fail(res, 400, 'Commune invalide.');
     const commune_id = admin(req) ? id(req.query.commune_id) : id(req.user.commune_id);
     if (!commune_id) return fail(res, 400, 'Sélectionnez une commune.');
-    const rows = await Menage.findAll({ where: { commune_id }, attributes: ['numero_menage'], order: [['numero_menage', 'ASC']] });
+    const rows = await Menage.findAll({
+      where: { commune_id },
+      attributes: ['numero_menage'],
+      order: [['numero_menage', 'ASC']]
+    });
     return res.json(rows.map(m => String(m.numero_menage)));
   } catch (err) { return handle(res, err, 'la récupération des ménages'); }
 };
@@ -135,8 +166,12 @@ exports.createGroupe = async (req, res) => {
       const ids = await verifyMenages(commune_id, v.menages, transaction);
       if (!ids) return { status: 400, message: 'Ménage introuvable dans cette commune.' };
 
-      const g = await Groupe.create({ ...v.data, commune_id, commune: commune.nom_commune, user_id: req.user.user_id }, { transaction });
+      const g = await Groupe.create({
+        ...v.data, commune_id, commune: commune.nom_commune, user_id: req.user.user_id
+      }, { transaction });
+
       await syncMenages(g.codegs, ids, transaction);
+      await syncResponsables(g.codegs, transaction);
       return { groupe: g };
     });
 
@@ -168,13 +203,15 @@ exports.updateGroupe = async (req, res) => {
         return { status: 409, message: 'Des membres retirés ont encore un poste dans ce groupe.' };
       }
 
-      if (g.nomgs.toLocaleLowerCase() !== v.data.nomgs.toLocaleLowerCase() && await reseauReference(g.nomgs, transaction)) {
+      if (g.nomgs.toLocaleLowerCase() !== v.data.nomgs.toLocaleLowerCase() &&
+          await reseauReference(g.nomgs, transaction)) {
         return { status: 409, message: 'Nom utilisé par un réseau.' };
       }
 
       const oldData = g.toJSON();
       await g.update(v.data, { transaction });
       await syncMenages(g.codegs, ids, transaction);
+      await syncResponsables(g.codegs, transaction);
       return { groupe: g, oldData };
     });
 
@@ -192,7 +229,9 @@ exports.deleteGroupe = async (req, res) => {
     const result = await sequelize.transaction(async transaction => {
       const g = await group(req, transaction);
       if (!g) return { status: 404, message: 'Groupe introuvable ou accès interdit.' };
-      if (await reseauReference(g.nomgs, transaction)) return { status: 409, message: 'Groupe référencé par un réseau.' };
+      if (await reseauReference(g.nomgs, transaction)) {
+        return { status: 409, message: 'Groupe référencé par un réseau.' };
+      }
 
       const assigned = await sequelize.query(
         'SELECT 1 FROM responsables WHERE codegs = :codegs LIMIT 1',

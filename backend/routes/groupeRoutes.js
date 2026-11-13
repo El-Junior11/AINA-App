@@ -6,6 +6,7 @@ const authenticateToken = require('../middleware/authMiddleware'); // Ampio ity
 // Ampio amin'ny GET rehetra ny authenticateToken
 router.get('/', authenticateToken, groupeController.getAllGroupes);
 router.get('/menages-list', authenticateToken, groupeController.getDistinctMenages);
+router.get('/:id/membres', authenticateToken, groupeController.getGroupeMembres);
 router.get('/:id', authenticateToken, groupeController.getGroupeById);
 
 router.post('/', authenticateToken, groupeController.createGroupe);
