@@ -238,24 +238,16 @@ const FormationStats=()=>{
     {title:'EPRACC',h:stats?.epracc_h,f:stats?.epracc_f,icon:GraduationCap,chart:'donut'}
   ];
 
-  if(loading)return (
-    <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-      <Activity size={30} className="animate-spin text-emerald-600 mb-3"/>
-      <p className="text-sm text-slate-500 dark:text-slate-400">Chargement des statistiques...</p>
-    </div>
-  );
-
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
+    <div className="formation-stats flex flex-col h-full min-h-0 bg-slate-50 dark:bg-slate-950 transition-colors text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+        .formation-stats{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
         .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
-        svg text{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+        .formation-stats svg text{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
       `}</style>
 
-      {/* En-tête de page */}
-      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <header className="shrink-0 px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3.5">
           <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
             <GraduationCap size={20} strokeWidth={2}/>
@@ -270,28 +262,21 @@ const FormationStats=()=>{
           <option value="">Toutes les communes</option>
           {communes.map(c=>{const id=c.id_commune??c.commune_id??c.id;return <option key={id} value={id}>{c.nom_commune||c.nom||`Commune ${id}`}</option>})}
         </select>}
-        <button
-          type="button"
-          onClick={()=>navigate(-1)}
-          className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
-        >
-          <ArrowLeft size={16} className="text-slate-500 dark:text-slate-400"/>
-          Retour
-        </button>
+        <button type="button" onClick={()=>navigate(-1)} className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${focusRing}`}><ArrowLeft size={16} className="text-slate-500 dark:text-slate-400"/>Retour</button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-5">
+      <main className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 py-5">
         <div className="max-w-7xl mx-auto space-y-5">
-          {error?<p role="alert" className="text-red-600 text-sm">{error}</p>:<OverviewChart items={items}/>}
+          {loading?<div className="flex items-center justify-center gap-3 py-20 text-sm text-slate-500 dark:text-slate-400"><Activity size={22} className="animate-spin text-emerald-600"/>Chargement des statistiques...</div>:error?<p role="alert" className="text-red-600 text-sm">{error}</p>:<OverviewChart items={items}/>}
 
-          {!error&&<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {!loading&&!error&&<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {items.map(it=>(
               <StatCard key={it.title} title={it.title} h={it.h} f={it.f} icon={it.icon} chart={it.chart}/>
             ))}
           </div>}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

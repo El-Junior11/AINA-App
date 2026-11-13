@@ -119,21 +119,25 @@ export default function ResponsablePage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white p-4 md:p-6 space-y-5">
-      <header className="flex items-center gap-3">
-        <div className="p-3 bg-emerald-100 dark:bg-emerald-950 rounded-xl text-emerald-700"><Users size={22}/></div>
-        <div><h1 className="text-xl font-bold">Gestion des responsables</h1><p className="text-sm text-slate-500 dark:text-slate-400">Gestion des postes par groupe et commune</p></div>
-      </header>
-      <section className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[190px] sm:min-w-[240px]"><Search size={17} className="absolute left-3 top-3 text-slate-400"/><input className={`${field} pl-10`} placeholder="Rechercher dans toutes les colonnes..." value={search} onChange={e => setSearch(e.target.value)}/></div>
+    <div className="responsables-page flex flex-col h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white antialiased">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap'); .responsables-page { font-family: 'Public Sans', system-ui, sans-serif; }`}</style>
+      <header className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-6 py-4 md:py-5 space-y-4">
+        <div className="flex items-center gap-3">
+        <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><Users size={20}/></div>
+        <div><h1 className="text-lg font-semibold">Gestion des responsables</h1><p className="text-sm text-slate-500 dark:text-slate-400">Gestion des postes par groupe et commune</p></div>
+        </div>
+        <section className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-[2_1_260px] min-w-[190px]"><Search size={17} className="absolute left-3 top-3 text-slate-400"/><input className={`${field} pl-10`} placeholder="Rechercher dans toutes les colonnes..." value={search} onChange={e => setSearch(e.target.value)}/></div>
         {admin && <select aria-label="Commune" className={`${field} w-full sm:w-auto sm:min-w-[165px]`} value={communeId} onChange={e => { setCommuneId(e.target.value); setCodegs(''); }}><option value="">Toutes les communes</option>{communes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}</select>}
         <select aria-label="Groupe" className={`${field} w-full sm:w-auto sm:min-w-[165px]`} value={codegs} onChange={e => setCodegs(e.target.value)}><option value="">Tous les groupes</option>{groupesFiltres.map(g => <option key={g.codegs} value={g.codegs}>{g.nomgs}</option>)}</select>
         <button type="button" onClick={() => navigate('/responsables/details', { state: { communeId, codegs } })} className={btn}><Eye size={17}/> Voir plus</button>
         <div className="relative"><button type="button" className={btn} onClick={() => setExportOpen(v => !v)} aria-expanded={exportOpen}><Download size={17}/> Exporter</button>
           {exportOpen && <div className={`${card} absolute right-0 top-12 z-20 w-40 p-2 space-y-1`}><button type="button" className={`${btn} w-full`} onClick={() => exportData('pdf')}><FileText size={16}/> PDF</button><button type="button" className={`${btn} w-full`} onClick={() => exportData('excel')}><Download size={16}/> Excel</button></div>}
         </div>
-      </section>
-      <section className={`${card} overflow-hidden`}>
+        </section>
+      </header>
+      <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
+      <section className={`${card} overflow-hidden max-w-[1600px] mx-auto`}>
         {error && <p role="alert" className="px-4 py-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">{error}</p>}
         <div className="overflow-x-auto"><table className="w-full min-w-[880px] text-sm text-left">
           <thead className="bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300"><tr>{['N°', 'Membre', 'Ménage', 'Groupe', 'Commune', 'Poste', 'Action'].map(t => <th key={t} className="px-5 py-3.5 font-medium">{t}</th>)}</tr></thead>
@@ -150,6 +154,7 @@ export default function ResponsablePage() {
           </tbody>
         </table></div>
       </section>
+      </main>
       {modal && <div className="fixed inset-0 z-50 bg-slate-950/60 flex items-center justify-center p-4">
         <form onSubmit={save} className={`${card} w-full max-w-md p-5 space-y-4`}>
           <div className="flex justify-between items-center"><h2 className="font-bold text-lg">Modifier le poste</h2><button type="button" onClick={() => setModal(null)} aria-label="Fermer"><X size={20}/></button></div>

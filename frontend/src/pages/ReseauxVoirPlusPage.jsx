@@ -5,6 +5,7 @@ import axios from '../api/axios';
 import { ArrowLeft, Network, UsersRound, ShieldCheck, BarChart3, MapPin, Loader2 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
+const field = 'h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600/30';
 const card = 'rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 md:p-5 shadow-sm min-w-0';
 const COLORS = ['#059669', '#f59e0b', '#0284c7', '#6366f1', '#a855f7', '#ef4444'];
 const yes = v => String(v || '').trim().toLowerCase() === 'oui';
@@ -15,7 +16,8 @@ const chartTooltip = { contentStyle: { borderRadius: 10, border: '1px solid #cbd
 
 export default function ReseauxVoirPlusPage() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useContext(AuthContext);
+  const { user, isAdmin: contextAdmin } = useContext(AuthContext);
+  const isAdmin = contextAdmin ?? user?.role === 'admin';
   const [reseaux, setReseaux] = useState([]);
   const [communes, setCommunes] = useState([]);
   const [communeFilter, setCommuneFilter] = useState('');
@@ -81,21 +83,25 @@ export default function ReseauxVoirPlusPage() {
   }, [visible]);
 
   return (
-    <main className="min-h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 md:p-6 space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 md:px-6 py-5">
+    <div className="reseaux-stats flex flex-col h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap'); .reseaux-stats,.reseaux-stats .recharts-wrapper text{font-family:'Public Sans',system-ui,sans-serif;}`}</style>
+      <header className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 md:px-6 py-4 md:py-5">
+        <div className="flex flex-wrap items-center justify-between gap-3.5">
         <div className="flex items-center gap-3 min-w-0">
           <span className="w-10 h-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><Network size={20}/></span>
           <div className="min-w-0"><h1 className="text-lg font-semibold">Vue d'ensemble des réseaux</h1><p className="text-sm text-slate-500 dark:text-slate-400">Statistiques des réseaux communautaires</p></div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin && <label className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-emerald-700"/><select aria-label="Filtrer par commune" value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)} className="h-10 max-w-[230px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm"><option value="">Toutes les communes</option>{communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}</select></label>}
-          <button type="button" onClick={()=>navigate('/reseaux')} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"><ArrowLeft size={16}/>Retour aux réseaux</button>
+          {isAdmin && <label className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-emerald-700"/><select aria-label="Filtrer par commune" value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)} className={`${field} max-w-[230px]`}><option value="">Toutes les communes</option>{communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}</select></label>}
+          <button type="button" onClick={()=>navigate('/reseaux')} className={`${field} flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800`}><ArrowLeft size={16}/>Retour aux réseaux</button>
+        </div>
         </div>
       </header>
+      <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-5">
       {loading ? <div className="flex items-center gap-2 text-slate-500"><Loader2 className="animate-spin" /> Chargement...</div> : error ?
         <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-700">{error}</div> : <>
           <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" aria-label="Indicateurs des réseaux">
-            {stats.map(s => <article key={s.label} className={card}><s.icon className={s.color} size={22} /><p className="text-3xl font-semibold mt-3 tabular-nums">{s.value}</p><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{s.label}</p></article>)}
+            {stats.map(s => <article key={s.label} className={card}><s.icon className={s.color} size={22} /><p className="text-2xl font-semibold mt-3 tabular-nums">{s.value}</p><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{s.label}</p></article>)}
           </section>
           <section className={card}>
             <div className="flex justify-between items-center gap-3 mb-3"><h2 className="font-semibold">Taux d'autonomie</h2><strong>{taux} %</strong></div>
@@ -103,12 +109,13 @@ export default function ReseauxVoirPlusPage() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">{autonomes} réseau(x) autonome(s) sur {visible.length}.</p>
           </section>
           {!visible.length ? <section className={`${card} text-center text-sm text-slate-500 py-12`}>Aucun réseau disponible pour cette sélection.</section> : <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <section className={card}><h2 className="font-semibold mb-1">Critères de structuration</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Réseaux ayant validé chaque critère</p><div className="h-[280px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={criteres} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#cbd5e1" opacity={0.35} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={78} tick={{ fontSize: 12 }} /><Tooltip {...chartTooltip} /><Legend /><Bar dataKey="Oui" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} /><Bar dataKey="Non" stackId="a" fill="#cbd5e1" radius={[0, 5, 5, 0]} /></BarChart></ResponsiveContainer></div></section>
-            <section className={card}><h2 className="font-semibold mb-1">Répartition par autonomie</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Autonomes et en structuration</p><div className="h-[280px] w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={autonomieData} cx="50%" cy="47%" innerRadius="50%" outerRadius="72%" dataKey="value" nameKey="name" paddingAngle={3} label={({ percent }) => `${Math.round(percent * 100)}%`} labelLine={false}>{autonomieData.map((x, i) => <Cell key={x.name} fill={i === 0 && x.name === 'Autonomes' ? COLORS[0] : x.name === 'En structuration' ? COLORS[1] : COLORS[0]} />)}</Pie><Tooltip {...chartTooltip} /><Legend verticalAlign="bottom" /></PieChart></ResponsiveContainer></div></section>
-            <section className={card}><h2 className="font-semibold mb-1">Réseaux par commune</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Nombre de réseaux communautaires</p><div className="w-full" style={{ height: Math.max(270, parCommune.length * 42 + 70) }}><ResponsiveContainer width="100%" height="100%"><BarChart data={parCommune} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#cbd5e1" opacity={0.35} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} /><Tooltip {...chartTooltip} /><Bar dataKey="total" name="Réseaux" fill="#0284c7" radius={[0, 5, 5, 0]} maxBarSize={24} /></BarChart></ResponsiveContainer></div></section>
-            <section className={card}><h2 className="font-semibold mb-1">Évolution des créations</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Nombre cumulé de réseaux par mois</p>{evolution.length ? <div className="h-[280px] w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={evolution} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}><defs><linearGradient id="reseauxEvolutionFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.28} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.35} /><XAxis dataKey="mois" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} /><Tooltip {...chartTooltip} /><Area type="monotone" dataKey="cumul" name="Réseaux cumulés" stroke="#6366f1" strokeWidth={2.5} fill="url(#reseauxEvolutionFill)" dot={{ r: 3 }} /></AreaChart></ResponsiveContainer></div> : <p className="text-sm text-slate-500 py-10 text-center">Aucune date de création exploitable.</p>}</section>
+            <section className={card}><h2 className="font-semibold text-sm md:text-base mb-1">Critères de structuration</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Réseaux ayant validé chaque critère</p><div className="h-[280px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={criteres} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#94a3b8" opacity={0.18} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={78} tick={{ fontSize: 12 }} /><Tooltip {...chartTooltip} /><Legend /><Bar dataKey="Oui" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} /><Bar dataKey="Non" stackId="a" fill="#cbd5e1" radius={[0, 5, 5, 0]} /></BarChart></ResponsiveContainer></div></section>
+            <section className={card}><h2 className="font-semibold text-sm md:text-base mb-1">Répartition par autonomie</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Autonomes et en structuration</p><div className="h-[280px] w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={autonomieData} cx="50%" cy="47%" innerRadius="50%" outerRadius="72%" dataKey="value" nameKey="name" paddingAngle={3} label={({ percent }) => `${Math.round(percent * 100)}%`} labelLine={false}>{autonomieData.map((x, i) => <Cell key={x.name} fill={i === 0 && x.name === 'Autonomes' ? COLORS[0] : x.name === 'En structuration' ? COLORS[1] : COLORS[0]} />)}</Pie><Tooltip {...chartTooltip} /><Legend verticalAlign="bottom" /></PieChart></ResponsiveContainer></div></section>
+            <section className={card}><h2 className="font-semibold text-sm md:text-base mb-1">Réseaux par commune</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Nombre de réseaux communautaires</p><div className="w-full" style={{ height: Math.max(270, parCommune.length * 42 + 70) }}><ResponsiveContainer width="100%" height="100%"><BarChart data={parCommune} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#94a3b8" opacity={0.18} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} /><Tooltip {...chartTooltip} /><Bar dataKey="total" name="Réseaux" fill="#0284c7" radius={[0, 5, 5, 0]} maxBarSize={24} /></BarChart></ResponsiveContainer></div></section>
+            <section className={card}><h2 className="font-semibold text-sm md:text-base mb-1">Évolution des créations</h2><p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Nombre cumulé de réseaux par mois</p>{evolution.length ? <div className="h-[280px] w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={evolution} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}><defs><linearGradient id="reseauxEvolutionFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.28} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.18} /><XAxis dataKey="mois" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} /><Tooltip {...chartTooltip} /><Area type="monotone" dataKey="cumul" name="Réseaux cumulés" stroke="#6366f1" strokeWidth={3} fill="url(#reseauxEvolutionFill)" dot={{ r: 3, strokeWidth: 2, fill: "#fff" }} activeDot={{ r: 6 }} /></AreaChart></ResponsiveContainer></div> : <p className="text-sm text-slate-500 py-10 text-center">Aucune date de création exploitable.</p>}</section>
           </div>}
         </>}
-    </main>
+      </main>
+    </div>
   );
 }
