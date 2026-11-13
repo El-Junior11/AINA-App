@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import Swal from 'sweetalert2';
 import { ArrowLeft, Users, UserRound, ShieldCheck, Venus, Mars, Percent, Loader2, RefreshCw } from 'lucide-react';
@@ -41,11 +41,10 @@ const Diagramme = ({ title, children }) => (
 
 export default function DetailsResponsablesPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [groupes, setGroupes] = useState([]);
   const [membres, setMembres] = useState([]);
-  const [communeId, setCommuneId] = useState(String(location.state?.communeId || ''));
-  const [codegs, setCodegs] = useState(String(location.state?.codegs || ''));
+  const [communeId, setCommuneId] = useState('');
+  const [codegs, setCodegs] = useState('');
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
 
@@ -55,6 +54,7 @@ export default function DetailsResponsablesPage() {
   });
 
   const admin = user.role === 'admin';
+  const ownCommune = String(user.commune_id || '');
   const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
 
   useEffect(() => {
@@ -64,13 +64,13 @@ export default function DetailsResponsablesPage() {
     const load = async () => {
       try {
         const { data } = await axios.get('/groupes', auth());
-        const gs = normalize(data);
+        const gs = normalize(data).filter(g => admin || !ownCommune || String(g.commune_id) === ownCommune);
         const results = await Promise.all(gs.map(async g => {
           try {
             const response = await axios.get(`/groupes/${g.codegs}/membres`, auth());
             return normalize(response.data).map(m => ({
               ...m, codegs: g.codegs, nomgs: g.nomgs, commune_id: g.commune_id,
-              nom_commune: g.commune || `Commune ${g.commune_id}`
+              nom_commune: g.commune || g.nom_commune || `Commune ${g.commune_id}`
             }));
           } catch (e) {
             console.error(`Groupe ${g.codegs}:`, e);
@@ -91,7 +91,7 @@ export default function DetailsResponsablesPage() {
   const communes = useMemo(() => {
     const map = new Map();
     groupes.forEach(g => {
-      if (g.commune_id) map.set(String(g.commune_id), g.commune || `Commune ${g.commune_id}`);
+      if (g.commune_id) map.set(String(g.commune_id), g.commune || g.nom_commune || `Commune ${g.commune_id}`);
     });
     return [...map].map(([id, nom]) => ({ id, nom })).sort((a, b) => a.nom.localeCompare(b.nom));
   }, [groupes]);
@@ -106,12 +106,12 @@ export default function DetailsResponsablesPage() {
     (!codegs || String(m.codegs) === codegs)
   ), [membres, communeId, codegs]);
 
-  const uniques = useMemo(() => [...new Map(filtered.map(m => [m.nummembre, m])).values()], [filtered]);
+  const uniques = useMemo(() => [...new Map(filtered.map(m => [`${m.commune_id}-${m.nummembre}`, m])).values()], [filtered]);
   const femmes = uniques.filter(m => femme(m.sexe)).length;
   const hommes = uniques.filter(m => homme(m.sexe)).length;
   const total = uniques.length;
-  const femmesBureau = new Set(filtered.filter(m => femme(m.sexe) && bureau(m.Poste)).map(m => m.nummembre)).size;
-  const totalBureau = new Set(filtered.filter(m => bureau(m.Poste)).map(m => m.nummembre)).size;
+  const femmesBureau = new Set(filtered.filter(m => femme(m.sexe) && bureau(m.Poste)).map(m => `${m.commune_id}-${m.nummembre}`)).size;
+  const totalBureau = new Set(filtered.filter(m => bureau(m.Poste)).map(m => `${m.commune_id}-${m.nummembre}`)).size;
   const hommesJeunes = uniques.filter(m => homme(m.sexe) && age(m) !== null && age(m) < 26).length;
   const femmesJeunes = uniques.filter(m => femme(m.sexe) && age(m) !== null && age(m) < 26).length;
   const taux = total ? `${(femmes / total * 100).toFixed(1)}%` : '0%';
@@ -124,17 +124,17 @@ export default function DetailsResponsablesPage() {
 
   const postes = ['President', 'Tresorier', 'Secretaire', 'Conseiller', 'Membre'];
   const repartitionPostes = postes.map(p => ({
-    name: p, total: filtered.filter(m => String(m.Poste || 'Membre').toLowerCase() === p.toLowerCase()).length
+    name: p, total: uniques.filter(m => String(m.Poste || 'Membre').toLowerCase() === p.toLowerCase()).length
   }));
 
   const repartitionGroupes = groupesFiltres.filter(g => !codegs || String(g.codegs) === codegs).map(g => {
-    const list = membres.filter(m => String(m.codegs) === String(g.codegs));
+    const list = filtered.filter(m => String(m.codegs) === String(g.codegs));
     return { name: g.nomgs, femmes: list.filter(m => femme(m.sexe)).length, hommes: list.filter(m => homme(m.sexe)).length };
   });
 
   const repartitionCommunes = communes.filter(c => !communeId || c.id === communeId).map(c => ({
     name: c.nom,
-    total: new Set(membres.filter(m => String(m.commune_id) === c.id && (!codegs || String(m.codegs) === codegs)).map(m => m.nummembre)).size
+    total: new Set(membres.filter(m => String(m.commune_id) === c.id && (!codegs || String(m.codegs) === codegs)).map(m => `${m.commune_id}-${m.nummembre}`)).size
   }));
 
   return (
@@ -144,7 +144,7 @@ export default function DetailsResponsablesPage() {
           <button onClick={() => navigate(-1)} className={`${field} px-3 flex items-center gap-2`}><ArrowLeft size={17}/> Retour</button>
           <div>
             <h1 className="text-xl md:text-2xl font-bold">Détails des responsables</h1>
-            <p className="text-sm text-slate-500">Statistiques et diagrammes des membres</p>
+            <p className="text-sm text-slate-500">Statistiques des responsables · tous les groupes par défaut</p>
           </div>
         </div>
         <button onClick={() => setRefresh(v => v + 1)} className={`${field} px-3 flex items-center gap-2`}><RefreshCw size={17}/> Actualiser</button>

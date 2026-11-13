@@ -6,7 +6,7 @@ import { getGroupes } from '../services/groupeService';
 import Swal from 'sweetalert2';
 import {
   Trash2, Edit2, X, Loader2, Save, Network, ShieldCheck,
-  Search, FileText, Download, BarChart3, Printer, Calendar,
+  Search, FileText, Download, BarChart3, Calendar,
   Plus, Eye, MapPin
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -83,12 +83,12 @@ const ReseauPage = () => {
   useEffect(() => {
     fetchReseaux();
     fetchGroupes();
-    if (isAdmin) fetchCommunes();
+    fetchCommunes();
   }, [isAdmin]);
   const fetchCommunes = async () => {
     try {
       const { data } = await axios.get('/communes');
-      setCommunes(Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []);
+      setCommunes(Array.isArray(data) ? data : Array.isArray(data?.communes) ? data.communes : Array.isArray(data?.data) ? data.data : []);
     } catch (error) {
       console.error('Chargement des communes :', error);
     }
@@ -101,9 +101,15 @@ const ReseauPage = () => {
   const getGroupNames = r => Array.isArray(r.groupes) && r.groupes.length
     ? r.groupes.map(g => g.nomgs).filter(Boolean)
     : String(r.NomGS || '').split(',').map(g => g.trim()).filter(Boolean);
-  const getCommuneName = r => r.NomCommune ||
-    communes.find(c => Number(c.id_commune) === Number(r.commune_id))?.nom_commune ||
-    (Number(r.commune_id) === Number(user?.commune_id) ? user?.commune?.nom_commune : '') || '';
+  // Résolution de la commune depuis le réseau, la liste des communes ou ses groupes associés.
+  const getCommuneName = r => {
+    const direct = [r.NomCommune,r.nom_commune,r.commune?.nom_commune,typeof r.commune==='string'?r.commune:''].find(v=>typeof v==='string'&&v.trim());
+    if(direct) return direct.trim();
+    const linked = Array.isArray(r.groupes)&&r.groupes.length ? r.groupes : groupes.filter(g=>getGroupIds(r).includes(Number(g.codegs)) || getGroupNames(r).some(n=>normalizeText(n)===normalizeText(g.nomgs)));
+    const id = r.commune_id ?? r.id_commune ?? linked.find(g=>g.commune_id)?.commune_id;
+    const byId = id!=null&&id!=='' ? communes.find(c=>Number(c.id_commune)===Number(id))?.nom_commune : '';
+    return byId || linked.find(g=>g.commune||g.nom_commune)?.commune || linked.find(g=>g.nom_commune)?.nom_commune || (id!=null&&Number(id)===Number(user?.commune_id)?user?.commune?.nom_commune:'') || (id?`Commune ${id}`:'Non renseignée');
+  };
   const filteredGroupes = groupesDisponibles.filter(g =>
     normalizeText(g.nomgs).includes(normalizeText(searchGroup))
   );
@@ -138,7 +144,7 @@ const ReseauPage = () => {
       );
     });
     setFilteredReseaux(results);
-  }, [searchTerm, reseaux, communeFilter, communes, user, isAdmin]);
+  }, [searchTerm, reseaux, communeFilter, communes, groupes, user, isAdmin]);
   useEffect(() => {
     const autonomie =
       formData.Activite === 'Oui' &&
@@ -260,7 +266,7 @@ const ReseauPage = () => {
           'Nom Réseau',
           'Date création',
           'Groupes',
-          'Localisation',
+          'Commune',
           'Activité',
           'Plaidoyer',
           'Plan',
@@ -301,7 +307,7 @@ const ReseauPage = () => {
         'Nom Réseau': r.NomRS || '',
         'Date création': formatDate(r.DateCreation),
         'Groupes membres': getGroupNames(r).join(', '),
-        'Localisation': getCommuneName(r),
+        'Commune': getCommuneName(r),
         'Activité': r.Activite || 'Non',
         'Plaidoyer': r.Plaidoyer || 'Non',
         'Plan': r.Plan || 'Non',
@@ -500,77 +506,24 @@ const ReseauPage = () => {
           </div>
         </div>
       </header>
-      <div className="px-4 md:px-6 pt-5 pb-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
-            size={17}
-          />
-          <input type="text" placeholder="Rechercher dans toutes les colonnes..."
-            aria-label="Rechercher dans toutes les colonnes"
-            className="w-full h-10 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')}
-              aria-label="Effacer la recherche"
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
-            >
-              <X size={15} />
-            </button>
-          )}
+      {/* Barre d’outils compacte */}
+      <div className="px-4 md:px-6 pt-4 pb-3 flex flex-wrap xl:flex-nowrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+          <input type="search" aria-label="Rechercher un réseau" placeholder="Rechercher un réseau..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-600/25"/>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {isAdmin && (
-            <select aria-label="Filtrer par commune" className={`${fieldClass} w-auto min-w-[180px]`}
-              value={communeFilter} onChange={e => setCommuneFilter(e.target.value)}>
-              <option value="">Toutes les communes</option>
-              {communes.map(c => <option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
-            </select>
-          )}
-          <button onClick={() => {
-              resetForm();
-              setShowModal(true);
-            }}
-            className={`h-10 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm transition-colors shrink-0 ${focusRing}`}
-          >
-            <Plus size={16} />
-            <span className="hidden sm:block">Ajouter</span>
-          </button>
-          <button onClick={() => navigate('/reseaux/voir-plus')}
-            className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shrink-0 ${focusRing}`}
-          >
-            <Eye size={16} />
-            <span className="hidden sm:block">Voir plus</span>
-          </button>
-          <div className="relative shrink-0">
-            <button onClick={() => setShowExportMenu(!showExportMenu)}
-              aria-haspopup="menu"
-              aria-expanded={showExportMenu}
-              className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${focusRing}`}
-            >
-              <Printer size={16} />
-              <span className="hidden md:block">Exporter</span>
-            </button>
-            {showExportMenu && (
-              <div role="menu"
-                className="absolute right-0 mt-2 w-52 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white"
-              >
-                <button role="menuitem" onClick={exportPDF}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors"
-                >
-                  <FileText size={16} className="text-rose-600" />
-                  Document PDF
-                </button>
-                <button role="menuitem" onClick={exportExcel}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors"
-                >
-                  <Download size={16} className="text-emerald-700" />
-                  Feuille Excel
-                </button>
-              </div>
-            )}
-          </div>
+        {isAdmin&&<select aria-label="Filtrer par commune" value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)} className={`${fieldClass} !w-auto min-w-[160px] max-w-[220px] flex-shrink-0`}>
+          <option value="">Toutes les communes</option>
+          {communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
+        </select>}
+        <button onClick={()=>{resetForm();setShowModal(true)}} className={`h-10 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shrink-0 ${focusRing}`}><Plus size={16}/><span>Ajouter</span></button>
+        <button onClick={()=>navigate('/reseaux/voir-plus')} className={`h-10 px-3 rounded-lg inline-flex items-center justify-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0 ${focusRing}`}><Eye size={16}/><span>Voir plus</span></button>
+        <div className="relative shrink-0">
+          <button onClick={()=>setShowExportMenu(v=>!v)} aria-haspopup="menu" aria-expanded={showExportMenu} className={`h-10 px-3 rounded-lg inline-flex items-center justify-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${focusRing}`}><Download size={16}/><span>Exporter</span></button>
+          {showExportMenu&&<div role="menu" className="absolute right-0 mt-2 w-48 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50">
+            <button role="menuitem" onClick={exportPDF} className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left"><FileText size={16} className="text-rose-600"/>Document PDF</button>
+            <button role="menuitem" onClick={exportExcel} className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left"><Download size={16} className="text-emerald-700"/>Feuille Excel</button>
+          </div>}
         </div>
       </div>
       <div className="flex-1 overflow-hidden px-4 md:px-6 pb-5">
@@ -590,7 +543,7 @@ const ReseauPage = () => {
                     Groupes membres
                   </th>
                   <th className="px-5 py-3 min-w-[180px]">
-                    Localisation
+                    Commune
                   </th>
                   <th className="px-5 py-3 text-center min-w-[100px]">
                     Activité
