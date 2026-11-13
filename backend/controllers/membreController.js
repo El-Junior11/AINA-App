@@ -1,375 +1,243 @@
 const { QueryTypes, Transaction } = require('sequelize');
-
 const sequelize = require('../config/db');
 const Membre = require('../models/membreModel');
 const Menage = require('../models/menageModel');
 const Commune = require('../models/communeModel');
 
-const champsModifiables = [
-  'nom_membre',
-  'prenom_membre',
-  'annee_naissance',
-  'sexe',
-  'chef'
-];
+const champsModifiables = ['nom_membre', 'prenom_membre', 'annee_naissance', 'sexe', 'chef'];
+const admin = req => req.user?.role === 'admin';
+const entierPositif = v => /^\d+$/.test(String(v ?? '')) && Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
+const erreur = (res, status, message) => res.status(status).json({ message });
 
-const extraireChamps = (body) => {
+const extraireChamps = body => {
   const data = {};
-
   for (const champ of champsModifiables) {
-    if (Object.prototype.hasOwnProperty.call(body, champ)) {
-      data[champ] = body[champ];
-    }
+    if (Object.prototype.hasOwnProperty.call(body, champ)) data[champ] = body[champ];
   }
-
   return data;
 };
 
-const entierPositif = (valeur) => {
-  const nombre = Number(valeur);
-
-  return Number.isSafeInteger(nombre) && nombre > 0
-    ? nombre
-    : null;
+const erreurServeur = (res, err) => {
+  console.error('Erreur membreController:', err);
+  return res.status(500).json({ error: 'Erreur interne du serveur.' });
 };
 
-const erreurServeur = (res, erreur) => {
-  console.error('Erreur membreController:', erreur);
+const communeAutorisee = (req, communeId) =>
+  admin(req) || (entierPositif(req.user?.commune_id) !== null &&
+    Number(req.user.commune_id) === Number(communeId));
 
-  return res.status(500).json({
-    error: 'Erreur interne du serveur.'
+// Ajoute automatiquement le membre dans les groupes de son ménage.
+const syncResponsablesMembre = async (membre, userId, transaction) => {
+  await sequelize.query(`
+    INSERT INTO responsables
+      ("NumMembre", "Poste", codegs, commune_id, user_id, created_at, updated_at)
+    SELECT DISTINCT
+      :nummembre, 'Membre', g.codegs, g.commune_id, :user_id, NOW(), NOW()
+    FROM groupe_menages gm
+    JOIN groupes g ON g.codegs = gm.codegs
+    WHERE gm.id_menage = :id_menage
+      AND g.commune_id = :commune_id
+      AND NOT EXISTS (
+        SELECT 1 FROM responsables r
+        WHERE r."NumMembre" = :nummembre AND r.codegs = g.codegs
+      )
+  `, {
+    replacements: {
+      nummembre: membre.nummembre,
+      user_id: userId,
+      id_menage: membre.id_menage,
+      commune_id: membre.commune_id
+    },
+    transaction
   });
 };
 
-const communeAutorisee = (req, communeId) => {
-  return (
-    req.user.role === 'admin' ||
-    Number(req.user.commune_id) === Number(communeId)
-  );
-};
-
-// =====================================================
-// GET — LISTE DES MEMBRES
-// =====================================================
-
+// GET — Liste des membres
 exports.getMembres = async (req, res) => {
   try {
-    const filter = req.user.role === 'admin'
-      ? {}
-      : { commune_id: req.user.commune_id };
-
-    const membres = await Membre.findAll({
-      where: filter,
-      order: [['nummembre', 'ASC']]
-    });
-
+    const where = admin(req) ? {} : { commune_id: entierPositif(req.user?.commune_id) || -1 };
+    const membres = await Membre.findAll({ where, order: [['nummembre', 'ASC']] });
     return res.json(membres);
-
-  } catch (error) {
-    return erreurServeur(res, error);
+  } catch (err) {
+    return erreurServeur(res, err);
   }
 };
 
-// =====================================================
-// POST — AJOUTER UN MEMBRE
-// =====================================================
-
+// POST — Ajouter un membre
 exports.addMembre = async (req, res) => {
   try {
     const body = req.body || {};
+    const communeId = admin(req) ? entierPositif(body.commune_id) : entierPositif(req.user?.commune_id);
 
-    const communeId = req.user.role === 'admin'
-      ? entierPositif(body.commune_id)
-      : entierPositif(req.user.commune_id);
+    if (!communeId) return erreur(res, 400, 'Commune obligatoire.');
+    if (!communeAutorisee(req, communeId)) return erreur(res, 403, 'Accès interdit à cette commune.');
 
-    if (!communeId) {
-      return res.status(400).json({
-        message: 'Commune obligatoire.'
-      });
-    }
-
-    if (!communeAutorisee(req, communeId)) {
-      return res.status(403).json({
-        message: 'Accès interdit à cette commune.'
-      });
-    }
-
-    const nom = typeof body.nom_membre === 'string'
-      ? body.nom_membre.trim()
-      : '';
-
-    if (!nom) {
-      return res.status(400).json({
-        message: 'Le nom du membre est obligatoire.'
-      });
-    }
+    const nom = typeof body.nom_membre === 'string' ? body.nom_membre.trim() : '';
+    if (!nom) return erreur(res, 400, 'Le nom du membre est obligatoire.');
 
     const donneesMembre = extraireChamps(body);
     donneesMembre.nom_membre = nom;
 
-    /*
-      Le formulaire peut envoyer :
-      - num_menage : numéro d'un ménage existant
-      - aucun numéro : création d'un nouveau ménage
+    const numeroFourni = body.num_menage !== undefined &&
+      body.num_menage !== null && String(body.num_menage).trim() !== '';
+    const numeroExistant = numeroFourni ? entierPositif(body.num_menage) : null;
 
-      Le numéro est toujours interprété dans la commune.
-    */
+    if (numeroFourni && !numeroExistant) return erreur(res, 400, 'Numéro de ménage invalide.');
 
-    const numeroExistant =
-      body.num_menage === undefined ||
-      body.num_menage === null ||
-      String(body.num_menage).trim() === ''
-        ? null
-        : entierPositif(body.num_menage);
+    const resultat = await sequelize.transaction({
+      isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED
+    }, async transaction => {
+      const commune = await Commune.findByPk(communeId, { transaction });
+      if (!commune) {
+        const err = new Error('Commune introuvable.');
+        err.status = 404;
+        throw err;
+      }
 
-    if (
-      body.num_menage !== undefined &&
-      body.num_menage !== null &&
-      String(body.num_menage).trim() !== '' &&
-      !numeroExistant
-    ) {
-      return res.status(400).json({
-        message: 'Numéro de ménage invalide.'
-      });
-    }
+      let menage;
 
-    const resultat = await sequelize.transaction(
-      {
-        isolationLevel:
-          Transaction.ISOLATION_LEVELS.READ_COMMITTED
-      },
-      async (transaction) => {
-
-        const commune = await Commune.findByPk(communeId, {
+      if (numeroExistant) {
+        menage = await Menage.findOne({
+          where: { commune_id: communeId, numero_menage: numeroExistant },
           transaction
         });
 
-        if (!commune) {
-          const erreur = new Error('Commune introuvable.');
-          erreur.status = 404;
-          throw erreur;
+        if (!menage) {
+          const err = new Error('Ménage introuvable dans cette commune.');
+          err.status = 404;
+          throw err;
         }
+      } else {
+        const lignes = await sequelize.query('SELECT * FROM creer_menage(:communeId)', {
+          replacements: { communeId },
+          type: QueryTypes.SELECT,
+          transaction
+        });
 
-        let menage;
+        if (!lignes[0]) throw new Error('Impossible de créer le ménage.');
 
-        if (numeroExistant) {
-          menage = await Menage.findOne({
-            where: {
-              commune_id: communeId,
-              numero_menage: numeroExistant
-            },
-            transaction
-          });
-
-          if (!menage) {
-            const erreur = new Error(
-              'Ménage introuvable dans cette commune.'
-            );
-            erreur.status = 404;
-            throw erreur;
-          }
-
-        } else {
-          const lignes = await sequelize.query(
-            'SELECT * FROM creer_menage(:communeId)',
-            {
-              replacements: { communeId },
-              type: QueryTypes.SELECT,
-              transaction
-            }
-          );
-
-          const nouveauMenage = lignes[0];
-
-          if (!nouveauMenage) {
-            throw new Error(
-              'Impossible de créer le ménage.'
-            );
-          }
-
-          menage = {
-            id_menage: nouveauMenage.nouvel_id_menage,
-            numero_menage:
-              nouveauMenage.nouveau_numero_menage
-          };
-        }
-
-        const membre = await Membre.create(
-          {
-            ...donneesMembre,
-            user_id: req.user.user_id,
-            commune_id: communeId,
-            id_menage: menage.id_menage,
-            num_menage: String(menage.numero_menage)
-          },
-          { transaction }
-        );
-
-        return membre;
+        menage = {
+          id_menage: lignes[0].nouvel_id_menage,
+          numero_menage: lignes[0].nouveau_numero_menage
+        };
       }
-    );
 
-    res.locals.createdData = resultat.toJSON();
+      const membre = await Membre.create({
+        ...donneesMembre,
+        user_id: req.user.user_id,
+        commune_id: communeId,
+        id_menage: menage.id_menage,
+        num_menage: String(menage.numero_menage)
+      }, { transaction });
 
-    return res.status(201).json({
-      message: 'Membre ajouté avec succès.',
-      data: resultat
+      await syncResponsablesMembre(membre, req.user.user_id, transaction);
+      return membre;
     });
 
-  } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({
-        message: error.message
-      });
-    }
-
-    return erreurServeur(res, error);
+    res.locals.createdData = resultat.toJSON();
+    return res.status(201).json({ message: 'Membre ajouté avec succès.', data: resultat });
+  } catch (err) {
+    if (err.status) return erreur(res, err.status, err.message);
+    return erreurServeur(res, err);
   }
 };
 
-// =====================================================
-// PUT — MODIFIER UN MEMBRE
-// =====================================================
-
+// PUT — Modifier un membre
 exports.updateMembre = async (req, res) => {
   try {
-    const id = entierPositif(req.params.id);
+    const membreId = entierPositif(req.params.id);
+    if (!membreId) return erreur(res, 400, 'Identifiant membre invalide.');
 
-    if (!id) {
-      return res.status(400).json({
-        message: 'Identifiant membre invalide.'
-      });
-    }
-
-    const filter = req.user.role === 'admin'
-      ? { nummembre: id }
-      : {
-          nummembre: id,
-          commune_id: req.user.commune_id
-        };
+    const where = admin(req)
+      ? { nummembre: membreId }
+      : { nummembre: membreId, commune_id: entierPositif(req.user?.commune_id) || -1 };
 
     const donnees = extraireChamps(req.body || {});
 
-    if (
-      Object.prototype.hasOwnProperty.call(
-        donnees,
-        'nom_membre'
-      )
-    ) {
-      if (
-        typeof donnees.nom_membre !== 'string' ||
-        !donnees.nom_membre.trim()
-      ) {
-        return res.status(400).json({
-          message: 'Le nom du membre est obligatoire.'
-        });
+    if (Object.prototype.hasOwnProperty.call(donnees, 'nom_membre')) {
+      if (typeof donnees.nom_membre !== 'string' || !donnees.nom_membre.trim()) {
+        return erreur(res, 400, 'Le nom du membre est obligatoire.');
       }
-
       donnees.nom_membre = donnees.nom_membre.trim();
     }
 
-    if (Object.keys(donnees).length === 0) {
-      return res.status(400).json({
-        message: 'Aucun champ modifiable fourni.'
+    if (!Object.keys(donnees).length) return erreur(res, 400, 'Aucun champ modifiable fourni.');
+
+    const resultat = await sequelize.transaction(async transaction => {
+      const membre = await Membre.findOne({
+        where, transaction, lock: transaction.LOCK.UPDATE
       });
-    }
 
-    const resultat = await sequelize.transaction(
-      async (transaction) => {
-        const membre = await Membre.findOne({
-          where: filter,
-          transaction,
-          lock: transaction.LOCK.UPDATE
-        });
+      if (!membre) return null;
 
-        if (!membre) {
-          return null;
-        }
+      const ancien = membre.toJSON();
+      await membre.update(donnees, { transaction });
+      return { ancien, nouveau: membre.toJSON() };
+    });
 
-        const ancien = membre.toJSON();
-
-        await membre.update(donnees, { transaction });
-
-        return {
-          ancien,
-          nouveau: membre.toJSON()
-        };
-      }
-    );
-
-    if (!resultat) {
-      return res.status(404).json({
-        message: 'Membre introuvable ou accès refusé.'
-      });
-    }
+    if (!resultat) return erreur(res, 404, 'Membre introuvable ou accès refusé.');
 
     res.locals.oldData = resultat.ancien;
     res.locals.newData = resultat.nouveau;
-
-    return res.json({
-      message: 'Membre mis à jour avec succès.',
-      data: resultat.nouveau
-    });
-
-  } catch (error) {
-    return erreurServeur(res, error);
+    return res.json({ message: 'Membre mis à jour avec succès.', data: resultat.nouveau });
+  } catch (err) {
+    return erreurServeur(res, err);
   }
 };
 
-// =====================================================
-// DELETE — SUPPRIMER UN MEMBRE
-// =====================================================
-
+// DELETE — Supprimer un membre
 exports.deleteMembre = async (req, res) => {
   try {
-    const id = entierPositif(req.params.id);
+    const membreId = entierPositif(req.params.id);
+    if (!membreId) return erreur(res, 400, 'Identifiant membre invalide.');
 
-    if (!id) {
-      return res.status(400).json({
-        message: 'Identifiant membre invalide.'
+    const where = admin(req)
+      ? { nummembre: membreId }
+      : { nummembre: membreId, commune_id: entierPositif(req.user?.commune_id) || -1 };
+
+    const resultat = await sequelize.transaction(async transaction => {
+      const membre = await Membre.findOne({
+        where, transaction, lock: transaction.LOCK.UPDATE
       });
-    }
 
-    const filter = req.user.role === 'admin'
-      ? { nummembre: id }
-      : {
-          nummembre: id,
-          commune_id: req.user.commune_id
-        };
+      if (!membre) return { status: 404, message: 'Membre introuvable ou accès refusé.' };
 
-    const resultat = await sequelize.transaction(
-      async (transaction) => {
-        const membre = await Membre.findOne({
-          where: filter,
-          transaction,
-          lock: transaction.LOCK.UPDATE
-        });
+      const postes = await sequelize.query(`
+        SELECT "Poste" FROM responsables
+        WHERE "NumMembre" = :nummembre
+          AND codegs IS NOT NULL
+          AND LOWER(TRIM(COALESCE("Poste", 'Membre'))) NOT IN ('membre', 'membres', 'aucun poste')
+        LIMIT 1
+      `, {
+        replacements: { nummembre: membreId },
+        type: QueryTypes.SELECT,
+        transaction
+      });
 
-        if (!membre) {
-          return null;
-        }
-
-        const ancien = membre.toJSON();
-
-        await membre.destroy({ transaction });
-
-        return ancien;
+      if (postes.length) {
+        return { status: 409, message: 'Ce membre possède un poste dans un groupe. Retirez son poste avant de le supprimer.' };
       }
-    );
 
-    if (!resultat) {
-      return res.status(404).json({
-        message: 'Membre introuvable ou accès refusé.'
+      const ancien = membre.toJSON();
+
+      // Supprime les attributions ordinaires avant le membre.
+      await sequelize.query(`
+        DELETE FROM responsables
+        WHERE "NumMembre" = :nummembre
+      `, {
+        replacements: { nummembre: membreId },
+        transaction
       });
-    }
 
-    res.locals.deletedData = resultat;
-
-    return res.json({
-      message: 'Membre supprimé avec succès.'
+      await membre.destroy({ transaction });
+      return { ancien };
     });
 
-  } catch (error) {
-    return erreurServeur(res, error);
+    if (resultat.status) return erreur(res, resultat.status, resultat.message);
+
+    res.locals.deletedData = resultat.ancien;
+    return res.json({ message: 'Membre supprimé avec succès.' });
+  } catch (err) {
+    return erreurServeur(res, err);
   }
 };
