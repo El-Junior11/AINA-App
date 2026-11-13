@@ -101,47 +101,53 @@ const ReseauPage = () => {
   const getGroupNames = r => Array.isArray(r.groupes) && r.groupes.length
     ? r.groupes.map(g => g.nomgs).filter(Boolean)
     : String(r.NomGS || '').split(',').map(g => g.trim()).filter(Boolean);
-  // Résolution de la commune depuis le réseau, la liste des communes ou ses groupes associés.
-  const getCommuneName = r => {
-    const direct = [r.NomCommune,r.nom_commune,r.commune?.nom_commune,typeof r.commune==='string'?r.commune:''].find(v=>typeof v==='string'&&v.trim());
-    if(direct) return direct.trim();
-    const linked = Array.isArray(r.groupes)&&r.groupes.length ? r.groupes : groupes.filter(g=>getGroupIds(r).includes(Number(g.codegs)) || getGroupNames(r).some(n=>normalizeText(n)===normalizeText(g.nomgs)));
-    const id = r.commune_id ?? r.id_commune ?? linked.find(g=>g.commune_id)?.commune_id;
-    const byId = id!=null&&id!=='' ? communes.find(c=>Number(c.id_commune)===Number(id))?.nom_commune : '';
-    return byId || linked.find(g=>g.commune||g.nom_commune)?.commune || linked.find(g=>g.nom_commune)?.nom_commune || (id!=null&&Number(id)===Number(user?.commune_id)?user?.commune?.nom_commune:'') || (id?`Commune ${id}`:'Non renseignée');
+  const communeById = id => communes.find(c => String(c.id_commune) === String(id));
+  const communeByName = name => communes.find(c => normalizeText(c.nom_commune) === normalizeText(name));
+  const resolveCommune = r => {
+    const directId = r.commune_id ?? r.id_commune ?? r.commune?.id_commune ?? r.commune?.commune_id;
+    if (directId != null && directId !== '') {
+      const found = communeById(directId);
+      if (found) return { id: String(found.id_commune), name: found.nom_commune };
+    }
+    const directName = [r.NomCommune, r.nom_commune, r.commune?.nom_commune, typeof r.commune === 'string' ? r.commune : ''].find(v => typeof v === 'string' && v.trim());
+    if (directName) {
+      const found = communeByName(directName);
+      if (found) return { id: String(found.id_commune), name: found.nom_commune };
+    }
+    const ids = getGroupIds(r);
+    const embedded = Array.isArray(r.groupes) ? r.groupes : [];
+    const linked = [...embedded, ...groupes.filter(g => ids.includes(Number(g.codegs)))];
+    // Les noms de groupes ne sont utilisés que s'ils désignent une seule commune.
+    if (!linked.length) {
+      const names = getGroupNames(r).map(normalizeText);
+      linked.push(...groupes.filter(g => names.includes(normalizeText(g.nomgs))));
+    }
+    const possible = new Map();
+    linked.forEach(g => {
+      const id = g.commune_id ?? g.id_commune;
+      const byId = id != null && id !== '' ? communeById(id) : null;
+      const byName = communeByName(g.commune || g.nom_commune);
+      const found = byId || byName;
+      if (found) possible.set(String(found.id_commune), found.nom_commune);
+    });
+    if (possible.size === 1) {
+      const [id, name] = [...possible][0];
+      return { id, name };
+    }
+    if (directId != null && directId !== '') return { id: String(directId), name: directName || `Commune ${directId}` };
+    if (directName) return { id: '', name: directName };
+    return { id: '', name: 'Non renseignée' };
   };
-  const filteredGroupes = groupesDisponibles.filter(g =>
-    normalizeText(g.nomgs).includes(normalizeText(searchGroup))
-  );
+  const getCommuneName = r => resolveCommune(r).name;
+  const filteredGroupes = groupesDisponibles.filter(g => normalizeText(g.nomgs).includes(normalizeText(searchGroup)));
   useEffect(() => {
     const search = normalizeText(searchTerm);
-    if (!search) {
-      setFilteredReseaux(reseaux.filter(r => !isAdmin || !communeFilter || Number(r.commune_id) === Number(communeFilter)));
-      return;
-    }
-    const results = reseaux.filter((r) => {
-      if (isAdmin && communeFilter && Number(r.commune_id) !== Number(communeFilter)) return false;
-      const communeName = getCommuneName(r);
-      const searchableValues = [
-        r.codeRS,
-        r.NomRS,
-        r.NomGS,
-        formatDate(r.DateCreation),
-        r.DateCreation,
-        communeName,
-        r.Activite,
-        r.Plaidoyer,
-        r.Plan,
-        r.Autonomie,
-        r.Autonomie === 'Oui' ? 'Autonome' : 'En cours',
-        'Réseau communautaire',
-        'Activité',
-        'Plaidoyer',
-        'Plan de développement'
-      ];
-      return searchableValues.some((value) =>
-        normalizeText(value).includes(search)
-      );
+    const results = reseaux.filter(r => {
+      const resolved = resolveCommune(r);
+      if (isAdmin && communeFilter && resolved.id !== String(communeFilter)) return false;
+      if (!search) return true;
+      const searchableValues = [r.codeRS, r.NomRS, r.NomGS, getGroupNames(r).join(' '), formatDate(r.DateCreation), r.DateCreation, resolved.name, r.Activite, r.Plaidoyer, r.Plan, r.Autonomie, r.Autonomie === 'Oui' ? 'Autonome' : 'En cours', 'Réseau communautaire', 'Activité', 'Plaidoyer', 'Plan de développement'];
+      return searchableValues.some(value => normalizeText(value).includes(search));
     });
     setFilteredReseaux(results);
   }, [searchTerm, reseaux, communeFilter, communes, groupes, user, isAdmin]);
@@ -446,7 +452,7 @@ const ReseauPage = () => {
       setFormData({
         ...initialForm,
         ...details,
-        commune_id: details.commune_id || '',
+        commune_id: resolveCommune(details).id || '',
         groupes_ids: selected,
         DateCreation: String(details.DateCreation || initialForm.DateCreation).slice(0, 10)
       });

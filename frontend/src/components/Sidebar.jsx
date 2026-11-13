@@ -26,11 +26,9 @@ const mainItems = [
 const adminChildren = [
   { icon: FileBarChart2, label: 'Rapports & Statistiques', path: '/rapports' },
   { icon: MapPinned, label: 'Gestion des communes', path: '/admin/communes' },
-  { icon: UserCog, label: 'Gestion des utilisateurs', path: '/admin/users' }
+  { icon: UserCog, label: 'Gestion des utilisateurs', path: '/admin/users' },
+  { icon: Activity, label: 'Actions utilisateurs', path: '/admin/notifications' }
 ];
-
-// Menu réservé aux administrateurs, placé après le groupe « Administrateur »
-const adminActionsItem = { icon: Activity, label: 'Actions utilisateurs', path: '/admin/notifications' };
 
 const itemClass = (isActive, isCollapsed) =>
   `relative flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -264,7 +262,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               )}
             </div>
 
-            {renderItem(adminActionsItem)}
           </>
         )}
       </nav>

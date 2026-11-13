@@ -132,7 +132,9 @@ const UsersPage = () => {
   ];
 
   return (
-    <div className="w-full min-h-full p-4 sm:p-6 space-y-6 bg-slate-50 dark:bg-slate-950">
+    <div className="users-page flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap'); .users-page, .users-page button, .users-page input, .users-page select { font-family: 'Public Sans', system-ui, sans-serif; }`}</style>
+      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 md:px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -146,7 +148,8 @@ const UsersPage = () => {
           Actualiser
         </button>
       </div>
-
+      </header>
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map(card => {
           const Icon = card.icon;
@@ -319,6 +322,7 @@ const UsersPage = () => {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 };

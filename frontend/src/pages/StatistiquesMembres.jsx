@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   UserRound,
   RefreshCw,
+  Loader2,
   ChartNoAxesCombined,
   MapPin
 } from 'lucide-react';
@@ -28,7 +29,8 @@ import {
   Bar,
   CartesianGrid,
   XAxis,
-  YAxis
+  YAxis,
+  LabelList
 } from 'recharts';
 const COLORS = ['#0284c7', '#e11d48'];
 const panel =
@@ -242,234 +244,43 @@ const StatistiquesMembres = () => {
     }
   ];
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* HEADER */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-6 py-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-              <ChartNoAxesCombined size={20} />
-            </span>
-            <div>
-              <h1 className="text-lg font-semibold">
-                Statistiques des membres
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Analyse des membres et des ménages
-              </p>
-            </div>
+    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap'); .stats-membres{font-family:'Public Sans',system-ui,sans-serif} .stats-membres .recharts-wrapper text{font-family:'Public Sans',system-ui,sans-serif}`}</style>
+      <header className="shrink-0 px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3.5">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <span className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><ChartNoAxesCombined size={20} /></span>
+            <div className="min-w-0"><h1 className="text-lg font-semibold text-slate-900 dark:text-white">Statistiques des membres</h1><p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Analyse des membres et des ménages</p></div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {isAdmin && (
-              <label className="flex items-center gap-2 text-sm">
-                <MapPin size={16} className="text-emerald-700" />
-                <select aria-label="Filtrer par commune" className={field} value={communeId} onChange={e => setCommuneId(e.target.value)}>
-                  <option value="all">Toutes les communes</option>
-                  {communes.map(c => <option key={c.id ?? c.id_commune} value={String(c.id ?? c.id_commune)}>{c.nom ?? c.nom_commune}</option>)}
-                </select>
-              </label>
-            )}
-            <button type="button" onClick={() => setRefreshKey(k => k + 1)} className={`${field} flex items-center gap-2`}>
-              <RefreshCw size={16} /> Actualiser
-            </button>
-            <button type="button" onClick={() => navigate('/membres')} className={`${field} flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800`}>
-              <ArrowLeft size={16} /> Retour aux membres
-            </button>
+          <div className="flex flex-wrap items-end gap-2 lg:ml-auto">
+            {isAdmin && <label className="flex flex-col gap-1 min-w-[170px] flex-1 sm:flex-none"><span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300"><MapPin size={13} /> Commune</span><select aria-label="Filtrer par commune" className={`${field} w-full sm:min-w-[205px]`} value={communeId} onChange={e => setCommuneId(e.target.value)}><option value="all">Toutes les communes</option>{communes.map(c => <option key={c.id ?? c.id_commune} value={String(c.id ?? c.id_commune)}>{c.nom ?? c.nom_commune}</option>)}</select></label>}
+            <button type="button" onClick={() => setRefreshKey(k => k + 1)} className={`${field} flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800`}><RefreshCw size={16} /> Actualiser</button>
+            <button type="button" onClick={() => navigate('/membres')} className={`${field} flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800`}><ArrowLeft size={16} /> Retour aux membres</button>
           </div>
         </div>
       </header>
-      {/* CONTENU */}
-      <main className="p-4 md:p-6 space-y-5 max-w-[1600px] mx-auto">
-        {communesError && (
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            {communesError}
-          </p>
-        )}
-        {error && (
-          <div className={`${panel} p-5 text-rose-700`}>
-            {error}
-          </div>
-        )}
-        {loading ? (
-          <div className={`${panel} p-12 text-center text-slate-500`}>
-            Chargement des statistiques...
-          </div>
-        ) : !error && (
-          <>
-            {/* CARTES STATISTIQUES */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              {cards.map(
-                ({
-                  title,
-                  value,
-                  Icon,
-                  color,
-                  bg
-                }) => (
-                  <div
-                    key={title}
-                    className={`${panel} p-5 flex items-center gap-4`}
-                  >
-                    <span className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg} ${color}`}>
-                      <Icon size={23} />
-                    </span>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {title}
-                      </p>
-                      <p className="text-2xl font-semibold tabular-nums mt-1">
-                        {value}
-                      </p>
-                    </div>
-                  </div>
-                )
-              )}
+      <main className="stats-membres flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
+        <div className="max-w-[1600px] mx-auto space-y-5">
+          {communesError && <p className="text-sm text-amber-700 dark:text-amber-400">{communesError}</p>}
+          {error && <div role="alert" className={`${panel} p-5 text-rose-700 dark:text-rose-400`}>{error}</div>}
+          {loading ? <div className={`${panel} p-12 flex items-center justify-center gap-3 text-sm text-slate-500`}><Loader2 size={20} className="animate-spin text-emerald-600" /> Chargement des statistiques...</div> : !error && <>
+            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" aria-label="Indicateurs des membres">
+              {cards.map(({ title, value, Icon }) => <div key={title} className={`${panel} p-4 flex items-center gap-3.5 min-w-0`}><span className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><Icon size={18} /></span><div className="min-w-0"><p className="text-xs text-slate-500 dark:text-slate-400">{title}</p><p className="text-xl font-semibold tabular-nums mt-0.5">{value}</p></div></div>)}
             </section>
-            {/* GRAPHIQUES */}
-            <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {/* REPARTITION PAR SEXE */}
-              <div className={`${panel} p-5`}>
-                <h2 className="font-semibold mb-4">
-                  Répartition par sexe
-                </h2>
-                {stats.hommes + stats.femmes > 0 ? (
-                  <div className="h-72">
-                    <ResponsiveContainer
-                      width="100%"
-                      height="100%"
-                    >
-                      <PieChart>
-                        <Pie
-                          data={stats.genre}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="45%"
-                          outerRadius={95}
-                          label
-                        >
-                          {stats.genre.map(
-                            (item, index) => (
-                              <Cell
-                                key={item.name}
-                                fill={COLORS[index]}
-                              />
-                            )
-                          )}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500 py-16 text-center">
-                    Aucune donnée disponible.
-                  </p>
-                )}
-              </div>
-              {/* ANNEES DE NAISSANCE */}
-              <div className={`${panel} p-5`}>
-                <h2 className="font-semibold mb-4">
-                  Répartition par décennie de naissance
-                </h2>
-                {stats.naissances.length ? (
-                  <div className="h-72">
-                    <ResponsiveContainer
-                      width="100%"
-                      height="100%"
-                    >
-                      <BarChart
-                        data={stats.naissances}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          opacity={0.5}
-                        />
-                        <XAxis
-                          dataKey="periode"
-                        />
-                        <YAxis
-                          allowDecimals={false}
-                        />
-                        <Tooltip />
-                        <Bar
-                          dataKey="total"
-                          name="Membres"
-                          fill="#059669"
-                          radius={[5, 5, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500 py-16 text-center">
-                    Aucune année de naissance exploitable.
-                  </p>
-                )}
-              </div>
+            <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              <article className={`${panel} p-5 min-w-0`}><div className="flex items-center gap-2.5 mb-4"><span className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><UserRound size={16} /></span><div><h2 className="text-sm font-semibold">Répartition par sexe</h2><p className="text-xs text-slate-500 dark:text-slate-400">Composition des membres enregistrés</p></div></div>
+                {stats.hommes + stats.femmes > 0 ? <div className="h-[290px] w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={stats.genre} dataKey="value" nameKey="name" cx="50%" cy="46%" innerRadius="53%" outerRadius="75%" paddingAngle={3} stroke="none" label={({ percent }) => `${Math.round(percent * 100)}%`} labelLine={false}>{stats.genre.map((item, index) => <Cell key={item.name} fill={COLORS[index]} />)}</Pie><Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 12, color: '#0f172a' }} /><Legend verticalAlign="bottom" iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12 }} /></PieChart></ResponsiveContainer></div> : <p className="text-sm text-slate-500 py-16 text-center">Aucune donnée disponible.</p>}
+              </article>
+              <article className={`${panel} p-5 min-w-0`}><div className="flex items-center gap-2.5 mb-4"><span className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><Users size={16} /></span><div><h2 className="text-sm font-semibold">Répartition par décennie de naissance</h2><p className="text-xs text-slate-500 dark:text-slate-400">Nombre de membres par période</p></div></div>
+                {stats.naissances.length ? <div className="h-[290px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats.naissances} margin={{ top: 20, right: 12, left: -18, bottom: 6 }}><defs><linearGradient id="membres-decenie" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34d399" /><stop offset="100%" stopColor="#047857" /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.22} /><XAxis dataKey="periode" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} /><Tooltip cursor={{ fill: '#94a3b8', fillOpacity: 0.08 }} contentStyle={{ borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 12, color: '#0f172a' }} /><Bar dataKey="total" name="Membres" fill="url(#membres-decenie)" maxBarSize={44} radius={[6, 6, 0, 0]}><LabelList dataKey="total" position="top" style={{ fill: '#64748b', fontSize: 11 }} /></Bar></BarChart></ResponsiveContainer></div> : <p className="text-sm text-slate-500 py-16 text-center">Aucune année de naissance exploitable.</p>}
+              </article>
             </section>
-            {/* MEMBRES PAR COMMUNE */}
-            {isAdmin && communeId === 'all' && (
-              <section className={`${panel} p-5`}>
-                <h2 className="font-semibold mb-4">
-                  Membres par commune
-                </h2>
-                {communesStats.length ? (
-                  <div className="h-80">
-                    <ResponsiveContainer
-                      width="100%"
-                      height="100%"
-                    >
-                      <BarChart
-                        data={communesStats}
-                        margin={{
-                          top: 10,
-                          right: 15,
-                          left: 0,
-                          bottom: 35
-                        }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          opacity={0.5}
-                        />
-                        <XAxis
-                          dataKey="nom"
-                          interval={0}
-                          angle={-20}
-                          textAnchor="end"
-                          height={65}
-                        />
-                        <YAxis
-                          allowDecimals={false}
-                        />
-                        <Tooltip />
-                        <Bar
-                          dataKey="membres"
-                          name="Membres"
-                          fill="#0284c7"
-                          radius={[5, 5, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500">
-                    Aucune commune disponible.
-                  </p>
-                )}
-              </section>
-            )}
-            {/* NOTE */}
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Les statistiques sont calculées à partir
-              des membres accessibles via l'API.
-              Les ménages sont comptés parmi les
-              membres affichés.
-            </p>
-          </>
-        )}
+            {isAdmin && communeId === 'all' && <section className={`${panel} p-5 min-w-0`}><div className="flex items-center gap-2.5 mb-4"><span className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><MapPin size={16} /></span><div><h2 className="text-sm font-semibold">Membres par commune</h2><p className="text-xs text-slate-500 dark:text-slate-400">Répartition des membres entre les communes</p></div></div>
+              {communesStats.length ? <div className="w-full" style={{ height: Math.max(280, communesStats.length * 44 + 65) }}><ResponsiveContainer width="100%" height="100%"><BarChart data={communesStats} layout="vertical" margin={{ top: 8, right: 38, left: 4, bottom: 8 }}><defs><linearGradient id="membres-commune" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#38bdf8" /><stop offset="100%" stopColor="#0284c7" /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#94a3b8" opacity={0.22} /><XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} /><YAxis type="category" dataKey="nom" width={125} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} /><Tooltip cursor={{ fill: '#94a3b8', fillOpacity: 0.08 }} contentStyle={{ borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 12, color: '#0f172a' }} /><Bar dataKey="membres" name="Membres" fill="url(#membres-commune)" maxBarSize={24} radius={[0, 5, 5, 0]}><LabelList dataKey="membres" position="right" style={{ fill: '#64748b', fontSize: 11 }} /></Bar></BarChart></ResponsiveContainer></div> : <p className="text-sm text-slate-500">Aucune commune disponible.</p>}
+            </section>}
+            <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">Les statistiques sont calculées à partir des membres accessibles via l'API. Les ménages sont comptés parmi les membres affichés.</p>
+          </>}
+        </div>
       </main>
     </div>
   );
