@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import Swal from 'sweetalert2';
-import { ArrowLeft, Users, UserRound, ShieldCheck, Venus, Mars, Percent, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Users, UserRound, ShieldCheck, Venus, Mars, Percent, Loader2, RefreshCw, ChartNoAxesCombined, MapPin } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const COLORS = ['#059669', '#0284c7', '#f59e0b', '#8b5cf6', '#e11d48', '#64748b'];
@@ -138,31 +138,22 @@ export default function DetailsResponsablesPage() {
   }));
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white p-4 md:p-6 space-y-6">
-      <header className="flex flex-wrap justify-between items-center gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className={`${field} px-3 flex items-center gap-2`}><ArrowLeft size={17}/> Retour</button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">Détails des responsables</h1>
-            <p className="text-sm text-slate-500">Statistiques des responsables · tous les groupes par défaut</p>
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-6 py-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center"><ChartNoAxesCombined size={20}/></span>
+            <div className="min-w-0"><h1 className="text-lg font-semibold">Détails des responsables</h1><p className="text-sm text-slate-500 dark:text-slate-400">Statistiques des responsables · tous les groupes par défaut</p></div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {admin && <label className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-emerald-700"/><select aria-label="Filtrer par commune" className={`${field} max-w-[230px]`} value={communeId} onChange={e => { setCommuneId(e.target.value); setCodegs(''); }}><option value="">Toutes les communes</option>{communes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}</select></label>}
+            <select aria-label="Filtrer par groupe" className={`${field} max-w-[230px]`} value={codegs} onChange={e => setCodegs(e.target.value)}><option value="">Tous les groupes</option>{groupesFiltres.map(g => <option key={g.codegs} value={g.codegs}>{g.nomgs}</option>)}</select>
+            <button type="button" onClick={() => setRefresh(v => v + 1)} className={`${field} flex items-center gap-2`}><RefreshCw size={17}/>Actualiser</button>
+            <button type="button" onClick={() => navigate(-1)} className={`${field} flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800`}><ArrowLeft size={17}/>Retour</button>
           </div>
         </div>
-        <button onClick={() => setRefresh(v => v + 1)} className={`${field} px-3 flex items-center gap-2`}><RefreshCw size={17}/> Actualiser</button>
       </header>
-
-      <section className={`${card} p-4 flex flex-wrap gap-3`}>
-        {admin && (
-          <select className={`${field} flex-1 min-w-[180px]`} value={communeId} onChange={e => { setCommuneId(e.target.value); setCodegs(''); }}>
-            <option value="">Toutes les communes</option>
-            {communes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
-        )}
-        <select className={`${field} flex-1 min-w-[180px]`} value={codegs} onChange={e => setCodegs(e.target.value)}>
-          <option value="">Tous les groupes</option>
-          {groupesFiltres.map(g => <option key={g.codegs} value={g.codegs}>{g.nomgs}</option>)}
-        </select>
-      </section>
-
+      <main className="p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto">
       {loading ? (
         <div className="flex items-center justify-center h-64"><Loader2 size={32} className="animate-spin text-emerald-600"/></div>
       ) : (
@@ -227,6 +218,7 @@ export default function DetailsResponsablesPage() {
           {!total && <p className="text-center text-sm text-slate-500">Aucune donnée disponible pour les filtres sélectionnés.</p>}
         </>
       )}
+      </main>
     </div>
   );
 }

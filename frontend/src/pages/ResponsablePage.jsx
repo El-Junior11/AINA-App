@@ -9,9 +9,9 @@ import * as XLSX from 'xlsx';
 import logo from '../assets/logo.png';
 
 const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
-const field = 'w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-emerald-600/30';
-const btn = 'inline-flex items-center justify-center gap-2 h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm hover:bg-slate-100 dark:hover:bg-slate-800';
-const card = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm';
+const field = 'w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-emerald-600/30';
+const btn = 'inline-flex items-center justify-center gap-2 h-10 px-3 rounded-lg border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 text-sm hover:bg-slate-100 dark:hover:bg-[#1e293b]';
+const card = 'bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#263449] rounded-xl shadow-sm';
 const postes = ['Membre', 'President', 'Tresorier', 'Secretaire', 'Conseiller'];
 const list = data => Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : Array.isArray(data?.groupes) ? data.groupes : Array.isArray(data?.membres) ? data.membres : [];
 const message = e => e.response?.data?.message || e.response?.data?.error || 'Une erreur est survenue.';
@@ -119,7 +119,7 @@ export default function ResponsablePage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white p-4 md:p-6 space-y-5">
+    <div className="min-h-full bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white p-4 md:p-6 space-y-5">
       <header className="flex items-center gap-3">
         <div className="p-3 bg-emerald-100 dark:bg-emerald-950 rounded-xl text-emerald-700"><Users size={22}/></div>
         <div><h1 className="text-xl font-bold">Gestion des responsables</h1><p className="text-sm text-slate-500 dark:text-slate-400">Gestion des postes par groupe et commune</p></div>
@@ -134,17 +134,16 @@ export default function ResponsablePage() {
         </div>
       </section>
       <section className={`${card} overflow-hidden`}>
-        <div className="flex justify-between items-center gap-3 p-4 border-b border-slate-200 dark:border-slate-800"><h2 className="font-semibold">Liste des membres</h2><span className="text-sm text-slate-500">{filtered.length} membre(s)</span></div>
         {error && <p role="alert" className="px-4 py-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">{error}</p>}
         <div className="overflow-x-auto"><table className="w-full min-w-[880px] text-sm text-left">
-          <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"><tr>{['N°', 'Membre', 'Ménage', 'Groupe', 'Commune', 'Poste', 'Action'].map(t => <th key={t} className="px-4 py-3">{t}</th>)}</tr></thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <thead className="bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300"><tr>{['N°', 'Membre', 'Ménage', 'Groupe', 'Commune', 'Poste', 'Action'].map(t => <th key={t} className="px-5 py-3.5 font-medium">{t}</th>)}</tr></thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-[#263449]">
             {loading ? <tr><td colSpan={7} className="text-center p-10"><Loader2 className="animate-spin inline text-emerald-600"/></td></tr> : filtered.map((m, i) => (
-              <tr key={`${m.codegs}:${m.nummembre ?? m.NumMembre ?? i}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                <td className="px-4 py-3">{i + 1}</td><td className="px-4 py-3 font-medium">{fullName(m)}</td>
-                <td className="px-4 py-3">{m.numero_menage ?? m.num_menage ?? '—'}</td><td className="px-4 py-3">{m.nomgs || '—'}</td><td className="px-4 py-3">{m.commune || '—'}</td>
-                <td className="px-4 py-3"><span className="px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">{m.Poste || 'Membre'}</span></td>
-                <td className="px-4 py-3"><button type="button" onClick={() => openModal(m)} className="p-2 rounded-lg hover:bg-sky-100 dark:hover:bg-slate-700 text-sky-700" title="Modifier le poste"><Edit2 size={17}/></button></td>
+              <tr key={`${m.codegs}:${m.nummembre ?? m.NumMembre ?? i}`} className="hover:bg-slate-50 dark:hover:bg-[#1e293b]/70">
+                <td className="px-5 py-4">{i + 1}</td><td className="px-5 py-4 font-medium">{fullName(m)}</td>
+                <td className="px-5 py-4">{m.numero_menage ?? m.num_menage ?? '—'}</td><td className="px-5 py-4">{m.nomgs || '—'}</td><td className="px-5 py-4">{m.commune || '—'}</td>
+                <td className="px-5 py-4"><span className="px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">{m.Poste || 'Membre'}</span></td>
+                <td className="px-5 py-4"><button type="button" onClick={() => openModal(m)} className="p-2 rounded-lg hover:bg-sky-100 dark:hover:bg-slate-700 text-sky-700" title="Modifier le poste"><Edit2 size={17}/></button></td>
               </tr>
             ))}
             {!loading && !filtered.length && <tr><td colSpan={7} className="text-center p-10 text-slate-500">Aucun membre trouvé</td></tr>}
