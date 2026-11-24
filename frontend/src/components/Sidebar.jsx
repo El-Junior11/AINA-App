@@ -4,15 +4,13 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import {
   LayoutDashboard, Users, UserCircle, Share2, ShieldCheck,
-  GraduationCap, LogOut, Menu, Activity, MapPinned,
+  GraduationCap, LogOut, Menu, Activity, MapPinned, X,
   UserCog, FileBarChart2, Settings2, ChevronDown
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
-const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
+const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40';
 
-// Menus principaux (visibles par tous les utilisateurs)
 const mainItems = [
   { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
   { icon: Users, label: 'Membres', path: '/membres' },
@@ -22,7 +20,6 @@ const mainItems = [
   { icon: GraduationCap, label: 'Formations', path: '/formations' }
 ];
 
-// Sous-menus du menu « Administrateur »
 const adminChildren = [
   { icon: FileBarChart2, label: 'Rapports & Statistiques', path: '/rapports' },
   { icon: MapPinned, label: 'Gestion des communes', path: '/admin/communes' },
@@ -30,41 +27,50 @@ const adminChildren = [
   { icon: Activity, label: 'Actions utilisateurs', path: '/admin/notifications' }
 ];
 
-const itemClass = (isActive, isCollapsed) =>
-  `relative flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-    isCollapsed ? 'justify-center px-0' : ''
-  } ${
-    isActive
-      ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-semibold'
-      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+const itemClass = (active, collapsed = false) =>
+  `relative flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${collapsed ? 'justify-center px-0' : ''} ${
+    active ? 'bg-[#176B46] text-white font-semibold shadow-sm' :
+    'text-slate-600 dark:text-slate-400 hover:bg-emerald-50 hover:text-[#176B46] dark:hover:bg-slate-800 dark:hover:text-white'
   } ${focusRing}`;
 
-const subItemClass = (isActive) =>
-  `flex items-center gap-2.5 w-full rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
-    isActive
-      ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-semibold'
-      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+const subItemClass = active =>
+  `flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-xs font-medium transition-colors ${
+    active ? 'bg-emerald-50 text-[#176B46] font-semibold dark:bg-emerald-950/50 dark:text-emerald-300' :
+    'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
   } ${focusRing}`;
 
-const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, isAdmin } = useContext(AuthContext);
-
-  // --- Menu Administrateur (sous-menus) ---
-  const isAdminActive = adminChildren.some(
-    (child) => location.pathname === child.path || location.pathname.startsWith(`${child.path}/`)
-  );
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
+  const collapsed = isCollapsed && !isMobile;
+  const isAdminActive = adminChildren.some(child => location.pathname === child.path || location.pathname.startsWith(`${child.path}/`));
   const [adminOpen, setAdminOpen] = useState(isAdminActive);
-
-  // Ouvre automatiquement le groupe quand on navigue vers l'un de ses sous-menus
-  useEffect(() => {
-    if (isAdminActive) setAdminOpen(true);
-  }, [isAdminActive, location.pathname]);
-
-  // --- Infobulles et sous-menu flottant en mode réduit (affichés hors de la barre pour ne pas être coupés) ---
   const [flyout, setFlyout] = useState(null);
   const closeTimer = useRef(null);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px)');
+    const handleResize = () => {
+      setIsMobile(media.matches);
+      setFlyout(null);
+      if (!media.matches) setMobileOpen(false);
+    };
+    handleResize();
+    media.addEventListener('change', handleResize);
+    return () => media.removeEventListener('change', handleResize);
+  }, [setMobileOpen]);
+
+  useEffect(() => {
+    if (isAdminActive) setAdminOpen(true);
+    setMobileOpen(false);
+    setFlyout(null);
+  }, [location.pathname, isAdminActive, setMobileOpen]);
+
+  useEffect(() => {
+    setFlyout(null);
+  }, [collapsed]);
 
   const cancelClose = useCallback(() => {
     if (closeTimer.current) {
@@ -78,38 +84,39 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     closeTimer.current = setTimeout(() => setFlyout(null), 120);
   }, [cancelClose]);
 
+  useEffect(() => () => cancelClose(), [cancelClose]);
+
+  useEffect(() => {
+    const handleKeyDown = e => {
+      if (e.key === 'Escape') {
+        setMobileOpen(false);
+        setFlyout(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setMobileOpen]);
+
   const openFlyout = (e, type, label) => {
-    if (!isCollapsed) return;
+    if (!collapsed) return;
     cancelClose();
     const rect = e.currentTarget.getBoundingClientRect();
     setFlyout({ type, label, top: rect.top, height: rect.height, left: rect.right + 8 });
   };
 
-  const hoverProps = (type, label) =>
-    isCollapsed
-      ? {
-          onMouseEnter: (e) => openFlyout(e, type, label),
-          onMouseLeave: scheduleClose,
-          onFocus: (e) => openFlyout(e, type, label),
-          onBlur: scheduleClose
-        }
-      : {};
+  const hoverProps = (type, label) => collapsed ? {
+    onMouseEnter: e => openFlyout(e, type, label),
+    onMouseLeave: scheduleClose,
+    onFocus: e => openFlyout(e, type, label),
+    onBlur: scheduleClose
+  } : {};
 
-  useEffect(() => {
-    setFlyout(null);
-  }, [location.pathname, isCollapsed]);
-
-  useEffect(() => () => cancelClose(), [cancelClose]);
-
-  useEffect(() => {
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') setFlyout(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  const closeMobile = () => {
+    if (isMobile) setMobileOpen(false);
+  };
 
   const handleLogout = async () => {
+    closeMobile();
     const isDark = document.documentElement.classList.contains('dark');
     const result = await Swal.fire({
       toast: true, position: 'top-end', icon: 'question', title: 'Se déconnecter ?',
@@ -139,210 +146,123 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     });
   };
 
-  // Lien de navigation d'un menu principal
-  const renderItem = (item) => {
+  const renderItem = item => {
     const Icon = item.icon;
     return (
-      <NavLink
-        key={item.path}
-        to={item.path}
-        aria-label={item.label}
-        className={({ isActive }) => itemClass(isActive, isCollapsed)}
-        {...hoverProps('tip', item.label)}
-      >
+      <NavLink key={item.path} to={item.path} aria-label={item.label} onClick={closeMobile}
+        className={({ isActive }) => itemClass(isActive, collapsed)} {...hoverProps('tip', item.label)}>
         {({ isActive }) => (
           <>
-            {isActive && !isCollapsed && (
-              <span aria-hidden="true" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
-            )}
-            <span className={`shrink-0 ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-              <Icon size={18} strokeWidth={2} />
-            </span>
-            {!isCollapsed && <span className="truncate">{item.label}</span>}
+            <Icon size={19} strokeWidth={1.9} className={`shrink-0 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}/>
+            {!collapsed && <span className="truncate">{item.label}</span>}
           </>
         )}
       </NavLink>
     );
   };
 
-  const adminGroupActiveStyle = isAdminActive && (isCollapsed || !adminOpen);
+  const renderAdminChildren = () => adminChildren.map(child => {
+    const ChildIcon = child.icon;
+    return (
+      <NavLink key={child.path} to={child.path} onClick={() => { closeMobile(); setFlyout(null); }}
+        tabIndex={collapsed || adminOpen ? 0 : -1}
+        className={({ isActive }) => subItemClass(isActive)}>
+        <ChildIcon size={16} strokeWidth={1.9} className="shrink-0"/>
+        <span className="truncate">{child.label}</span>
+      </NavLink>
+    );
+  });
 
   return (
-    <aside className={`hidden md:flex flex-col shrink-0 relative p-3 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out motion-reduce:transition-none font-body ${isCollapsed ? 'w-16 items-center' : 'w-64'}`}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
-        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
-      `}</style>
+    <>
+      {mobileOpen && isMobile && (
+        <div aria-hidden="true" onClick={() => setMobileOpen(false)}
+          className="fixed inset-x-0 top-16 bottom-0 z-40 bg-slate-950/40 backdrop-blur-[2px] lg:hidden"/>
+      )}
 
-      {/* Bouton ouvrir / réduire */}
-      <div className={`w-full ${isCollapsed ? 'mb-2.5' : 'mb-3'}`}>
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          aria-label={isCollapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
-          className={`flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 ${isCollapsed ? 'justify-center px-0' : ''} ${focusRing}`}
-          {...hoverProps('tip', 'Ouvrir le menu')}
-        >
-          <Menu size={18} className="shrink-0 text-slate-500 dark:text-slate-400" />
-          {!isCollapsed && <span className="truncate">Menu</span>}
-        </button>
-      </div>
+      <aside id="aina-sidebar" aria-hidden={isMobile && !mobileOpen} inert={isMobile && !mobileOpen ? true : undefined}
+        className={`fixed top-16 bottom-0 left-0 z-[45] lg:relative lg:inset-auto lg:z-auto flex flex-col shrink-0 min-h-0 p-3 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 font-body transition-[transform,width,visibility] duration-300 motion-reduce:transition-none
+        ${collapsed ? 'w-[68px]' : 'w-64 max-w-[85vw]'}
+        ${mobileOpen ? 'translate-x-0 visible' : '-translate-x-full invisible'} lg:translate-x-0 lg:visible`}>
 
-      <nav aria-label="Menu principal" className="flex-1 w-full space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-        {mainItems.map(renderItem)}
+        <div className={`flex items-center gap-2 mb-3 min-h-9 ${collapsed ? 'justify-center' : 'px-1'}`}>
+          <button type="button" onClick={() => isMobile ? setMobileOpen(false) : setIsCollapsed(!isCollapsed)}
+            aria-label={isMobile ? 'Fermer le menu' : collapsed ? 'Développer le menu' : 'Réduire le menu'}
+            className={`p-2 rounded-lg text-[#176B46] dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 ${focusRing}`}
+            {...hoverProps('tip', 'Développer le menu')}>
+            {isMobile ? <X size={20}/> : <Menu size={20}/>}
+          </button>
+          {!collapsed && <h2 className="font-display text-lg font-bold text-[#103F30] dark:text-white">Menu</h2>}
+        </div>
 
-        {isAdmin && (
-          <>
-            <div className="my-2 border-t border-slate-200 dark:border-slate-800" role="separator" />
+        <nav aria-label="Menu principal" className="flex-1 min-h-0 w-full space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          {mainItems.map(renderItem)}
 
-            {/* Groupe « Administrateur » avec sous-menus */}
-            <div className="w-full">
-              <button
-                type="button"
-                onClick={() => !isCollapsed && setAdminOpen(!adminOpen)}
-                aria-expanded={isCollapsed ? undefined : adminOpen}
-                aria-controls="submenu-admin"
-                aria-haspopup={isCollapsed ? 'menu' : undefined}
-                aria-label="Administrateur"
-                className={`flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${isCollapsed ? 'justify-center px-0' : ''} ${
-                  adminGroupActiveStyle
-                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-semibold'
-                    : isAdminActive
-                      ? 'text-emerald-800 dark:text-emerald-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                } ${focusRing}`}
-                {...hoverProps('menu', 'Administrateur')}
-              >
-                <span className={`shrink-0 ${isAdminActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                  <Settings2 size={18} strokeWidth={2} />
-                </span>
-                {!isCollapsed && (
+          {isAdmin && (
+            <>
+              <div className="my-3 border-t border-slate-200 dark:border-slate-800"/>
+              {!collapsed && <p className="px-3 pb-2 text-[10px] uppercase tracking-wider font-semibold text-slate-400">Administration</p>}
+
+              <button type="button" onClick={e => collapsed ? openFlyout(e, 'menu', 'Administrateur') : setAdminOpen(!adminOpen)}
+                aria-label="Administrateur" aria-expanded={collapsed ? flyout?.type === 'menu' : adminOpen}
+                className={`${itemClass(isAdminActive && (collapsed || !adminOpen), collapsed)} cursor-pointer`}
+                {...hoverProps('menu', 'Administrateur')}>
+                <Settings2 size={19} strokeWidth={1.9} className="shrink-0"/>
+                {!collapsed && (
                   <>
-                    <span className="truncate flex-1 text-left">Administrateur</span>
-                    <ChevronDown
-                      size={16}
-                      className={`shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200 motion-reduce:transition-none ${adminOpen ? 'rotate-180' : ''}`}
-                    />
+                    <span className="flex-1 text-left truncate">Administrateur</span>
+                    <ChevronDown size={16} className={`shrink-0 transition-transform ${adminOpen ? 'rotate-180' : ''}`}/>
                   </>
                 )}
               </button>
 
-              {/* Sous-menus (menu déplié) */}
-              {!isCollapsed && (
-                <div
-                  id="submenu-admin"
-                  className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${adminOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
-                >
-                  <div className="overflow-hidden">
-                    <ul className="mt-1 ml-5 pl-3 space-y-0.5 border-l border-slate-200 dark:border-slate-800">
-                      {adminChildren.map((child) => {
-                        const ChildIcon = child.icon;
-                        return (
-                          <li key={child.path}>
-                            <NavLink
-                              to={child.path}
-                              tabIndex={adminOpen ? 0 : -1}
-                              className={({ isActive }) => subItemClass(isActive)}
-                            >
-                              {({ isActive }) => (
-                                <>
-                                  <span className={`shrink-0 ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                                    <ChildIcon size={16} strokeWidth={2} />
-                                  </span>
-                                  <span className="truncate">{child.label}</span>
-                                </>
-                              )}
-                            </NavLink>
-                          </li>
-                        );
-                      })}
-                    </ul>
+              {!collapsed && (
+                <div className={`grid transition-[grid-template-rows] duration-200 ${adminOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                  <div className="overflow-hidden" inert={!adminOpen ? true : undefined}>
+                    <div className="ml-5 pl-3 mt-1 space-y-1 border-l border-slate-200 dark:border-slate-800">
+                      {renderAdminChildren()}
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
+            </>
+          )}
+        </nav>
 
-          </>
-        )}
-      </nav>
+        <div className="w-full pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" onClick={handleLogout} aria-label="Se déconnecter"
+            className={`flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-[13px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors ${collapsed ? 'justify-center px-0' : ''} ${focusRing}`}
+            {...hoverProps('tip', 'Se déconnecter')}>
+            <LogOut size={19} className="shrink-0"/>
+            {!collapsed && <span>Se déconnecter</span>}
+          </button>
 
-      <div className="w-full pt-3 space-y-2 border-t border-slate-200 dark:border-slate-800">
-        <button
-          onClick={handleLogout}
-          aria-label="Se déconnecter"
-          className={`flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer ${isCollapsed ? 'justify-center px-0' : ''} ${focusRing}`}
-          {...hoverProps('tip', 'Se déconnecter')}
-        >
-          <LogOut size={18} className="shrink-0" />
-          {!isCollapsed && <span className="truncate">Se déconnecter</span>}
-        </button>
-
-        {!isCollapsed && (
-          <a
-            href="https://portfolio-elyse.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block pt-1 text-center hover:opacity-80 transition-opacity"
-          >
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium tracking-tight truncate">
+          {!collapsed && (
+            <a href="https://portfolio-elyse.vercel.app/" target="_blank" rel="noopener noreferrer"
+              className="block mt-3 text-center text-[10px] text-slate-400 dark:text-slate-500 hover:text-[#176B46] transition-colors">
               Par Elysé RANDRIANANTENAINA
-            </p>
-          </a>
-        )}
-      </div>
+            </a>
+          )}
+        </div>
 
-      {/* Infobulle / sous-menu flottant du mode réduit */}
-      {isCollapsed && flyout && createPortal(
-        flyout.type === 'tip' ? (
-          <div
-            role="tooltip"
-            style={{ position: 'fixed', top: flyout.top + flyout.height / 2, left: flyout.left, transform: 'translateY(-50%)' }}
-            className="pointer-events-none z-[60] whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-medium font-body bg-white text-slate-800 border border-slate-200 shadow-md dark:bg-slate-900 dark:text-white dark:border-slate-800"
-          >
-            {flyout.label}
-          </div>
-        ) : (
-          <div
-            style={{ position: 'fixed', top: Math.max(8, Math.min(flyout.top, window.innerHeight - 190)), left: flyout.left - 8 }}
-            className="z-[60] pl-2 font-body"
-            onMouseEnter={cancelClose}
-            onMouseLeave={scheduleClose}
-            onFocus={cancelClose}
-            onBlur={scheduleClose}
-          >
-            <div
-              id="submenu-admin"
-              role="menu"
-              aria-label="Administrateur"
-              className="w-60 p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg"
-            >
-              <p className="px-2.5 pt-1 pb-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">Administrateur</p>
-              {adminChildren.map((child) => {
-                const ChildIcon = child.icon;
-                return (
-                  <NavLink
-                    key={child.path}
-                    to={child.path}
-                    role="menuitem"
-                    className={({ isActive }) => subItemClass(isActive)}
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span className={`shrink-0 ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                          <ChildIcon size={16} strokeWidth={2} />
-                        </span>
-                        <span className="truncate">{child.label}</span>
-                      </>
-                    )}
-                  </NavLink>
-                );
-              })}
+        {collapsed && flyout && createPortal(
+          flyout.type === 'tip' ? (
+            <div role="tooltip" style={{ position: 'fixed', top: flyout.top + flyout.height / 2, left: flyout.left, transform: 'translateY(-50%)' }}
+              className="pointer-events-none z-[60] whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium font-body bg-white text-slate-800 border border-slate-200 shadow-md dark:bg-slate-900 dark:text-white dark:border-slate-800">
+              {flyout.label}
             </div>
-          </div>
-        ),
-        document.body
-      )}
-    </aside>
+          ) : (
+            <div style={{ position: 'fixed', top: Math.max(8, Math.min(flyout.top, window.innerHeight - 210)), left: flyout.left - 8 }}
+              className="z-[60] pl-2 font-body" onMouseEnter={cancelClose} onMouseLeave={scheduleClose} onFocus={cancelClose} onBlur={scheduleClose}>
+              <div className="w-60 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
+                <p className="px-2.5 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400">Administrateur</p>
+                {renderAdminChildren()}
+              </div>
+            </div>
+          ), document.body
+        )}
+      </aside>
+    </>
   );
 };
 

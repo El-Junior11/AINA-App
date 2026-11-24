@@ -19,6 +19,91 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+exports.deleteUser = async (req, res) => {
+  let transaction;
+  try {
+    const userId = Number(req.params.id);
+
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ message: 'Action non autorisée.' });
+    }
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ message: 'Identifiant utilisateur invalide.' });
+    }
+
+    if (Number(req.user.user_id) === userId) {
+      return res.status(403).json({ message: 'Vous ne pouvez pas supprimer votre propre compte.' });
+    }
+
+    transaction = await sequelize.transaction();
+
+    const user = await User.findByPk(userId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!user) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    }
+
+    if (user.role !== 'user') {
+      await transaction.rollback();
+      return res.status(403).json({ message: 'La suppression des administrateurs est interdite.' });
+    }
+
+    const tables = ['membres', 'groupes', 'reseaux', 'responsables', 'formations'];
+    const dependencies = [];
+
+    for (const table of tables) {
+      const [result] = await sequelize.query(
+        `SELECT COUNT(*)::integer AS total
+         FROM "${table}" WHERE user_id = :userId`,
+        {
+          replacements: { userId },
+          type: QueryTypes.SELECT,
+          transaction
+        }
+      );
+
+      if (Number(result.total) > 0) {
+        dependencies.push({ table, total: Number(result.total) });
+      }
+    }
+
+    if (dependencies.length > 0) {
+      await transaction.rollback();
+      return res.status(409).json({
+        message: 'Suppression impossible : cet utilisateur possède des données enregistrées.',
+        dependencies
+      });
+    }
+
+    await user.destroy({ transaction });
+    await transaction.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Utilisateur supprimé avec succès.'
+    });
+  } catch (error) {
+    if (transaction && !transaction.finished) await transaction.rollback();
+
+    console.error('Erreur suppression utilisateur:', error.message);
+
+    if (error.name === 'SequelizeForeignKeyConstraintError' || error.parent?.code === '23503') {
+      return res.status(409).json({
+        message: 'Cet utilisateur possède encore des données associées.'
+      });
+    }
+
+    return res.status(500).json({
+      message: "Impossible de supprimer l'utilisateur."
+    });
+  }
+};
+
 exports.updateUserCommune = async (req, res) => {
   let transaction;
 

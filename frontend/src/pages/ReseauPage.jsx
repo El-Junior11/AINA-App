@@ -481,29 +481,14 @@ const ReseauPage = () => {
     (r) => r.Autonomie !== 'Oui'
   ).length;
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body {
-          font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-        }
-        .font-display {
-          font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-          letter-spacing: -0.01em;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .animate-in {
-            animation: none !important;
-          }
-        }
-      `}</style>
-      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <div className="flex flex-col h-full min-h-0 min-w-0 bg-[#F8FAFC] dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 relative antialiased">
+      <header className="shrink-0 px-4 md:px-6 py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3.5">
-          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+          <div className="h-11 w-11 shrink-0 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
             <Network size={20} />
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">
+            <h1 className="text-xl font-display font-bold text-[#103F30] dark:text-white leading-tight">
               Réseaux communautaires
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
@@ -513,17 +498,17 @@ const ReseauPage = () => {
         </div>
       </header>
       {/* Barre d’outils compacte */}
-      <div className="px-4 md:px-6 pt-4 pb-3 flex flex-wrap xl:flex-nowrap items-center gap-2">
-        <div className="relative flex-1 min-w-[180px]">
+      <div className="shrink-0 px-4 md:px-6 pt-3 pb-3 flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 basis-full sm:basis-[180px] min-w-0">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
           <input type="search" aria-label="Rechercher un réseau" placeholder="Rechercher un réseau..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-600/25"/>
         </div>
-        {isAdmin&&<select aria-label="Filtrer par commune" value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)} className={`${fieldClass} !w-auto min-w-[160px] max-w-[220px] flex-shrink-0`}>
+        {isAdmin&&<select aria-label="Filtrer par commune" value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)} className={`${fieldClass} !w-auto min-w-0 max-w-full sm:max-w-[220px] flex-shrink-0`}>
           <option value="">Toutes les communes</option>
           {communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
         </select>}
-        <button onClick={()=>{resetForm();setShowModal(true)}} className={`h-10 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shrink-0 ${focusRing}`}><Plus size={16}/><span>Ajouter</span></button>
-        <button onClick={()=>navigate('/reseaux/voir-plus')} className={`h-10 px-3 rounded-lg inline-flex items-center justify-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0 ${focusRing}`}><Eye size={16}/><span>Voir plus</span></button>
+        <button onClick={()=>{resetForm();setShowModal(true)}} className={`h-10 px-3 rounded-lg bg-[#176B46] hover:bg-[#103F30] text-white inline-flex items-center justify-center gap-2 text-sm font-medium shrink-0 ${focusRing}`}><Plus size={16}/><span>Ajouter</span></button>
+        <button onClick={()=>navigate('/reseaux/voir-plus')} className={`h-10 px-3 rounded-lg inline-flex items-center justify-center gap-2 text-sm font-medium bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border border-sky-200 dark:border-sky-900 hover:bg-sky-100 dark:hover:bg-sky-900 shrink-0 ${focusRing}`}><Eye size={16}/><span>Voir plus</span></button>
         <div className="relative shrink-0">
           <button onClick={()=>setShowExportMenu(v=>!v)} aria-haspopup="menu" aria-expanded={showExportMenu} className={`h-10 px-3 rounded-lg inline-flex items-center justify-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${focusRing}`}><Download size={16}/><span>Exporter</span></button>
           {showExportMenu&&<div role="menu" className="absolute right-0 mt-2 w-48 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50">
@@ -532,38 +517,38 @@ const ReseauPage = () => {
           </div>}
         </div>
       </div>
-      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-5">
+      <div className="flex-1 min-h-[240px] min-w-0 px-4 md:px-6 pb-4">
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
-          <div className="flex-1 overflow-x-auto overflow-y-auto">
-            <table className="w-full border-collapse text-left">
-              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 text-[13px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+            <table className="w-full border-separate border-spacing-0 text-left">
+              <thead className="sticky top-0 z-20 bg-[#EAF5EF] dark:bg-slate-800 text-xs font-semibold text-[#103F30] dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-5 py-3 w-16">N°</th>
-                  <th className="px-5 py-3 min-w-[200px]">
+                  <th className="px-3.5 py-3 w-16">N°</th>
+                  <th className="px-3.5 py-3 min-w-[170px]">
                     Réseau
                   </th>
-                  <th className="px-5 py-3 min-w-[135px]">
+                  <th className="px-3.5 py-3 min-w-[135px]">
                     Date de création
                   </th>
-                  <th className="px-5 py-3 min-w-[220px]">
+                  <th className="px-3.5 py-3 min-w-[160px]">
                     Groupes membres
                   </th>
-                  <th className="px-5 py-3 min-w-[180px]">
+                  <th className="px-3.5 py-3 min-w-[160px]">
                     Commune
                   </th>
-                  <th className="px-5 py-3 text-center min-w-[100px]">
+                  <th className="px-3.5 py-3 text-center min-w-[85px]">
                     Activité
                   </th>
-                  <th className="px-5 py-3 text-center min-w-[100px]">
+                  <th className="px-3.5 py-3 text-center min-w-[85px]">
                     Plaidoyer
                   </th>
-                  <th className="px-5 py-3 text-center min-w-[100px]">
+                  <th className="px-3.5 py-3 text-center min-w-[85px]">
                     Plan
                   </th>
-                  <th className="px-5 py-3 text-center min-w-[130px]">
+                  <th className="px-3.5 py-3 text-center min-w-[130px]">
                     Autonomie
                   </th>
-                  <th className="px-5 py-3 text-right w-24 sticky right-0 bg-slate-50 dark:bg-slate-800">
+                  <th className="px-3.5 py-3 text-right w-24 sticky right-0 z-10 bg-[#EAF5EF] dark:bg-slate-800">
                     Actions
                   </th>
                 </tr>
@@ -585,12 +570,12 @@ const ReseauPage = () => {
                     return (
                       <tr
                         key={r.codeRS}
-                        className="h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                        className="h-[56px] hover:bg-emerald-50/40 dark:hover:bg-slate-800/50 transition-colors group"
                       >
-                        <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 tabular-nums">
+                        <td className="px-3.5 py-3 text-sm text-slate-500 dark:text-slate-400 tabular-nums">
                           {index + 1}
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-3.5 py-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <span className="h-9 w-9 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
                               <Network size={16} />
@@ -600,7 +585,7 @@ const ReseauPage = () => {
                             </p>
                           </div>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-3.5 py-3">
                           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
                             <Calendar
                               size={15}
@@ -611,20 +596,20 @@ const ReseauPage = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-3.5 py-3">
                           <div className="flex flex-wrap gap-1.5">
                             {getGroupNames(r)
                               .map((g, i) => (
                                 <span
                                   key={i}
-                                  className="px-2 py-0.5 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-md text-xs font-medium capitalize"
+                                  className="px-2 py-0.5 bg-sky-50 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200 rounded-md text-xs font-medium capitalize"
                                 >
                                   {g.trim()}
                                 </span>
                               ))}
                           </div>
                         </td>
-                        <td className="px-5 py-3">
+                        <td className="px-3.5 py-3">
                           {communeName ? (
                             <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
                               <MapPin
@@ -639,36 +624,36 @@ const ReseauPage = () => {
                             </span>
                           )}
                         </td>
-                        <td className="px-5 py-3 text-center">
+                        <td className="px-3.5 py-3 text-center">
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${r.Activite === 'Oui' ? yesBadge : noBadge}`}>
                             {r.Activite || 'Non'}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-center">
+                        <td className="px-3.5 py-3 text-center">
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${r.Plaidoyer === 'Oui' ? yesBadge : noBadge}`}>
                             {r.Plaidoyer || 'Non'}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-center">
+                        <td className="px-3.5 py-3 text-center">
                           <span className={`px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${r.Plan === 'Oui' ? yesBadge : noBadge}`}>
                             {r.Plan || 'Non'}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-center">
+                        <td className="px-3.5 py-3 text-center">
                           <span className={`px-2.5 py-1 rounded-md text-xs font-medium inline-flex items-center gap-1.5 ring-1 ring-inset ${r.Autonomie === 'Oui'
                             ? 'bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-900'
-                            : 'bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900'
+                            : 'bg-sky-50 text-sky-800 ring-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:ring-sky-900'
                             }`}>
                             <ShieldCheck size={13} />
                             {r.Autonomie === 'Oui' ? 'Autonome' : 'En cours'}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-right w-24 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
+                        <td className="px-3.5 py-3 text-right w-24 sticky right-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
                           <div className="flex justify-end gap-1">
                             <button onClick={() => openEditModal(r)}
                               title="Modifier"
                               aria-label="Modifier ce réseau"
-                              className={`p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
+                              className={`p-2 rounded-md text-sky-700 dark:text-sky-300 hover:text-sky-800 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
                             >
                               <Edit2 size={16} />
                             </button>
@@ -703,17 +688,17 @@ const ReseauPage = () => {
         </div>
       </div>
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
           <div role="dialog"
             aria-modal="true"
             aria-labelledby="reseau-title"
-            className="w-full max-w-xl max-h-[calc(100vh-2rem)] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150"
+            className="w-full max-w-xl max-h-[calc(100dvh-2rem)] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl animate-in zoom-in-95 duration-150"
           >
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
+            <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
               <div>
                 <h2
                   id="reseau-title"
-                  className="text-base font-display font-semibold text-slate-900 dark:text-white"
+                  className="text-xl font-display font-bold text-[#103F30] dark:text-white"
                 >
                   {editingId ? 'Modifier un réseau' : 'Nouveau réseau'}
                 </h2>
@@ -792,7 +777,7 @@ const ReseauPage = () => {
                   <input id="r-groupes" type="search" className={fieldClass}
                     placeholder="Rechercher un groupe de la commune..."
                     value={searchGroup} onChange={e => setSearchGroup(e.target.value)} />
-                  <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="max-h-48 overflow-y-auto custom-scrollbar rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
                     {!activeCommuneId ? (
                       <p className="p-3 text-sm text-slate-500">Sélectionnez une commune d'abord.</p>
                     ) : filteredGroupes.length === 0 ? (
@@ -812,7 +797,7 @@ const ReseauPage = () => {
                     ))}
                   </div>
                 </div>
-                {(
+                {editingId && (
                   <div className="pt-4 space-y-3 border-t border-slate-200 dark:border-slate-800">
                     {[
                       ['Activite', 'Activités'],
@@ -821,7 +806,7 @@ const ReseauPage = () => {
                     ].map(([key, label]) => (
                       <div
                         key={key}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700"
                       >
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                           {label}
@@ -843,7 +828,7 @@ const ReseauPage = () => {
                               }
                               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${focusRing} ${
                                 formData[key] === opt
-                                  ? 'bg-emerald-700 text-white shadow-sm'
+                                  ? 'bg-[#176B46] text-white shadow-sm'
                                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                               }`}
                             >
@@ -864,7 +849,7 @@ const ReseauPage = () => {
                       </div>
                       <span className={`px-3 py-1 rounded-md text-sm font-medium shrink-0 ${
                         formData.Autonomie === 'Oui'
-                          ? 'bg-emerald-700 text-white'
+                          ? 'bg-[#176B46] text-white'
                           : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                       }`}>
                         {formData.Autonomie === 'Oui'
@@ -875,9 +860,9 @@ const ReseauPage = () => {
                   </div>
                 )}
               </div>
-              <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <div className="px-3.5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                 <button type="submit" disabled={saving}
-                  className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 ${focusRing}`}
+                  className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-[#176B46] hover:bg-[#103F30] active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 ${focusRing}`}
                 >
                   {saving ? (
                     <Loader2 size={16} className="animate-spin" />

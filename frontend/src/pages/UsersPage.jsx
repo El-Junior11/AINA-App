@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import {
   Users, UserRound, ShieldCheck, Clock3, Search, MapPin,
   SlidersHorizontal, RefreshCw, Pencil, X, Check, Loader2,
-  Mail, Building2, UserCheck, AlertCircle, ArrowRight
+  Mail, Building2, UserCheck, AlertCircle, ArrowRight, Trash2
 } from 'lucide-react';
 
 const inputClass = 'w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10';
@@ -19,6 +19,7 @@ const UsersPage = () => {
   const [communes, setCommunes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -124,22 +125,35 @@ const UsersPage = () => {
     }
   };
 
+  const handleDelete = async user => {
+    if (user.role !== 'user' || deleting !== null) return;
+    const result = await Swal.fire({title: 'Supprimer ce compte ?', text: `Confirmer la suppression de ${user.name}.`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Supprimer', cancelButtonText: 'Annuler', confirmButtonColor: '#DC2626', reverseButtons: true});
+    if (!result.isConfirmed) return;
+    setDeleting(user.user_id);
+    try {
+      const {data} = await axios.delete(`/admin/users/${user.user_id}`);
+      toast('success', data?.message || 'Compte supprimé.');
+      await fetchData();
+    } catch (err) {
+      toast('error', err.response?.data?.message || 'Impossible de supprimer le compte.');
+    } finally { setDeleting(null); }
+  };
+
   const statCards = [
     { label: 'Utilisateurs', value: stats.total, icon: Users, color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/40' },
     { label: 'SO actifs', value: stats.so, icon: UserCheck, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Administrateurs', value: stats.admins, icon: ShieldCheck, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40' },
+    { label: 'Administrateurs', value: stats.admins, icon: ShieldCheck, color: 'text-[#176B46] dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
     { label: 'En attente', value: stats.pending, icon: Clock3, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' }
   ];
 
   return (
-    <div className="users-page flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap'); .users-page, .users-page button, .users-page input, .users-page select { font-family: 'Public Sans', system-ui, sans-serif; }`}</style>
-      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 md:px-6">
+    <div className="users-page font-body flex min-h-full min-w-0 w-full flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <header className="sticky top-0 z-30 shrink-0 border-b border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 md:px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Users size={23} className="text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Gestion des utilisateurs</h1>
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-[#103F30] dark:text-white">Gestion des utilisateurs</h1>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">Consultez les comptes et gérez les affectations des SO.</p>
         </div>
@@ -149,12 +163,12 @@ const UsersPage = () => {
         </button>
       </div>
       </header>
-      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+      <main className="min-w-0 flex-1 p-3 sm:p-4 md:p-6 space-y-4">
+      <div className="grid grid-cols-1 min-[380px]:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map(card => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div key={card.label} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{card.label}</p>
                 <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{card.value}</p>
@@ -167,7 +181,7 @@ const UsersPage = () => {
         })}
       </div>
 
-      <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
+      <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
         <div className="flex items-center gap-2 text-slate-900 dark:text-white">
           <SlidersHorizontal size={18} className="text-emerald-600" />
           <h2 className="text-sm font-semibold">Recherche et filtres</h2>
@@ -213,7 +227,7 @@ const UsersPage = () => {
           <p className="text-sm">Chargement des utilisateurs...</p>
         </div>
       ) : filteredUsers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-center">
+        <div className="flex flex-col items-center justify-center py-16 px-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-center">
           <UserRound size={35} className="text-slate-300 dark:text-slate-600 mb-3" />
           <p className="text-sm font-semibold text-slate-900 dark:text-white">Aucun utilisateur trouvé</p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Essayez de modifier vos critères de recherche.</p>
@@ -226,10 +240,10 @@ const UsersPage = () => {
             const canEdit = isSO && user.status === 'accepte';
 
             return (
-              <article key={user.user_id} className="group flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-800 hover:shadow-md transition-all overflow-hidden">
-                <div className="p-5 flex-1">
-                  <div className="flex items-start justify-between gap-3 mb-5">
-                    <div className="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+              <article key={user.user_id} className="group flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-800 hover:shadow-md transition-all overflow-hidden">
+                <div className="p-4 flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="h-11 w-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
                       <UserRound size={24} />
                     </div>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${status.className}`}>
@@ -238,16 +252,16 @@ const UsersPage = () => {
                     </span>
                   </div>
 
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white truncate" title={user.name}>{user.name}</h3>
+                  <h3 className="font-display text-base font-bold text-slate-900 dark:text-white truncate" title={user.name}>{user.name}</h3>
                   <p className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 truncate" title={user.email}>
                     <Mail size={14} className="shrink-0" />
                     {user.email}
                   </p>
 
-                  <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-slate-500 dark:text-slate-400">Rôle</span>
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${isSO ? 'text-sky-600 dark:text-sky-400' : 'text-violet-600 dark:text-violet-400'}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${isSO ? 'text-sky-600 dark:text-sky-400' : 'text-[#176B46] dark:text-emerald-400'}`}>
                         {isSO ? <Users size={14} /> : <ShieldCheck size={14} />}
                         {isSO ? 'SO' : 'Administrateur'}
                       </span>
@@ -266,19 +280,20 @@ const UsersPage = () => {
                   </div>
                 </div>
 
-                <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30">
                   {canEdit ? (
-                    <button onClick={() => openEditModal(user)} className="w-full inline-flex items-center justify-center gap-2 h-9 rounded-xl text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors">
+                    <button onClick={() => openEditModal(user)} className="min-w-0 flex-1 inline-flex items-center justify-center gap-2 h-9 rounded-xl text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors">
                       <Pencil size={15} />
                       Modifier l'affectation
                       <ArrowRight size={15} />
                     </button>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 h-9 text-xs text-slate-400 dark:text-slate-500">
+                    <div className="flex-1 flex items-center justify-center gap-2 h-9 text-xs text-slate-400 dark:text-slate-500">
                       {user.status === 'en_attente' ? <Clock3 size={15} /> : <Building2 size={15} />}
                       {user.status === 'en_attente' ? 'Validation en attente' : 'Aucune action disponible'}
                     </div>
                   )}
+                  {isSO && <button type="button" onClick={() => handleDelete(user)} disabled={deleting !== null || saving} title="Supprimer le compte" aria-label={`Supprimer ${user.name}`} className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-50">{deleting === user.user_id ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16}/>}</button>}
                 </div>
               </article>
             );
@@ -288,7 +303,7 @@ const UsersPage = () => {
 
       {selectedUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60" onMouseDown={event => { if (event.target === event.currentTarget) closeModal(); }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="edit-commune-title" className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-commune-title" className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
             <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800">
               <div>
                 <h2 id="edit-commune-title" className="text-lg font-bold text-slate-900 dark:text-white">Modifier l'affectation</h2>
@@ -313,7 +328,7 @@ const UsersPage = () => {
               </div>
               <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
                 <button type="button" onClick={closeModal} disabled={saving} className="h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300">Annuler</button>
-                <button type="submit" disabled={saving || !selectedCommune || String(selectedUser.commune_id) === selectedCommune} className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50">
+                <button type="submit" disabled={saving || !selectedCommune || String(selectedUser.commune_id) === selectedCommune} className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-[#176B46] hover:bg-[#103F30] text-white text-sm font-semibold disabled:opacity-50">
                   {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                   Enregistrer
                 </button>

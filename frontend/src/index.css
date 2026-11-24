@@ -1,16 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --font-sans: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --color-primary: #176B46;
+  --color-primary-dark: #103F30;
+  --color-secondary: #38BDF8;
 }
 
 @layer base {
-  * {
-    @apply transition-colors duration-300;
+  html, body, #root {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
   }
+
   body {
-    @apply font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50;
+    @apply font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+  }
+
+  button, input, select, textarea {
+    font-family: inherit;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button, a, input, select, textarea {
+    @apply transition-colors duration-200;
   }
 }
 
-@variant dark (&:where(.dark, .dark *));
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: #334155 transparent;
+}
+
+.recharts-wrapper text {
+  font-family: var(--font-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

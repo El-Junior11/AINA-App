@@ -283,44 +283,38 @@ const GroupePage=()=>{
   };
 
   return(
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
-        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
-        @media (prefers-reduced-motion: reduce){.animate-in{animation:none!important}}
-      `}</style>
+    <div className="flex flex-col h-full min-h-0 min-w-0 bg-[#F8FAFC] dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
 
       {/* En-tête de page */}
-      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+      <header className="shrink-0 px-3 sm:px-4 py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3.5">
-          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+          <div className="h-11 w-11 shrink-0 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
             <Users size={20} strokeWidth={2}/>
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">Groupes solidaires</h1>
+            <h1 className="text-xl font-display font-bold text-[#103F30] dark:text-white leading-tight">Groupes solidaires</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Gestion communautaire et organisation des ménages.</p>
           </div>
         </div>
       </header>
 
       {/* Barre d'outils : une ligne sur grand écran, retour adapté sur mobile */}
-      <div className="px-4 md:px-6 pt-5 pb-4 flex flex-wrap xl:flex-nowrap items-center gap-2.5">
-        <div className="relative flex-1 min-w-[180px] w-full sm:w-auto xl:min-w-0">
+      <div className="relative z-30 shrink-0 px-3 sm:px-3.5 py-2.5 flex flex-wrap xl:flex-nowrap items-center gap-2">
+        <div className="relative w-full sm:flex-1 sm:min-w-[180px] xl:min-w-0">
           <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
           <input type="text" placeholder="Rechercher un groupe..." aria-label="Rechercher un groupe" className={`${fieldClass} pl-10 pr-9`} value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}/>
           {searchTerm&&<button type="button" onClick={()=>setSearchTerm('')} aria-label="Effacer la recherche" className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-700 ${focusRing}`}><X size={15}/></button>}
         </div>
-        {isAdmin&&<select aria-label="Filtrer par commune" className={`${fieldClass} !w-44 shrink-0`} value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)}>
+        {isAdmin&&<select aria-label="Filtrer par commune" className={`${fieldClass} !w-full sm:!w-44 shrink-0`} value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)}>
           <option value="">Toutes les communes</option>
           {communes.map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
         </select>}
-        <div className="flex items-center gap-2 shrink-0">
-          <button type="button" onClick={()=>{resetForm();setShowModal(true)}} className={`h-10 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm ${focusRing}`}><Plus size={16}/><span>Ajouter</span></button>
-          <button type="button" onClick={()=>navigate('/groupes/details')} className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${focusRing}`}><Eye size={16}/><span>Voir plus</span></button>
-          <div className="relative">
-            <button type="button" onClick={()=>setShowExportMenu(v=>!v)} aria-haspopup="menu" aria-expanded={showExportMenu} className={`h-10 px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${focusRing}`}><Download size={16}/><span>Exporter</span></button>
-            {showExportMenu&&<div role="menu" className="absolute right-0 mt-2 w-52 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <button type="button" onClick={()=>{resetForm();setShowModal(true)}} className={`h-10 px-2.5 sm:px-3.5 rounded-lg bg-[#176B46] hover:bg-[#103F30] text-white inline-flex items-center gap-2 text-sm font-medium shadow-sm ${focusRing}`}><Plus size={16}/><span>Ajouter</span></button>
+          <button type="button" onClick={()=>navigate('/groupes/details')} className={`h-10 px-2.5 sm:px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-900 hover:bg-sky-100 dark:hover:bg-sky-900 ${focusRing}`}><Eye size={16}/><span>Voir plus</span></button>
+          <div className="relative ml-auto sm:ml-0">
+            <button type="button" onClick={()=>setShowExportMenu(v=>!v)} aria-haspopup="menu" aria-expanded={showExportMenu} className={`h-10 px-2.5 sm:px-3.5 rounded-lg inline-flex items-center gap-2 text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${focusRing}`}><Download size={16}/><span>Exporter</span></button>
+            {showExportMenu&&<div role="menu" className="absolute right-0 mt-2 w-48 max-w-[calc(100vw-24px)] p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
               <button role="menuitem" onClick={exportPDF} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left"><FileText size={16} className="text-rose-600"/>Document PDF</button>
               <button role="menuitem" onClick={exportExcel} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left"><Download size={16} className="text-emerald-700"/>Feuille Excel</button>
             </div>}
@@ -329,18 +323,18 @@ const GroupePage=()=>{
       </div>
 
       {/* Tableau */}
-      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-5">
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
-          <div className="flex-1 overflow-x-auto overflow-y-auto">
-            <table className="w-full border-collapse text-left">
-              <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 text-[13px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden px-3 sm:px-5 pb-4">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm h-full min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+            <table className="w-full min-w-[850px] border-collapse text-left">
+              <thead className="sticky top-0 z-20 bg-emerald-50 dark:bg-slate-800 text-[13px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-5 py-3 w-16 font-semibold">N°</th>
-                  <th className="px-5 py-3 min-w-[200px] font-semibold">Nom du groupe</th>
-                  <th className="px-5 py-3 min-w-[160px] font-semibold">Date de création</th>
-                  <th className="px-5 py-3 min-w-[200px] font-semibold">Ménages rattachés</th>
-                  <th className="px-5 py-3 min-w-[240px] font-semibold">Localisation</th>
-                  <th className="px-5 py-3 text-right w-24 sticky right-0 bg-slate-50 dark:bg-slate-800 font-semibold">Actions</th>
+                  <th className="px-3.5 py-2.5 w-16 font-semibold">N°</th>
+                  <th className="px-3.5 py-2.5 min-w-[200px] font-semibold">Nom du groupe</th>
+                  <th className="px-3.5 py-2.5 min-w-[160px] font-semibold">Date de création</th>
+                  <th className="px-3.5 py-2.5 min-w-[200px] font-semibold">Ménages rattachés</th>
+                  <th className="px-3.5 py-2.5 min-w-[240px] font-semibold">Localisation</th>
+                  <th className="px-3.5 py-2.5 text-right w-24 sticky right-0 bg-emerald-50 dark:bg-slate-800 font-semibold">Actions</th>
                 </tr>
               </thead>
 
@@ -352,10 +346,10 @@ const GroupePage=()=>{
                     </td>
                   </tr>
                 ):filteredGroupes.map((g,index)=>(
-                  <tr key={g.codegs} className="h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                    <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400 tabular-nums w-16">{index+1}</td>
+                  <tr key={g.codegs} className="h-[56px] hover:bg-emerald-50/40 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td className="px-3.5 py-2.5 text-sm text-slate-500 dark:text-slate-400 tabular-nums w-16">{index+1}</td>
 
-                    <td className="px-5 py-3">
+                    <td className="px-3.5 py-2.5">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="h-9 w-9 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60" aria-hidden="true">
                           <Users size={16}/>
@@ -367,7 +361,7 @@ const GroupePage=()=>{
                     </td>
 
                     {/* Colonne Date de création séparée */}
-                    <td className="px-5 py-3">
+                    <td className="px-3.5 py-2.5">
                       {g.date_creation?(
                         <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1.5 tabular-nums">
                           <Calendar size={14} className="text-slate-400"/>
@@ -378,28 +372,28 @@ const GroupePage=()=>{
                       )}
                     </td>
 
-                    <td className="px-5 py-3">
+                    <td className="px-3.5 py-2.5">
                       <div className="flex flex-wrap gap-1.5">
                         {g.nummenage?.split(',').map((m,i)=>(
-                          <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-md text-xs font-medium tabular-nums">{m.trim()}</span>
+                          <span key={i} className="px-2 py-0.5 bg-sky-50 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300 rounded-md text-xs font-medium tabular-nums ring-1 ring-inset ring-sky-100 dark:ring-sky-900">{m.trim()}</span>
                         ))}
                       </div>
                     </td>
 
-                    <td className="px-5 py-3">
+                    <td className="px-3.5 py-2.5">
                       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                         <MapPin size={16} className="text-slate-400 dark:text-slate-500 shrink-0"/>
                         <span className="capitalize">{g.commune}, {g.fokontany}, {g.village}</span>
                       </div>
                     </td>
 
-                    <td className="px-5 py-3 text-right w-24 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
+                    <td className="px-3.5 py-2.5 text-right w-24 sticky right-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
                       <div className="flex justify-end gap-1">
                         <button
                           onClick={()=>openEditModal(g)}
                           title="Modifier"
                           aria-label="Modifier ce groupe"
-                          className={`p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
+                          className={`p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition-colors ${focusRing}`}
                         >
                           <Edit2 size={16}/>
                         </button>
@@ -429,16 +423,16 @@ const GroupePage=()=>{
 
       {/* Fenêtre d'ajout / modification */}
       {showModal&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="groupe-title"
-            className="w-full max-w-xl max-h-[calc(100vh-2rem)] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150"
+            className="w-full max-w-xl max-h-[calc(100dvh-1rem)] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl animate-in zoom-in-95 duration-150"
           >
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
+            <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 px-4 sm:px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4">
               <div>
-                <h2 id="groupe-title" className="text-base font-display font-semibold text-slate-900 dark:text-white">{editingId?'Modifier un groupe':'Nouveau groupe'}</h2>
+                <h2 id="groupe-title" className="text-lg font-display font-bold text-[#103F30] dark:text-white">{editingId?'Modifier un groupe':'Nouveau groupe'}</h2>
                 <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">Fiche de saisie des données</p>
               </div>
               <button
@@ -451,7 +445,7 @@ const GroupePage=()=>{
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+              <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
                 <div>
                   <label htmlFor="g-nom" className={labelClass}>Nom du groupe *</label>
                   <input id="g-nom" type="text" required className={`${fieldClass} capitalize`} value={formData.nomgs} onChange={e=>setFormData({...formData,nomgs:e.target.value})}/>
@@ -497,10 +491,10 @@ const GroupePage=()=>{
                 </div>
               </div>
 
-              <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <div className="px-4 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                 <button
                   type="submit"
-                  className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors ${focusRing}`}
+                  className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-[#176B46] hover:bg-[#103F30] active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors ${focusRing}`}
                 >
                   <Save size={16}/>
                   {saving?'Enregistrement...':editingId?'Mettre à jour':'Enregistrer'}

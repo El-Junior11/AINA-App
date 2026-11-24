@@ -7,34 +7,34 @@ import Footer from '../components/Footer';
 const AdminLayout = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-slate-950 transition-colors duration-300 overflow-hidden">
-      <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
-      
-      <div className="flex flex-1 overflow-hidden">
-        {/* Ampitaina amin'ny Sidebar ny state sy ny fonction fampihidiana azy */}
-        <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+    <div className="aina-admin flex h-screen h-[100dvh] flex-col bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden font-body antialiased transition-colors duration-300">
 
-        <main className="flex-1 flex flex-col h-full bg-white dark:bg-slate-900 rounded-none overflow-hidden transition-all duration-300">
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <Outlet />
+      <Navbar darkMode={darkMode} setDarkMode={setDarkMode}
+        mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}/>
+
+      <div className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
+
+        <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed}
+          mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}/>
+
+        <main className="flex flex-1 flex-col min-w-0 min-h-0 bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden transition-colors duration-300">
+          <div className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-auto custom-scrollbar">
+            <Outlet/>
           </div>
-          
-          <div className="flex-none">
-            <Footer />
+
+          <div className="shrink-0 min-w-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+            <Footer/>
           </div>
         </main>
+
       </div>
     </div>
   );

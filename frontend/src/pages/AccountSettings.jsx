@@ -1,21 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import Swal from 'sweetalert2';
-import {
-  User,
-  Loader2,
-  Save,
-  ShieldCheck,
-  Eye,
-  EyeOff,
-  Info,
-  KeyRound,
-  CheckCircle2,
-  Mail,
-} from 'lucide-react';
+import { User, Loader2, Save, ShieldCheck, Eye, EyeOff, Info, KeyRound, CheckCircle2, Mail } from 'lucide-react';
 
 const fieldClass =
-  'w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/25';
+  'w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-colors focus:border-[#176B46] focus:ring-2 focus:ring-emerald-600/25';
 
 const labelClass =
   'block text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5';
@@ -147,261 +136,81 @@ const AccountSettings = () => {
     }
   };
 
+  const passwords = [
+    { id: 'acc-current', name: 'currentPassword', label: 'Mot de passe actuel', placeholder: 'Saisir votre mot de passe actuel', autoComplete: 'current-password', visible: showCurrentPassword, toggle: setShowCurrentPassword },
+    { id: 'acc-new', name: 'newPassword', label: 'Nouveau mot de passe', placeholder: 'Saisir un nouveau mot de passe', autoComplete: 'new-password', visible: showNewPassword, toggle: setShowNewPassword },
+    { id: 'acc-confirm', name: 'confirmPassword', label: 'Confirmation du nouveau mot de passe', placeholder: 'Confirmer le nouveau mot de passe', autoComplete: 'new-password', visible: showConfirmPassword, toggle: setShowConfirmPassword }
+  ];
+  const panel = 'min-w-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden';
+  const sectionHead = 'flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800';
+  const note = 'rounded-lg bg-slate-50 dark:bg-slate-800/60 px-3 py-2.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400';
   return (
-    <div className="flex flex-col w-full min-h-full bg-slate-50 dark:bg-slate-950 font-body text-slate-900 dark:text-slate-100 transition-colors antialiased">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body { font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; }
-        .font-display { font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: -0.01em; }
-      `}</style>
-
-      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3.5">
-          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
-            <ShieldCheck size={20} strokeWidth={2} />
-          </div>
-
+    <div className="flex min-h-full min-w-0 flex-col bg-[#F8FAFC] dark:bg-slate-950 font-body text-slate-900 dark:text-slate-100 antialiased">
+      <header className="sticky top-0 z-30 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#176B46] text-white"><ShieldCheck size={22}/></div>
           <div className="min-w-0">
-            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight truncate">
-              {formData.name
-                ? `Paramètres du compte de ${formData.name}`
-                : 'Paramètres du compte'}
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Mise à jour du profil et sécurité de votre compte
-            </p>
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-[#103F30] dark:text-white break-words">{formData.name ? `Paramètres du compte de ${formData.name}` : 'Paramètres du compte'}</h1>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Mise à jour du profil et sécurité de votre compte</p>
           </div>
         </div>
       </header>
-
-      <main className="flex-1 w-full px-4 md:px-6 py-5 md:py-6">
-        <div className="max-w-6xl mx-auto space-y-5">
-          <div className="rounded-xl border border-sky-200 dark:border-sky-900/60 bg-sky-50 dark:bg-sky-950/20 px-4 py-3.5 flex items-start gap-3">
-            <Info
-              size={18}
-              className="text-sky-700 dark:text-sky-400 shrink-0 mt-0.5"
-            />
-
-            <div className="text-[13px] leading-relaxed text-sky-950 dark:text-sky-100">
-              <h2 className="font-semibold font-display text-sm mb-1">
-                Guide d'utilisation
-              </h2>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 list-disc pl-4 marker:text-sky-400 text-sky-900/90 dark:text-sky-200/80">
-                <li>
-                  Modifiez votre nom et votre adresse e-mail si nécessaire.
-                </li>
-                <li>
-                  Le changement de mot de passe est facultatif si vous mettez
-                  uniquement à jour vos informations.
-                </li>
-                <li>
-                  Pour changer de mot de passe, renseignez d'abord votre{' '}
-                  <strong className="font-semibold">
-                    mot de passe actuel
-                  </strong>{' '}
-                  par sécurité.
-                </li>
-                <li>Utilisez un nouveau mot de passe robuste et sécurisé.</li>
-              </ul>
-            </div>
+      <main className="w-full max-w-6xl mx-auto p-3 sm:p-5 md:p-6 space-y-4">
+        <div className="flex items-start gap-3 rounded-xl border border-sky-200 dark:border-sky-900 bg-sky-50 dark:bg-sky-950/30 p-4">
+          <Info size={19} className="shrink-0 mt-0.5 text-sky-600 dark:text-sky-400"/>
+          <div className="min-w-0 text-sm text-sky-900 dark:text-sky-200">
+            <h2 className="font-display font-bold mb-1.5">Guide d'utilisation</h2>
+            <ul className="grid md:grid-cols-2 gap-x-6 gap-y-1 list-disc pl-4 text-xs leading-relaxed">
+              <li>Modifiez votre nom et votre adresse e-mail si nécessaire.</li>
+              <li>Le changement de mot de passe est facultatif pour une mise à jour du profil.</li>
+              <li>Pour changer de mot de passe, renseignez votre mot de passe actuel.</li>
+              <li>Utilisez un nouveau mot de passe robuste et sécurisé.</li>
+            </ul>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-              <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-                    <User
-                      size={17}
-                      className="text-emerald-700 dark:text-emerald-400"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-display font-semibold text-slate-900 dark:text-white">
-                      Informations personnelles
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Gérez vos informations de profil.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label htmlFor="acc-name" className={labelClass}>
-                      Nom complet
-                    </label>
-                    <input
-                      id="acc-name"
-                      type="text"
-                      name="name"
-                      autoComplete="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      className={fieldClass}
-                      placeholder="Votre nom complet"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="acc-email" className={labelClass}>
-                      Adresse email
-                    </label>
-                    <div className="relative">
-                      <Mail
-                        size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        id="acc-email"
-                        type="email"
-                        name="email"
-                        autoComplete="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                        className={`${fieldClass} pl-9`}
-                        placeholder="exemple@email.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/70 px-3.5 py-3">
-                    <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                      Ces informations permettent d'identifier votre compte
-                      sur la plateforme.
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-                    <KeyRound
-                      size={17}
-                      className="text-emerald-700 dark:text-emerald-400"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-display font-semibold text-slate-900 dark:text-white">
-                      Changement de mot de passe
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Renforcez la sécurité de votre compte.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label htmlFor="acc-current" className={labelClass}>
-                      Mot de passe actuel
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="acc-current"
-                        type={showCurrentPassword ? 'text' : 'password'}
-                        name="currentPassword"
-                        autoComplete="current-password"
-                        value={formData.currentPassword}
-                        onChange={handleChange}
-                        placeholder="Saisir votre mot de passe actuel"
-                        className={`${fieldClass} pr-11`}
-                      />
-                      <PasswordToggle
-                        visible={showCurrentPassword}
-                        onToggle={() =>
-                          setShowCurrentPassword(!showCurrentPassword)
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="acc-new" className={labelClass}>
-                      Nouveau mot de passe
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="acc-new"
-                        type={showNewPassword ? 'text' : 'password'}
-                        name="newPassword"
-                        autoComplete="new-password"
-                        value={formData.newPassword}
-                        onChange={handleChange}
-                        placeholder="Saisir un nouveau mot de passe"
-                        className={`${fieldClass} pr-11`}
-                      />
-                      <PasswordToggle
-                        visible={showNewPassword}
-                        onToggle={() => setShowNewPassword(!showNewPassword)}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="acc-confirm" className={labelClass}>
-                      Confirmation du nouveau mot de passe
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="acc-confirm"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        name="confirmPassword"
-                        autoComplete="new-password"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        placeholder="Confirmer le nouveau mot de passe"
-                        className={`${fieldClass} pr-11`}
-                      />
-                      <PasswordToggle
-                        visible={showConfirmPassword}
-                        onToggle={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/70 px-3.5 py-3">
-                    <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                      Laissez les champs de mot de passe vides si vous ne
-                      souhaitez pas le modifier.
-                    </p>
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm px-4 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <p className="text-[13px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                <CheckCircle2
-                  size={16}
-                  className="text-emerald-600 shrink-0"
-                />
-                Vérifiez vos informations avant d'enregistrer les modifications.
-              </p>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${focusRing}`}
-              >
-                {loading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Save size={16} />
-                )}
-                {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
-              </button>
-            </div>
-          </form>
         </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+            <section className={panel}>
+              <div className={sectionHead}>
+                <div className="h-9 w-9 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-[#176B46] dark:text-emerald-400 flex items-center justify-center"><User size={19}/></div>
+                <div><h2 className="font-display font-bold text-base">Informations personnelles</h2><p className="text-xs text-slate-500 dark:text-slate-400">Gérez vos informations de profil.</p></div>
+              </div>
+              <div className="p-4 sm:p-5 space-y-4">
+                <div><label htmlFor="acc-name" className={labelClass}>Nom complet</label>
+                  <div className="relative"><User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/><input id="acc-name" type="text" name="name" autoComplete="name" value={formData.name} onChange={handleChange} required className={`${fieldClass} pl-9`} placeholder="Votre nom complet"/></div>
+                </div>
+                <div><label htmlFor="acc-email" className={labelClass}>Adresse email</label>
+                  <div className="relative"><Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/><input id="acc-email" type="email" name="email" autoComplete="email" value={formData.email} onChange={handleChange} required className={`${fieldClass} pl-9`} placeholder="exemple@email.com"/></div>
+                </div>
+                <p className={note}>Ces informations permettent d'identifier votre compte sur la plateforme.</p>
+              </div>
+            </section>
+            <section className={panel}>
+              <div className={sectionHead}>
+                <div className="h-9 w-9 shrink-0 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 flex items-center justify-center"><KeyRound size={19}/></div>
+                <div><h2 className="font-display font-bold text-base">Changement de mot de passe</h2><p className="text-xs text-slate-500 dark:text-slate-400">Renforcez la sécurité de votre compte.</p></div>
+              </div>
+              <div className="p-4 sm:p-5 space-y-4">
+                {passwords.map(p => <div key={p.id}>
+                  <label htmlFor={p.id} className={labelClass}>{p.label}</label>
+                  <div className="relative"><KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                    <input id={p.id} type={p.visible ? 'text' : 'password'} name={p.name} autoComplete={p.autoComplete} value={formData[p.name]} onChange={handleChange} placeholder={p.placeholder} className={`${fieldClass} pl-9 pr-11`}/>
+                    <PasswordToggle visible={p.visible} onToggle={() => p.toggle(v => !v)}/>
+                  </div>
+                </div>)}
+                <p className={note}>Laissez les champs de mot de passe vides si vous ne souhaitez pas le modifier.</p>
+              </div>
+            </section>
+          </div>
+          <div className={`${panel} flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5`}>
+            <p className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400"><CheckCircle2 size={17} className="shrink-0 text-[#176B46] dark:text-emerald-400"/>Vérifiez vos informations avant d'enregistrer les modifications.</p>
+            <button type="submit" disabled={loading} className={`w-full sm:w-auto shrink-0 h-10 px-4 rounded-lg bg-[#176B46] hover:bg-[#103F30] text-white inline-flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-60 ${focusRing}`}>
+              {loading ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            </button>
+          </div>
+        </form>
       </main>
     </div>
   );
 };
-
 export default AccountSettings;

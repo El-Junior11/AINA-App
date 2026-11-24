@@ -3,9 +3,9 @@ import axios from '../api/axios';
 import {Activity,GraduationCap,ShieldCheck,Heart,Leaf,Users,BarChart3,PieChart,ArrowLeft} from 'lucide-react';
 import {useNavigate,useSearchParams} from 'react-router-dom';
 
-// Deux couleurs seulement pour toute la page : bleu = hommes, rose = femmes
+// Deux couleurs seulement pour toute la page : bleu = hommes, vert = femmes
 const COLOR_H='#0284c7';
-const COLOR_F='#f43f5e';
+const COLOR_F='#176B46';
 
 // Part en pourcentage (la somme fait toujours 100 quand il y a des données)
 const getShares=(h,f)=>{
@@ -126,7 +126,7 @@ const charts={donut:DonutChart,bar:BarChartV,stacked:StackedBar,gauge:GaugeChart
 
 /* ---------- Carte de statistique ---------- */
 
-const StatCard=({title,h,f,icon:Icon,chart})=>{
+const StatCard=({title,h,f,icon:Icon,chart,description})=>{
   const totalHomme=parseInt(h)||0;
   const totalFemme=parseInt(f)||0;
   const {total,pctH,pctF}=getShares(totalHomme,totalFemme);
@@ -137,7 +137,7 @@ const StatCard=({title,h,f,icon:Icon,chart})=>{
         <div className="h-9 w-9 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
           <Icon size={18}/>
         </div>
-        <h3 className="text-[15px] font-display font-semibold text-slate-900 dark:text-white leading-tight">{title}</h3>
+        <div className="min-w-0"><h3 className="text-[15px] font-display font-semibold text-slate-900 dark:text-white leading-tight">{title}</h3>{description&&<p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{description}</p>}</div>
       </div>
 
       <div className="flex-1 flex items-center justify-center px-5 py-5 min-h-[200px]">
@@ -238,14 +238,12 @@ const FormationStats=()=>{
     {title:'EPRACC',h:stats?.epracc_h,f:stats?.epracc_f,icon:GraduationCap,chart:'donut'}
   ];
 
+  const participation={title:'Participations aux formations',description:'Cumul des 8 thèmes, membres non uniques',h:items.reduce((sum,it)=>sum+(parseInt(it.h)||0),0),f:items.reduce((sum,it)=>sum+(parseInt(it.f)||0),0),icon:BarChart3,chart:'donut'};
+  const cards=[...items,participation];
+
   return (
-    <div className="formation-stats flex flex-col h-full min-h-0 bg-slate-50 dark:bg-slate-950 transition-colors text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .formation-stats{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
-        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
-        .formation-stats svg text{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
-      `}</style>
+    <div className="formation-stats font-body flex flex-col h-full min-h-0 bg-slate-50 dark:bg-slate-950 transition-colors text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
+
 
       <header className="shrink-0 px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3.5">
@@ -271,8 +269,8 @@ const FormationStats=()=>{
           {loading?<div className="flex items-center justify-center gap-3 py-20 text-sm text-slate-500 dark:text-slate-400"><Activity size={22} className="animate-spin text-emerald-600"/>Chargement des statistiques...</div>:error?<p role="alert" className="text-red-600 text-sm">{error}</p>:<OverviewChart items={items}/>}
 
           {!loading&&!error&&<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {items.map(it=>(
-              <StatCard key={it.title} title={it.title} h={it.h} f={it.f} icon={it.icon} chart={it.chart}/>
+            {cards.map(it=>(
+              <StatCard key={it.title} title={it.title} h={it.h} f={it.f} icon={it.icon} chart={it.chart} description={it.description}/>
             ))}
           </div>}
         </div>

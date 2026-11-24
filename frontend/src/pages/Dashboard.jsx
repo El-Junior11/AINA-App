@@ -32,7 +32,7 @@ const useIsDark = () => {
 };
 
 const ChartCard = ({ id, title, icon: Icon, empty, downloading, onDownload, children }) => (
-  <div id={id} className="relative bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[350px]">
+  <div id={id} className="relative bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-w-0 h-[390px] sm:h-[350px]">
     {!empty && (
       <button type="button" data-download-button onClick={() => onDownload(id)} disabled={!!downloading}
         className="absolute top-3.5 right-3.5 z-20 h-8 w-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:text-emerald-600 flex items-center justify-center disabled:opacity-50"
@@ -40,11 +40,11 @@ const ChartCard = ({ id, title, icon: Icon, empty, downloading, onDownload, chil
         {downloading === id ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
       </button>
     )}
-    <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-4 pr-10 flex items-center gap-2.5">
+    <h3 className="font-display font-bold text-[#103F30] dark:text-white text-base mb-3 pr-10 flex items-center gap-2.5">
       <span className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
         <Icon size={16} />
       </span>
-      <span className="truncate">{title}</span>
+      <span className="min-w-0 break-words">{title}</span>
     </h3>
     {empty ? (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 text-slate-400">
@@ -67,7 +67,7 @@ const Pie3D = ({ slices }) => {
   });
   const full = arcs.length === 1;
   return (
-    <svg viewBox="0 0 260 180" className="w-full max-w-[300px] h-auto" role="img" aria-label={slices.map(s => `${s.label}: ${s.pct}%`).join(', ')}>
+    <svg viewBox="0 0 260 180" className="w-full max-w-[240px] h-auto min-h-0 shrink" role="img" aria-label={slices.map(s => `${s.label}: ${s.pct}%`).join(', ')}>
       <defs>{slices.map((s, i) => (
         <linearGradient key={s.label} id={`maturite-grad-${i}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={s.top1} /><stop offset="1" stopColor={s.top2} />
@@ -133,8 +133,8 @@ const SolidPie = ({ data = [], nameKey, valueKey, innerRatio = 0, idPrefix, tool
   const style = s => ({ opacity:hovered !== null && hovered !== s.index ? .8 : 1, transition:'opacity 150ms' });
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 h-full">
-      <div ref={ref} className="relative w-full max-w-[300px]">
+    <div className="flex flex-col items-center justify-center gap-3 h-full min-w-0">
+      <div ref={ref} className="relative w-full max-w-[240px] min-h-0 shrink">
         <svg viewBox="0 0 260 180" className="w-full h-auto" role="img" aria-label={all.map(s => `${s.label}: ${s.value}`).join(', ')}>
           <defs>{all.map(s => (
             <linearGradient key={s.index} id={`${idPrefix}-grad-${s.index}`} x1="0" y1="0" x2="1" y2="1">
@@ -177,7 +177,7 @@ const SolidPie = ({ data = [], nameKey, valueKey, innerRatio = 0, idPrefix, tool
         {tip && <div style={{ ...tooltipStyle, position:'absolute', left:tip.x, top:tip.y, transform:'translate(-50%,-130%)',
           padding:'6px 10px', whiteSpace:'nowrap', pointerEvents:'none', zIndex:30 }}>{tip.text}</div>}
       </div>
-      <ul className="flex sm:flex-col flex-wrap justify-center gap-x-5 gap-y-2.5 shrink-0 max-h-[200px] overflow-y-auto">
+      <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 shrink-0 max-h-[100px] overflow-y-auto w-full">
         {all.map(s => (
           <li key={s.index} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
             <span className="h-3 w-3 rounded-sm shrink-0" style={{ background:`linear-gradient(135deg,${s.top1},${s.top2})` }} />
@@ -257,12 +257,12 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) return <div className="h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+  if (loading) return <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
     <Loader2 size={32} className="animate-spin text-emerald-600 mb-3"/>
     <p className="text-sm text-slate-500">Chargement des données...</p>
   </div>;
 
-  if (error) return <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-slate-950 px-6 text-center">
+  if (error) return <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-slate-950 px-6 text-center">
     <AlertTriangle size={28} className="text-rose-600"/>
     <p className="text-sm text-slate-600 dark:text-slate-300">{error}</p>
     <button onClick={()=>fetchData()} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm">
@@ -288,32 +288,29 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden antialiased">
+    <div className="flex flex-col min-h-full min-w-0 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-body antialiased">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body,.font-display{font-family:'Public Sans',system-ui,sans-serif}
-        .recharts-wrapper text{font-family:'Public Sans',system-ui,sans-serif}
         .solid-area .recharts-area-area{filter:drop-shadow(6px 5px 0 #075985)}
       `}</style>
 
-      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3.5">
+      <header className="sticky top-0 z-30 px-3 sm:px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col xl:flex-row xl:items-center gap-3">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <Activity size={20}/>
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Tableau de bord & Statistiques</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Vue d'ensemble des performances et indicateurs clés de la plateforme.</p>
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-[#103F30] dark:text-white">Tableau de bord & Statistiques</h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Vue d'ensemble des performances et indicateurs clés de la plateforme.</p>
             </div>
           </div>
           {stats.isAdmin && (
-            <div className="w-full sm:w-auto sm:ml-auto">
+            <div className="w-full xl:w-auto xl:ml-auto xl:shrink-0">
               <label htmlFor="dashboard-commune" className="flex items-center gap-1.5 text-xs font-medium mb-1 text-slate-600 dark:text-slate-300">
                 <MapPin size={13}/> Commune
               </label>
               <select id="dashboard-commune" value={communeId} onChange={e=>setCommuneId(e.target.value)}
-                className="w-full sm:min-w-[210px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                className="w-full xl:min-w-[210px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 <option value="">Toutes les communes</option>
                 {(stats.communes || []).map(c=><option key={c.id_commune} value={c.id_commune}>{c.nom_commune}</option>)}
               </select>
@@ -322,22 +319,22 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 font-body">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <section className="flex-1 min-w-0 p-3 sm:p-5 space-y-4 font-body">
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3">
           {KPI_CONFIG.map(({key,label,icon:Icon})=>(
-            <div key={key} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3.5">
+            <div key={key} className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 min-w-0">
               <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
                 <Icon size={18}/>
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{label}</p>
-                <p className="text-xl font-semibold tabular-nums mt-0.5">{kpis[key] ?? 0}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 break-words">{label}</p>
+                <p className="text-2xl font-bold tabular-nums mt-0.5 text-[#176B46] dark:text-emerald-400">{kpis[key] ?? 0}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <ChartCard id="chart-equilibre" title="Équilibre du programme" icon={PieIcon} empty={!stats.resumeData?.some(x=>Number(x.A)>0)} downloading={downloading} onDownload={downloadChart}>
             <SolidPie data={stats.resumeData} nameKey="subject" valueKey="A" innerRatio={.55} idPrefix="equilibre" tooltipStyle={tooltipStyle}/>
           </ChartCard>
@@ -347,7 +344,7 @@ export default function Dashboard() {
                 <defs><linearGradient id="bar3d-modules" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#10b981"/><stop offset="1" stopColor="#047857"/></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.grid}/>
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={tick}/>
-                <YAxis axisLine={false} tickLine={false} tick={tick}/>
+                <YAxis width={38} axisLine={false} tickLine={false} tick={tick}/>
                 <Tooltip cursor={{fill:theme.cursor}} contentStyle={tooltipStyle} itemStyle={{color:theme.text}} labelStyle={{color:theme.text}}/>
                 <Bar dataKey="valeur" barSize={28} shape={p=><Bar3D {...p} gradient="url(#bar3d-modules)" top="#6ee7b7" side="#064e3b"/>}/>
               </BarChart>
@@ -355,14 +352,14 @@ export default function Dashboard() {
           </ChartCard>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <ChartCard id="chart-croissance" title="Croissance des groupes (% par année)" icon={CalendarDays} empty={!stats.evolutionGS?.length} downloading={downloading} onDownload={downloadChart}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart layout="vertical" data={stats.evolutionGS} margin={{top:10,right:22,left:0,bottom:0}}>
                 <defs><linearGradient id="bar3d-groupes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#38bdf8"/><stop offset="1" stopColor="#0284c7"/></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.grid}/>
                 <XAxis type="number" axisLine={false} tickLine={false} tick={tick} unit="%"/>
-                <YAxis dataKey="year" type="category" axisLine={false} tickLine={false} tick={tick}/>
+                <YAxis width={45} dataKey="year" type="category" axisLine={false} tickLine={false} tick={tick}/>
                 <Tooltip cursor={{fill:theme.cursor}} formatter={v=>[`${v}%`,'Répartition']} contentStyle={tooltipStyle} itemStyle={{color:theme.text}} labelStyle={{color:theme.text}}/>
                 <Bar dataKey="pourcentage" barSize={20} shape={p=><Bar3D {...p} gradient="url(#bar3d-groupes)" top="#7dd3fc" side="#075985"/>}/>
               </BarChart>
@@ -374,7 +371,7 @@ export default function Dashboard() {
                 <AreaChart data={stats.ageData} margin={{top:10,right:14,left:0,bottom:6}}>
                   <defs><linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#38bdf8"/><stop offset="100%" stopColor="#0369a1"/></linearGradient></defs>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={tick}/>
-                  <YAxis axisLine={false} tickLine={false} tick={tick}/>
+                  <YAxis width={38} axisLine={false} tickLine={false} tick={tick}/>
                   <Tooltip contentStyle={tooltipStyle} itemStyle={{color:theme.text}} labelStyle={{color:theme.text}}/>
                   <Area type="monotone" dataKey="value" stroke="#0369a1" strokeWidth={2} fillOpacity={1} fill="url(#colorAge)"/>
                 </AreaChart>
@@ -383,12 +380,12 @@ export default function Dashboard() {
           </ChartCard>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-2">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 pb-2">
           <ChartCard id="chart-reseaux" title="Maturité des réseaux" icon={Network} empty={!total} downloading={downloading} onDownload={downloadChart}>
             <div className="flex flex-col h-full">
-              <div className="flex-1 min-h-0 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+              <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3">
                 <Pie3D slices={slices}/>
-                <ul className="flex sm:flex-col flex-wrap justify-center gap-x-5 gap-y-2.5 shrink-0">
+                <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 shrink-0">
                   {slices.map(s=><li key={s.label} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                     <span className="h-3 w-3 rounded-sm shrink-0" style={{background:`linear-gradient(135deg,${s.top1},${s.top2})`}}/>
                     <span className="font-medium">{s.label}</span><span className="text-slate-400 tabular-nums">{s.value}</span>
@@ -404,7 +401,7 @@ export default function Dashboard() {
             <SolidPie data={stats.respData} nameKey="name" valueKey="valeur" idPrefix="postes" tooltipStyle={tooltipStyle}/>
           </ChartCard>
         </div>
-      </main>
+      </section>
     </div>
   );
 }

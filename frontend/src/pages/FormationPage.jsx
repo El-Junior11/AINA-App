@@ -197,35 +197,25 @@ const FormationPage=()=>{
   };
   
   const formatText=(text)=>text?text.charAt(0).toUpperCase()+text.slice(1).toLowerCase():'';
-  const totalMembres=filteredData.length;
-  const totalFormations=filteredData.reduce((total,m)=>total+modules.filter(mod=>!mod.isAuto&&m.formation?.[mod.id]).length,0);
-  const membresAutonomes=filteredData.filter(m=>Number(m.formation?.autonomie)>0).length;
-  const membresNutrition=filteredData.filter(m=>m.formation?.nutrition).length;
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors font-body text-slate-900 dark:text-slate-100 overflow-hidden relative antialiased">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
-        .font-body{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
-        .font-display{font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-0.01em}
-        @media (prefers-reduced-motion: reduce){.animate-in{animation:none!important}}
-      `}</style>
+    <div className="flex flex-col min-h-full min-w-0 bg-[#F8FAFC] dark:bg-slate-950 font-body text-slate-900 dark:text-slate-100 relative antialiased">
 
       {/* En-tête de page */}
-      <header className="px-4 md:px-6 py-4 md:py-5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+      <header className="sticky top-0 z-30 px-3 sm:px-5 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3.5">
-          <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
+          <div className="h-11 w-11 shrink-0 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60">
             <GraduationCap size={20} strokeWidth={2}/>
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white leading-tight">Suivi des formations</h1>
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-[#103F30] dark:text-white leading-tight">Suivi des formations</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Capacités, compétences et accompagnement des membres.</p>
           </div>
         </div>
       </header>
 
       {/* Barre d'outils */}
-      <div className="px-4 md:px-6 pt-5 pb-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
+      <div className="px-3 sm:px-5 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div className="relative w-full xl:flex-1 min-w-0 xl:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" size={17}/>
           <input
             type="text"
@@ -247,22 +237,22 @@ const FormationPage=()=>{
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {isAdmin&&<select aria-label="Filtrer par commune" value={communeId} onChange={e=>setCommuneId(e.target.value)} className={`${outlineBtn} max-w-[220px]`}>
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          {isAdmin&&<select aria-label="Filtrer par commune" value={communeId} onChange={e=>setCommuneId(e.target.value)} className={`${outlineBtn} w-full sm:w-auto sm:max-w-[220px] min-w-0`}>
             <option value="">Toutes les communes</option>
             {communeOptions.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
           </select>}
           <button type="button" onClick={fetchData} disabled={loading} className={`${outlineBtn} shrink-0 disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}>
             <RefreshCw size={16} className={`text-slate-500 dark:text-slate-400 ${loading?'animate-spin':''}`}/>
-            <span className="hidden sm:block">Actualiser</span>
+            <span className="text-xs sm:text-sm">Actualiser</span>
           </button>
 
           <button type="button" onClick={()=>navigate(`/formation-stats${isAdmin&&communeId?`?commune_id=${encodeURIComponent(communeId)}`:''}`)} className={`${outlineBtn} shrink-0 ${focusRing}`}>
             <Eye size={16} className="text-slate-500 dark:text-slate-400"/>
-            <span className="hidden sm:block">Voir plus</span>
+            <span className="text-xs sm:text-sm">Voir plus</span>
           </button>
 
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 max-[420px]:w-full">
             <button
               type="button"
               onClick={()=>setShowExportMenu(!showExportMenu)}
@@ -271,11 +261,11 @@ const FormationPage=()=>{
               className={`${outlineBtn} ${focusRing}`}
             >
               <Download size={16} className="text-slate-500 dark:text-slate-400"/>
-              <span className="hidden md:block">Exporter</span>
+              <span className="text-xs sm:text-sm">Exporter</span>
             </button>
 
             {showExportMenu&&(
-              <div role="menu" className="absolute right-0 mt-2 w-52 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
+              <div role="menu" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-48 max-w-[calc(100vw-32px)] p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 text-slate-900 dark:text-white">
                 <button type="button" role="menuitem" onClick={exportToPDF} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-left transition-colors">
                   <FileText size={16} className="text-rose-600 dark:text-rose-400"/>
                   Document PDF
@@ -292,17 +282,17 @@ const FormationPage=()=>{
 
       {loadError&&<p role="alert" className="px-6 pb-3 text-sm text-red-600">{loadError}</p>}
       {/* Tableau */}
-      <div className="flex-1 overflow-hidden px-4 md:px-6 pb-5">
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm h-full flex flex-col">
-          <div className="flex-1 overflow-x-auto overflow-y-auto">
+      <div className="min-w-0 px-3 sm:px-5 pb-5">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex flex-col min-w-0">
+          <div className="min-w-0 overflow-auto max-h-[70dvh] custom-scrollbar">
             <table className="w-full border-collapse text-left min-w-[1450px]">
               <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800 text-[13px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-5 py-3 w-16 min-w-[4rem] max-w-[4rem] sticky left-0 z-20 bg-slate-50 dark:bg-slate-800 font-semibold">N°</th>
-                  <th className="px-5 py-3 min-w-[220px] sticky left-16 z-20 bg-slate-50 dark:bg-slate-800 border-rborder-slate-200 dark:border-slate-700 font-semibold">Membre</th>
+                  <th className="px-5 py-3 w-16 min-w-[4rem] max-w-[4rem] lg:sticky lg:left-0 z-20 bg-slate-50 dark:bg-slate-800 font-semibold">N°</th>
+                  <th className="px-5 py-3 min-w-[220px] lg:sticky lg:left-16 z-20 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 font-semibold">Membre</th>
                   {modules.map(mod=><th key={mod.id} className="px-3 py-3 text-center min-w-[100px] font-semibold">{formatText(mod.label)}</th>)}
                   <th className="px-5 py-3 min-w-[150px] font-semibold">Autre</th>
-                  <th className="px-5 py-3 text-right w-24 sticky right-0 bg-slate-50 dark:bg-slate-800 font-semibold">Actions</th>
+                  <th className="px-3 py-3 text-right w-16 sm:w-24 sticky right-0 z-10 bg-slate-50 dark:bg-slate-800 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -314,8 +304,8 @@ const FormationPage=()=>{
                   </tr>
                 ):filteredData.map((m,index)=>(
                   <tr key={m.nummembre} className="h-[56px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                    <td className="px-5 py-2.5 text-sm text-slate-500 dark:text-slate-400 tabular-nums w-16 min-w-[4rem] max-w-[4rem] sticky left-0 z-[1] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">{index+1}</td>
-                    <td className="px-5 py-2.5 sticky left-16 z-[1] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-r border-slate-100 dark:border-slate-800 transition-colors">
+                    <td className="px-5 py-2.5 text-sm text-slate-500 dark:text-slate-400 tabular-nums w-16 min-w-[4rem] max-w-[4rem] lg:sticky lg:left-0 z-[1] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">{index+1}</td>
+                    <td className="px-5 py-2.5 lg:sticky lg:left-16 z-[1] bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-r border-slate-100 dark:border-slate-800 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="h-8 w-8 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center justify-center ring-1 ring-inset ring-emerald-100 dark:ring-emerald-900/60" aria-hidden="true">
                           {getInitials(m)}
@@ -335,7 +325,7 @@ const FormationPage=()=>{
                     <td className="px-5 py-2.5">
                       <span className="text-sm text-slate-600 dark:text-slate-300 truncate block max-w-[150px]">{m.formation?.autre||'-'}</span>
                     </td>
-                    <td className="px-5 py-2.5 text-right w-24 sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
+                    <td className="px-3 py-2.5 text-right w-16 sm:w-24 sticky right-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors">
                       <button
                         type="button"
                         onClick={()=>openEditModal(m)}
@@ -361,16 +351,16 @@ const FormationPage=()=>{
 
       {/* Fenêtre de la fiche individuelle */}
       {showModal&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4 bg-slate-900/50 backdrop-blur-[2px] animate-in fade-in duration-150">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="formation-title"
-            className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150 overflow-hidden flex flex-col max-h-[calc(100vh-2rem)]"
+            className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl animate-in zoom-in-95 duration-150 overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)]"
           >
             <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start gap-4 shrink-0">
               <div>
-                <h2 id="formation-title" className="text-base font-display font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 id="formation-title" className="text-lg font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <GraduationCap size={18} className="text-emerald-700 dark:text-emerald-400"/>
                   Fiche individuelle de formation
                 </h2>
@@ -387,8 +377,8 @@ const FormationPage=()=>{
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-              <div className="p-5 space-y-5 overflow-y-auto">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="p-3 sm:p-5 space-y-4 overflow-y-auto min-h-0">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {modules.filter(m=>!m.isAuto).map(mod=>(
                     <div
                       key={mod.id}
@@ -444,7 +434,7 @@ const FormationPage=()=>{
                 <button
                   type="submit"
                   disabled={saving}
-                  className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}
+                  className={`w-full sm:w-auto h-10 px-5 rounded-lg bg-[#176B46] hover:bg-[#103F30] active:bg-emerald-900 text-white inline-flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}
                 >
                   {saving?<Loader2 size={16} className="animate-spin"/>:<Save size={16}/>}
                   {saving?'Enregistrement...':'Enregistrer'}
