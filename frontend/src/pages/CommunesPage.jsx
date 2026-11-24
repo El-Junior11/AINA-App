@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from '../api/axios';
 import Swal from 'sweetalert2';
-import { MapPin, Plus, Search, Edit3, Users, Home, Network, RefreshCw, Building2, UserRound, CalendarDays, AlertCircle, Loader2 } from 'lucide-react';
+import { MapPin, Plus, Search, Edit3, RefreshCw, Building2, UserRound, CalendarDays, AlertCircle, Loader2 } from 'lucide-react';
 
 const CommunesPage = () => {
   const [communes, setCommunes] = useState([]);
@@ -37,13 +37,6 @@ const CommunesPage = () => {
     if (!keyword) return communes;
     return communes.filter(commune => [commune.nom_commune, commune.so_name, commune.so_email].some(value => String(value || '').toLowerCase().includes(keyword)));
   }, [communes, search]);
-
-  const statistics = useMemo(() => ({
-    communes: communes.length,
-    membres: communes.reduce((total, commune) => total + Number(commune.total_membres || 0), 0),
-    menages: communes.reduce((total, commune) => total + Number(commune.total_menages || 0), 0),
-    groupes: communes.reduce((total, commune) => total + Number(commune.total_groupes || 0), 0)
-  }), [communes]);
 
   const openCreateModal = () => {
     setEditingCommune(null);
@@ -101,48 +94,25 @@ const CommunesPage = () => {
     return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('fr-FR');
   };
 
-  const cards = [
-    { label: 'Communes', value: statistics.communes, icon: Building2, color: 'text-sky-600 dark:text-sky-400', background: 'bg-sky-50 dark:bg-sky-950/40' },
-    { label: 'Membres', value: statistics.membres, icon: Users, color: 'text-emerald-600 dark:text-emerald-400', background: 'bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Ménages', value: statistics.menages, icon: Home, color: 'text-amber-600 dark:text-amber-400', background: 'bg-amber-50 dark:bg-amber-950/40' },
-    { label: 'Groupes', value: statistics.groupes, icon: Network, color: 'text-violet-600 dark:text-violet-400', background: 'bg-violet-50 dark:bg-violet-950/40' }
-  ];
-
   return (
-    <div className="w-full min-h-full p-4 sm:p-6 space-y-6 bg-slate-50 dark:bg-slate-950">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="flex flex-col h-full min-h-0 min-w-0 w-full overflow-hidden bg-[#F8FAFC] dark:bg-slate-950 font-body">
+      <header className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 md:px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <MapPin size={22} className="text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Gestion des communes</h1>
+            <h1 className="font-display text-lg sm:text-xl font-bold text-[#103F30] dark:text-white">Gestion des communes</h1>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">Administration et suivi des communes de l'ONG TSINJO AINA.</p>
         </div>
-        <button onClick={openCreateModal} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
+        <button onClick={openCreateModal} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#176B46] hover:bg-[#103F30] text-white text-sm font-semibold transition-colors">
           <Plus size={17} />
           Ajouter une commune
         </button>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-        {cards.map(card => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{card.label}</p>
-                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">{card.value.toLocaleString('fr-FR')}</p>
-              </div>
-              <div className={`p-3 rounded-xl ${card.background} ${card.color}`}>
-                <Icon size={21} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-slate-200 dark:border-slate-800">
+      <main className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden p-3 md:p-5">
+      <div className="flex flex-col flex-1 min-h-0 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 shrink-0 border-b border-slate-200 dark:border-slate-800">
           <div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-white">Liste des communes</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{filteredCommunes.length} commune(s) affichée(s)</p>
@@ -159,15 +129,15 @@ const CommunesPage = () => {
         </div>
 
         {error && (
-          <div className="m-4 p-3 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 text-sm flex items-center gap-2">
+          <div className="shrink-0 m-3 p-3 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 text-sm flex items-center gap-2">
             <AlertCircle size={18} />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase text-slate-500 dark:text-slate-400">
+        <div className="flex-1 min-h-0 overflow-auto overscroll-contain custom-scrollbar">
+          <table className="w-full min-w-[850px] text-sm text-left border-separate border-spacing-0">
+            <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 text-xs uppercase text-slate-500 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-semibold">Commune</th>
                 <th className="px-4 py-3 font-semibold">SO responsable</th>
@@ -237,9 +207,11 @@ const CommunesPage = () => {
         </div>
       </div>
 
+      </main>
+
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60" onMouseDown={event => { if (event.target === event.currentTarget) closeModal(); }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="commune-modal-title" className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div role="dialog" aria-modal="true" aria-labelledby="commune-modal-title" className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800">
             <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
               <h2 id="commune-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">{editingCommune ? 'Modifier une commune' : 'Ajouter une commune'}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Renseignez le nom officiel de la commune.</p>
@@ -251,7 +223,7 @@ const CommunesPage = () => {
               </div>
               <div className="px-5 py-4 flex justify-end gap-2 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800">
                 <button type="button" onClick={closeModal} disabled={saving} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50">Annuler</button>
-                <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50">
+                <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#176B46] hover:bg-[#103F30] text-white text-sm font-semibold disabled:opacity-50">
                   {saving && <Loader2 size={16} className="animate-spin" />}
                   {editingCommune ? 'Enregistrer' : 'Ajouter'}
                 </button>
